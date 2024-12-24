@@ -1,0 +1,8 @@
+pymupdf
+langchain
+langchain-ollama
+langchain_community
+python-docx
+ollama
+reportlab
+pillow
