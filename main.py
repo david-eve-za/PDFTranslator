@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 import fitz  # PyMuPDF
 from langchain.chains import LLMChain
@@ -12,30 +13,42 @@ from io import BytesIO
 
 
 class PDFTranslator:
-    def __init__(self, source_lang: str, target_lang: str, model_name: str = "gemma2:27b", memory_window_size: int = 5) -> None:
+    def __init__(
+        self,
+        source_language: str,
+        target_language: str,
+        model_name: Optional[str] = "gemma2:27b",
+        memory_window_size: int = 5
+    ) -> None:
         """
-        Inicializa la clase con el idioma de origen, idioma de destino y modelo de LLM.
+        Initialize the translation system with the source language, target language, and language model.
 
-        :param source_lang: Idioma original del texto (e.g., 'English').
-        :param target_lang: Idioma al que se traducirá el texto (e.g., 'Spanish').
-        :param model_name: Nombre del modelo LLM (predeterminado: 'gemma2:27b').
-        :param memory_window_size: Número de interacciones previas para recordar en la memoria.
+        :param source_language: The original language of the text (e.g., 'English').
+        :param target_language: The language to translate the text to (e.g., 'Spanish').
+        :param model_name: The name of the language model (default: 'gemma2:27b').
+        :param memory_window_size: The number of previous interactions to remember in the conversation history.
         """
-        self.source_lang = source_lang
-        self.target_lang = target_lang
+        self.source_language = source_language
+        self.target_language = target_language
 
-        # Configurar LangChain con memoria contextual
+        # Check that the specified memory window size is valid
+        if memory_window_size < 1:
+            raise ValueError(f"Invalid memory window size: {memory_window_size}")
+
+        # Configure LangChain with contextual memory
         self.memory = ConversationBufferWindowMemory(
-            memory_key="chat_history",
+            memory_key="context",
+            input_key="text",
             k=memory_window_size
         )
         self.prompt = PromptTemplate(
-            input_variables=["text", "source_lang", "target_lang", "chat_history"],
+            input_variables=["text", "source_language", "target_language", "context"],
             template=(
-                "Translate the following text from {source_lang} to {target_lang}, "
-                "using the context from previous interactions to ensure accuracy:\n\n"
-                "Context:\n{chat_history}\n\n"
-                "Text:\n{text}"
+                "You are translating a document. Maintain the context of the previous text.\n\n"
+                "Previous context:\n{context}\n\n"
+                "Translate the following text from {source_language} to {target_language}:\n\n"
+                "{text}\n\n"
+                "Provide the translated text only."
             ),
         )
         self.llm_chain = LLMChain(
@@ -45,21 +58,31 @@ class PDFTranslator:
             verbose=True
         )
 
-    def translate_text(self, text):
+    def translate_text(self, text: str) -> str:
         """
-        Traduce el texto utilizando LangChain con memoria contextual.
+        Translate the given text from the source language to the target language.
 
-        :param text: Texto a traducir.
-        :return: Texto traducido.
+        :param text: The text to translate.
+        :return: The translated text.
         """
-        return self.llm_chain.run(
-            input_data={
-                "text": text,
-                "source_lang": self.source_lang,
-                "target_lang": self.target_lang
-            },
-            return_type="text"
-        )
+        # Check that the text is not empty
+        if not text.strip():
+            raise ValueError("Text to translate cannot be empty")
+
+        # Create a new input for the LLM chain
+        input = {
+            "text": text,
+            "source_language": self.source_language,
+            "target_language": self.target_language
+        }
+
+        # Run the LLM chain to generate the translation
+        output = self.llm_chain(input)
+
+        # Extract the translated text from the output
+        translated_text = output["text"]
+
+        return translated_text
 
     def translate_pdf(self, input_pdf_path, output_pdf_path):
         """
@@ -182,8 +205,8 @@ if __name__ == "__main__":
 
     # Crear una instancia de PDFTranslator
     translator = PDFTranslator(
-        source_lang=source_language,
-        target_lang=target_language,
+        source_language=source_language,
+        target_language=target_language,
         memory_window_size=10  # Ajusta el tamaño de la memoria según sea necesario
     )
 
