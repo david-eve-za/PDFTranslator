@@ -11,14 +11,16 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from io import BytesIO
 
+from MainController import MainController
+
 
 class PDFTranslator:
     def __init__(
-        self,
-        source_language: str,
-        target_language: str,
-        model_name: Optional[str] = "gemma2:27b",
-        memory_window_size: int = 5
+            self,
+            source_language: str,
+            target_language: str,
+            model_name: Optional[str] = "qwen2.5:32b",
+            memory_window_size: int = 5
     ) -> None:
         """
         Initialize the translation system with the source language, target language, and language model.
@@ -67,7 +69,7 @@ class PDFTranslator:
         """
         # Check that the text is not empty
         if not text.strip():
-            raise ValueError("Text to translate cannot be empty")
+            return ""
 
         # Create a new input for the LLM chain
         input = {
@@ -197,18 +199,20 @@ class PDFTranslator:
 # Ejemplo de uso
 if __name__ == "__main__":
     # Idiomas
-    source_language = "English"
-    target_language = "Spanish"
+    # source_language = "English"
+    # target_language = "Spanish"
 
     # Ruta del directorio
     directory = "/Volumes/Elements/Peliculas/.Hide/Thinks/NVL/ENG/A Late-Start Tamer\'s Laid-Back Life/"
 
     # Crear una instancia de PDFTranslator
-    translator = PDFTranslator(
-        source_language=source_language,
-        target_language=target_language,
-        memory_window_size=10  # Ajusta el tamaño de la memoria según sea necesario
-    )
+    # translator = PDFTranslator(
+    #     source_language=source_language,
+    #     target_language=target_language,
+    #     memory_window_size=10  # Ajusta el tamaño de la memoria según sea necesario
+    # )
 
     # Traducir el PDF
-    translator.translate_pdfs_in_directory(directory)
+    # translator.translate_pdfs_in_directory(directory)
+    controller = MainController(input_dir=directory, model_name="qwen2.5:32b")
+    controller.process_pdfs()
