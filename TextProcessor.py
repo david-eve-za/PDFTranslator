@@ -17,13 +17,12 @@ class TextProcessor:
             k=1
         )
         self.prompt = PromptTemplate(
-            input_variables=["text", "source_language", "context"],
+            input_variables=["text", "source_language"],
             template=(
                 "Act as an editor who carefully analyzes a document in {source_language} language.\n\n"
-                "Text context:\n{context}\n\n"
                 "Understand the text context, identify potential errors, and make only necessary corrections\n\n"
-                "to improve readability and coherence without altering the original tone or structure:\n\n {text}"
-                "Provide the corrected text only."
+                "to improve readability and coherence without altering the original tone or structure:\n\n {text}\n\n"
+                "Provide the corrected text only without context or any other information."
             ),
         )
         self.llm_chain = LLMChain(
