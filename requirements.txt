@@ -6,3 +6,5 @@ python-docx
 ollama
 reportlab
 pillow
+nltk
+langchain-text-splitters
