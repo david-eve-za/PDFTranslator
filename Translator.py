@@ -37,10 +37,9 @@ class Translator:
             k=memory_window_size
         )
         self.prompt = PromptTemplate(
-            input_variables=["text", "source_language", "target_language", "context"],
+            input_variables=["text", "source_language", "target_language"],
             template=(
                 "You are translating a document. Maintain the context of the previous text.\n\n"
-                "Previous context:\n{context}\n\n"
                 "Translate the following text from {source_language} to {target_language}:\n\n"
                 "{text}\n\n"
                 "Provide the translated text only."
