@@ -49,7 +49,7 @@ class Translator:
             llm=OllamaLLM(model=model_name, temperature=0.1),
             prompt=self.prompt,
             memory=self.memory,
-            verbose=True
+            verbose=False
         )
 
     def translate_text(self, text: str) -> str:

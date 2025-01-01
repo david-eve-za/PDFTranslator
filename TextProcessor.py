@@ -29,7 +29,7 @@ class TextProcessor:
             llm=OllamaLLM(model=model_name, temperature=0.1),
             prompt=self.prompt,
             memory=self.memory,
-            verbose=True
+            verbose=False
         )
 
     def correct_text(self, text_block, source_language: str):

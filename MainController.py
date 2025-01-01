@@ -4,6 +4,7 @@ from typing import Optional, Literal
 
 import nltk
 from langchain_text_splitters import NLTKTextSplitter
+from tqdm import tqdm
 
 from OutputGenerator import OutputGenerator
 from PDFHandler import PDFHandler
@@ -24,7 +25,7 @@ class MainController:
         self.target_language = target_language
         self.source_text_spliter = NLTKTextSplitter(chunk_size=token_size, chunk_overlap=0,
                                                     language=source_language.lower())
-        self.target_text_spliter = NLTKTextSplitter(chunk_size=750, chunk_overlap=0,
+        self.target_text_spliter = NLTKTextSplitter(chunk_size=1000, chunk_overlap=0,
                                                     language=target_language.lower())
         if output_dir == "translated":
             self.output_dir = os.path.join(input_dir, output_dir)
@@ -64,43 +65,89 @@ class MainController:
     def process_pdfs(self):
 
         pdf_files = self.pdf_handler.find_pdfs()
-        for pdf_file in pdf_files:
+        for pdf_file in tqdm(pdf_files, desc="Processing PDFs", unit="PDF"):
             progress_file = self.get_progress_file(pdf_file)
             metadata = self.load_progress(progress_file)
             if len(metadata) == 0:
                 metadata = self.pdf_handler.extract_content(pdf_file)
                 self.save_progress(progress_file, metadata)
             translated_content = []
-            for i in range(len(metadata)):  # Iterate over the metadata:
+            for i in tqdm(range(len(metadata)), desc="Processing chunks", unit="Chunk",
+                          leave=False):  # Iterate over the metadata:
                 md = metadata[i]
                 if md["type"] == "text":
                     tb_translated = ""
-                    progress = md.get("progress", {})
-                    if not progress.get("translated", False):
-                        tokenized = progress.get("tokenized_eng", [])
-                        if len(tokenized) == 0:
-                            tb_translated = "".join([t["text"] for t in md["content"]])
-                            blocks = self.source_text_spliter.split_text(tb_translated)
-                            md["tokenized_eng"] = [{"analyzed": False, "text": txt} for txt in blocks]
-                            metadata[i] = md
-                            self.save_progress(progress_file, metadata)
-                    processed_blocks = ""
-                    for block in blocks:
-                        corrected_text = self.source_text_processor.correct_text(text_block=block,
-                                                                                 source_language=self.source_language)
-                        translated_text = self.translator.translate_text(corrected_text)
-                        corrected_text = self.target_text_processor.correct_text(text_block=translated_text,
-                                                                                 source_language=self.target_language)
-                        processed_blocks += corrected_text
+                    progress = self.get_progress(i, md, metadata, progress_file)
+                    source_tokens = progress.get("tokenized_src", [])
+                    translated_tokens = progress.get("tokenized_tgt", [])
+                    corrected_tokens = progress.get("corrected_tokens", [])
+                    for pos in tqdm(range(len(source_tokens)), desc="Processing tokens", unit="Token", leave=False):
+                        source_tokens = self.analyze_source_grammar(i, md, metadata, pos, progress, progress_file,
+                                                                    source_tokens)
+                        translated_tokens = self.translate_chunk(i, md, metadata, pos, progress, progress_file,
+                                                                 source_tokens,
+                                                                 translated_tokens)
+                        corrected_tokens = self.analyze_target_grammar(corrected_tokens, i, md, metadata, pos, progress,
+                                                                       progress_file,
+                                                                       translated_tokens)
+
+                    processed_blocks = "".join([t for t in corrected_tokens])
                     blocks = self.target_text_spliter.split_text(processed_blocks)
                     for block in blocks:
                         translated_content.append({"text": block})
                 if md["type"] == "image":
                     for content in md["content"]:
-                        translated_content.append({"images": content["images"]})
+                        translated_content.append({"images": content["images"][0]})
             output_path = os.path.join(
                 self.output_dir,
                 f"translated_{os.path.basename(pdf_file)}",
             )
-            self.output_generator.reconstruct_pdf(content, translated_content, output_path)
+            self.output_generator.reconstruct_pdf(pdf_file, translated_content, output_path)
             print(f"PDF traducido guardado en: {output_path}")
+
+    def analyze_target_grammar(self, corrected_tokens, i, md, metadata, pos, progress, progress_file,
+                               translated_tokens):
+        if len(corrected_tokens) < (pos + 1):
+            corrected_tokens.append(
+                self.target_text_processor.correct_text(text_block=translated_tokens[pos],
+                                                        source_language=self.target_language))
+            progress["corrected_tokens"] = corrected_tokens
+            md["progress"] = progress
+            metadata[i] = md
+            self.save_progress(progress_file, metadata)
+        return corrected_tokens
+
+    def translate_chunk(self, i, md, metadata, pos, progress, progress_file, source_tokens, translated_tokens):
+        if len(translated_tokens) < (pos + 1):
+            translated_tokens.append(self.translator.translate_text(source_tokens[pos]["text"]))
+            progress["tokenized_tgt"] = translated_tokens
+            md["progress"] = progress
+            metadata[i] = md
+            self.save_progress(progress_file, metadata)
+        return translated_tokens
+
+    def analyze_source_grammar(self, i, md, metadata, pos, progress, progress_file, source_tokens):
+        if not source_tokens[pos]["analyzed"]:
+            source_tokens[pos]["analyzed"] = True
+            source_tokens[pos]["text"] = self.source_text_processor.correct_text(
+                text_block=source_tokens[pos]["text"],
+                source_language=self.source_language)
+            progress["tokenized_src"] = source_tokens
+            md["progress"] = progress
+            metadata[i] = md
+            self.save_progress(progress_file, metadata)
+        return source_tokens
+
+    def get_progress(self, pos, md, metadata, progress_file):
+        progress = md.get("progress", {})
+        if not progress.get("translated", False):
+            tokenized = progress.get("tokenized_src", [])
+            if len(tokenized) == 0:
+                tb_translated = "".join([t["text"] for t in md["content"]])
+                blocks = self.source_text_spliter.split_text(tb_translated)
+                progress["tokenized_src"] = [{"analyzed": False, "text": txt} for txt in blocks]
+                md["progress"] = progress
+                metadata[pos] = md
+                md["content"] = []
+                self.save_progress(progress_file, metadata)
+        return progress

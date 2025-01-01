@@ -8,3 +8,4 @@ reportlab
 pillow
 nltk
 langchain-text-splitters
+tqdm
