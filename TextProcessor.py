@@ -29,7 +29,7 @@ class TextProcessor:
             llm=OllamaLLM(model=model_name, temperature=0.1),
             prompt=self.prompt,
             memory=self.memory,
-            verbose=True
+            verbose=False
         )
 
     def correct_text(self, text_block, source_language: str):
@@ -40,18 +40,18 @@ class TextProcessor:
         }
 
         # Run the LLM chain to generate the translation
-        output = self.llm_chain(input)
+        output = self.llm_chain.invoke(input)
 
         # Extract the translated text from the output
         corrected_text = output["text"]
 
         # Mostrar diferencias entre el texto original y el corregido
-        if corrected_text.strip() != text_block.strip():
-            print("\n--- Corrections Made ---")
-            for diff in unified_diff(text_block.splitlines(), corrected_text.splitlines(), lineterm='',
-                                     fromfile='Original', tofile='Corrected'):
-                print(diff)
-        else:
-            print("\n--- No Corrections Made ---")
+        # if corrected_text.strip() != text_block.strip():
+        #     print("\n--- Corrections Made ---")
+        #     for diff in unified_diff(text_block.splitlines(), corrected_text.splitlines(), lineterm='',
+        #                              fromfile='Original', tofile='Corrected'):
+        #         print(diff)
+        # else:
+        #     print("\n--- No Corrections Made ---")
 
         return corrected_text

@@ -49,7 +49,7 @@ class Translator:
             llm=OllamaLLM(model=model_name, temperature=0.1),
             prompt=self.prompt,
             memory=self.memory,
-            verbose=True
+            verbose=False
         )
 
     def translate_text(self, text: str) -> str:
@@ -71,7 +71,7 @@ class Translator:
         }
 
         # Run the LLM chain to generate the translation
-        output = self.llm_chain(input)
+        output = self.llm_chain.invoke(input)
 
         # Extract the translated text from the output
         translated_text = output["text"]

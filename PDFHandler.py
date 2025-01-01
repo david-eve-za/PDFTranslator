@@ -2,6 +2,7 @@
 import os
 
 import fitz
+from tqdm import tqdm
 
 
 class PDFHandler:
@@ -27,35 +28,38 @@ class PDFHandler:
         current_group = None  # Grupo actual para metadatos
 
         with (fitz.open(pdf_path) as doc):
-            for page_number in range(len(doc)):
-                page = doc[page_number]
-                text = page.get_text()
-                images = len(page.get_images(full=True)) > 0
+            with tqdm(total=len(doc), desc="Processing PDF", unit="page") as pbar:
+                for page_number in range(len(doc)):
+                    page = doc[page_number]
+                    text = page.get_text()
+                    images = len(page.get_images(full=True)) > 0
 
-                if text.strip():  # Página con texto
-                    content.append({"text": text, "images": []})
-                    page_type = "text"
-                elif images:  # Página con imágenes
-                    content.append({"text": "", "images": page.get_images(full=True)})
-                    page_type = "image"
-                else:  # Página vacía o sin contenido relevante
-                    continue
+                    if text.strip():  # Página con texto
+                        content.append({"text": text, "images": []})
+                        page_type = "text"
+                    elif images:  # Página con imágenes
+                        content.append({"text": "", "images": page.get_images(full=True)})
+                        page_type = "image"
+                    else:  # Página vacía o sin contenido relevante
+                        continue
 
-                # Agrupar páginas por tipo
-                if not current_group or current_group["type"] != page_type:
-                    if current_group:
-                        current_group["to"] = page_number - 1
-                        current_group["content"] = []
-                        current_group["content"].extend(content[:len(content) - 1])
-                        del content[:len(content) - 1]
-                        metadata.append(current_group)
-                    current_group = {"type": page_type, "from": page_number, "to": page_number}
-                else:
-                    current_group["to"] = page_number
+                    # Agrupar páginas por tipo
+                    if not current_group or current_group["type"] != page_type:
+                        if current_group:
+                            current_group["to"] = page_number - 1
+                            current_group["content"] = []
+                            current_group["content"].extend(content[:len(content) - 1])
+                            del content[:len(content) - 1]
+                            metadata.append(current_group)
+                        current_group = {"type": page_type, "from": page_number, "to": page_number}
+                    else:
+                        current_group["to"] = page_number
 
-            # Finalizar el último grupo
-            if current_group:
-                current_group["content"] = content
-                metadata.append(current_group)
+                    pbar.update(1)
+
+                # Finalizar el último grupo
+                if current_group:
+                    current_group["content"] = content
+                    metadata.append(current_group)
 
         return metadata

@@ -1,0 +1,15 @@
+name: PDFTranslator
+channels:
+    - conda-forge
+    - defaults
+dependencies:
+    - python=3.10
+    - tqdm
+    - fitz
+    - langchain
+    - langchain-ollama
+    - langchain_community
+    - langchain-text-splitters
+    - pymupdf
+    - nltk
+    - pip
