@@ -67,10 +67,10 @@ def main():
     print(f"Tokenization size: {args.token_size}")
 
     # Request confirmation
-    confirmation = input("\nAre these parameters correct? (y/n): ").strip().lower()
-    if confirmation != 'y':
-        print("Operation canceled by the user.")
-        sys.exit(0)
+    # confirmation = input("\nAre these parameters correct? (y/n): ").strip().lower()
+    # if confirmation != 'y':
+    #     print("Operation canceled by the user.")
+    #     sys.exit(0)
 
     print("Parameters confirmed. Starting the processing...")
     # Add the code here to continue with the file processing

@@ -14,7 +14,7 @@ class PDFHandler:
         pdf_files = []
         for root, _, files in os.walk(self.input_dir):
             for file in files:
-                if file.endswith(".pdf"):
+                if file.endswith(".pdf") and "translated_" not in file:
                     pdf_files.append(os.path.join(root, file))
         return sorted(pdf_files)
 
