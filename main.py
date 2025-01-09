@@ -54,6 +54,14 @@ def main():
         help="Maximum number of tokens per processing block (default: 1000)."
     )
 
+    # Set only translation mode
+    parser.add_argument(
+        "--only_translation",
+        type=bool,
+        default=True,
+        help="Enable translation mode (default: true)."
+    )
+
     # Parse arguments
     args = parser.parse_args()
 
@@ -65,6 +73,7 @@ def main():
     print(f"Source language: {args.source_language}")
     print(f"Target language: {args.target_language}")
     print(f"Tokenization size: {args.token_size}")
+    print(f"Only translation mode: {args.only_translation}")
 
     # Request confirmation
     # confirmation = input("\nAre these parameters correct? (y/n): ").strip().lower()
@@ -76,7 +85,7 @@ def main():
     # Add the code here to continue with the file processing
     controller = MainController(input_dir=args.path, model_name=args.model, token_size=args.token_size,
                                 output_dir=args.output_path, source_language=args.source_language,
-                                target_language=args.target_language)
+                                target_language=args.target_language, only_translation=args.only_translation)
     controller.process_pdfs()
 
 

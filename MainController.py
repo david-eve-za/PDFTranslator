@@ -19,8 +19,9 @@ class MainController:
     def __init__(self, model_name: Literal["qwen2.5:32b", "mistral-small"], input_dir: str,
                  output_dir: Optional[str] = "translated",
                  source_language: Optional[str] = "English", target_language: Optional[str] = "Spanish",
-                 token_size: int = 1000):
+                 token_size: int = 1000, only_translation: bool = False):
         nltk.download('punkt_tab')
+        self.only_translation = only_translation
         self.input_dir = input_dir
         self.source_language = source_language
         self.target_language = target_language
@@ -104,14 +105,15 @@ class MainController:
                 if md["type"] == "image":
                     for content in md["content"]:
                         translated_content.append({"images": content["images"][0]})
-            output_path = os.path.join(
-                self.output_dir,
-                f"translated_{os.path.basename(pdf_file)}",
-            )
-            self.output_generator.reconstruct_pdf(pdf_file, translated_content, output_path)
-            print(f"PDF traducido guardado en: {output_path}")
-            audio_generator = AudioGenerator(final_output=self.get_audiobook_file(pdf_file))
-            audio_generator.process_texts(translated_content)
+            if not self.only_translation:
+                output_path = os.path.join(
+                    self.output_dir,
+                    f"translated_{os.path.basename(pdf_file)}",
+                )
+                self.output_generator.reconstruct_pdf(pdf_file, translated_content, output_path)
+                print(f"PDF traducido guardado en: {output_path}")
+                # audio_generator = AudioGenerator(final_output=self.get_audiobook_file(pdf_file))
+                # audio_generator.process_texts(translated_content)
 
     def analyze_target_grammar(self, corrected_tokens, i, md, metadata, pos, progress, progress_file,
                                translated_tokens):
