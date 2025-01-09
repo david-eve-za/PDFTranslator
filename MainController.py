@@ -6,6 +6,7 @@ import nltk
 from langchain_text_splitters import NLTKTextSplitter
 from tqdm import tqdm
 
+from AudioGenerator import AudioGenerator
 from OutputGenerator import OutputGenerator
 from PDFHandler import PDFHandler
 from TextProcessor import TextProcessor
@@ -45,6 +46,11 @@ class MainController:
         base_name = os.path.splitext(os.path.basename(pdf_file))[0]
         progress_file = os.path.join(os.path.dirname(pdf_file), f"{base_name}.json")
         return progress_file
+
+    def get_audiobook_file(self, pdf_file):
+        base_name = os.path.splitext(os.path.basename(pdf_file))[0]
+        audio_file = os.path.join(self.output_dir, f"{base_name}.m4a")
+        return audio_file
 
     def load_progress(self, progress_file):
         """
@@ -104,6 +110,8 @@ class MainController:
             )
             self.output_generator.reconstruct_pdf(pdf_file, translated_content, output_path)
             print(f"PDF traducido guardado en: {output_path}")
+            audio_generator = AudioGenerator(final_output=self.get_audiobook_file(pdf_file))
+            audio_generator.process_texts(translated_content)
 
     def analyze_target_grammar(self, corrected_tokens, i, md, metadata, pos, progress, progress_file,
                                translated_tokens):
