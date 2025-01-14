@@ -10,11 +10,18 @@ from langchain_ollama import OllamaLLM
 
 class TextProcessor:
     def __init__(self, model_name: Optional[str] = "qwen2.5:32b"):
-        # Configure LangChain with contextual memory
+        """
+        Initialize the TextProcessor class.
+
+        Parameters:
+            model_name (str): The name of the model to use for processing (default: "qwen2.5:32b").
+        """
+
+        # Initialize the memory and prompt for the LLM chain
         self.memory = ConversationBufferWindowMemory(
             memory_key="context",
             input_key="text",
-            k=1
+            k=1  # Only remember the current text block
         )
         self.prompt = PromptTemplate(
             input_variables=["text", "source_language"],
@@ -25,33 +32,35 @@ class TextProcessor:
                 "Provide the corrected text only without context or any other information."
             ),
         )
+        # Initialize the LLM chain
         self.llm_chain = LLMChain(
             llm=OllamaLLM(model=model_name, temperature=0.1),
             prompt=self.prompt,
             memory=self.memory,
-            verbose=False
+            verbose=False  # Don't print out the LLM chain output
         )
 
-    def correct_text(self, text_block, source_language: str):
-        """Corrige errores ortográficos, gramaticales y mejora la coherencia."""
+    def correct_text(self, text_block, source_language: str) -> str:
+        """
+        Correct the grammar and improve the readability of the given text block.
+
+        Parameters:
+            text_block (str): The text to be corrected.
+            source_language (str): The language of the input text.
+
+        Returns:
+            str: The corrected text with improved grammar and readability.
+        """
+        # Prepare input for the LLM chain
         input = {
             "text": text_block,
             "source_language": source_language
         }
 
-        # Run the LLM chain to generate the translation
+        # Invoke the LLM chain to process and correct the text
         output = self.llm_chain.invoke(input)
 
-        # Extract the translated text from the output
+        # Extract the corrected text from the output
         corrected_text = output["text"]
-
-        # Mostrar diferencias entre el texto original y el corregido
-        # if corrected_text.strip() != text_block.strip():
-        #     print("\n--- Corrections Made ---")
-        #     for diff in unified_diff(text_block.splitlines(), corrected_text.splitlines(), lineterm='',
-        #                              fromfile='Original', tofile='Corrected'):
-        #         print(diff)
-        # else:
-        #     print("\n--- No Corrections Made ---")
 
         return corrected_text

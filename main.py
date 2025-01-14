@@ -5,6 +5,9 @@ from MainController import MainController
 
 
 def main():
+    """
+    Main function to process documents with configurable options.
+    """
     # Create the parser
     parser = argparse.ArgumentParser(description="Script to process documents with configurable options.")
 
