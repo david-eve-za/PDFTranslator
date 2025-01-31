@@ -4,12 +4,16 @@ channels:
     - defaults
 dependencies:
     - python=3.10
-    - tqdm
-    - fitz
-    - langchain
-    - langchain-ollama
-    - langchain_community
-    - langchain-text-splitters
-    - pymupdf
-    - nltk
     - pip
+    - pip:
+          - huggingface_hub
+          - tqdm
+          - langchain
+          - langchain-ollama
+          - langchain_community
+          - langchain-text-splitters
+          - PyMuPDF
+          - nltk
+          - Pillow
+          - python-docx
+          - reportlab

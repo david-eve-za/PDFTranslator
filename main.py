@@ -22,7 +22,7 @@ def main():
     parser.add_argument(
         "-m", "--model",
         type=str,
-        choices=["qwen2.5:32b", "gpt-4", "llama2-70b", "bloomz-176b"],
+        choices=["qwen2.5:32b", "gpt-4", "llama2-70b", "bloomz-176b", "deepseek-r1:32b","deepseek-r1:8b","granite3-dense:8b"],
         default="qwen2.5:32b",
         help="Model to use for processing (default: qwen2.5:32b)."
     )
@@ -60,7 +60,7 @@ def main():
     # Set only translation mode
     parser.add_argument(
         "--only_translation",
-        type=bool,
+        action=argparse.BooleanOptionalAction,
         default=True,
         help="Enable translation mode (default: true)."
     )

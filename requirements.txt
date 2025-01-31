@@ -1,4 +1,4 @@
-pymupdf
+pymupdf==1.25.0
 langchain
 langchain-ollama
 langchain_community

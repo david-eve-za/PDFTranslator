@@ -5,6 +5,7 @@ from typing import Optional, Literal
 import nltk
 from langchain_text_splitters import NLTKTextSplitter
 from tqdm import tqdm
+from transformers import AutoTokenizer
 
 from AudioGenerator import AudioGenerator
 from OutputGenerator import OutputGenerator
@@ -14,7 +15,6 @@ from Translator import Translator
 
 
 class MainController:
-    PROGRESS_FILE = "translation_progress.json"
 
     def __init__(self, model_name: Literal["qwen2.5:32b", "mistral-small"], input_dir: str,
                  output_dir: Optional[str] = "translated",
@@ -44,7 +44,7 @@ class MainController:
         # Initialize text splitters for source and target languages
         self.source_text_spliter = NLTKTextSplitter(chunk_size=token_size, chunk_overlap=0,
                                                     language=source_language.lower())
-        self.target_text_spliter = NLTKTextSplitter(chunk_size=1500, chunk_overlap=0,
+        self.target_text_spliter = NLTKTextSplitter(chunk_size=2000, chunk_overlap=0,
                                                     language=target_language.lower())
 
         # Set the output directory
@@ -62,7 +62,7 @@ class MainController:
         self.source_text_processor = TextProcessor(model_name=model_name)
         self.target_text_processor = TextProcessor(model_name=model_name)
         self.translator = Translator(source_language=source_language, target_language=target_language,
-                                     memory_window_size=1, model_name=model_name)
+                                     model_name=model_name)
         self.output_generator = OutputGenerator()
 
     def get_progress_file(self, pdf_file: str) -> str:
@@ -139,7 +139,6 @@ class MainController:
                 md = metadata[i]
                 if md["type"] == "text":
                     # Initialize translation variables
-                    tb_translated = ""
                     progress = self.get_progress(i, md, metadata, progress_file)
                     source_tokens = progress.get("tokenized_src", [])
                     translated_tokens = progress.get("tokenized_tgt", [])
@@ -192,7 +191,7 @@ class MainController:
         # Check if the current position has been corrected
         if len(corrected_tokens) < (pos + 1):
             # Correct the grammar of the current translated token
-            corrected_text = self.target_text_processor.correct_text(
+            corrected_text = self.target_text_processor.ollama_correct_text(
                 text_block=translated_tokens[pos],
                 source_language=self.target_language
             )
@@ -225,7 +224,7 @@ class MainController:
         # Check if the current position has been translated
         if len(translated_tokens) < (pos + 1):
             # Translate the current source token
-            translated_text = self.translator.translate_text(source_tokens[pos]["text"])
+            translated_text = self.translator.ollama_translate_text(source_tokens[pos]["text"])
 
             # Append the translated text to the list of translated tokens
             translated_tokens.append(translated_text)
@@ -256,7 +255,7 @@ class MainController:
         # Check if the current position has been analyzed
         if not source_tokens[pos]["analyzed"]:
             # Correct the grammar of the current source token
-            source_tokens[pos]["text"] = self.source_text_processor.correct_text(
+            source_tokens[pos]["text"] = self.source_text_processor.ollama_correct_text(
                 text_block=source_tokens[pos]["text"],
                 source_language=self.source_language
             )
@@ -294,7 +293,8 @@ class MainController:
             if len(tokenized) == 0:
                 # Split the text into blocks
                 tb_translated = "".join([t["text"] for t in md["content"]])
-                blocks = self.source_text_spliter.split_text(tb_translated)
+                # blocks = self.source_text_spliter.split_text(tb_translated)
+                blocks = self.tiktoken_tokeize(tb_translated)
                 # Create a list of tokens from the blocks
                 progress["tokenized_src"] = [{"analyzed": False, "text": txt} for txt in blocks]
                 # Update the progress dictionary
@@ -306,3 +306,10 @@ class MainController:
                 self.save_progress(progress_file, metadata)
 
         return progress
+
+    def tiktoken_tokeize(self, text):
+        tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-32B")
+        tokens = tokenizer.encode(text, add_special_tokens=False)
+
+        print(f"Number of tokens: {len(tokens)}")
+        return tokens

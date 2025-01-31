@@ -1,3 +1,4 @@
+import os.path
 import shutil
 import subprocess
 import tempfile
@@ -77,6 +78,9 @@ class AudioGenerator:
         Parameters:
         - texts (list): List of strings to convert to audio.
         """
+        if os.path.exists(self.final_output):
+            return None
+
         audio_files = []
 
         try:
@@ -90,6 +94,8 @@ class AudioGenerator:
                                        .replace("’", "'")
                                        .replace("‘", "'")
                                        .replace("—", "-")
+                                       .replace("…", "...")
+                                       .replace("<br>", "\n")
                                        , audio_file)
                     audio_files.append(audio_file)
 

@@ -49,7 +49,7 @@ class OutputGenerator:
                     page.insert_htmlbox(
                         page.mediabox + (36, 36, -36, -36),
                         page_content["text"],
-                        archive=self.font_path
+                        # archive=self.font_path
                     )
                 elif "images" in page_content:
                     # Extract the image from the original PDF
