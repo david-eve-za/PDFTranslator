@@ -1,19 +1,68 @@
+# environment.yml
+# Defines the conda environment for the PDFTranslator project.
+# To create the environment: conda env create -f environment.yml
+# To activate the environment: conda activate PDFTranslator
+
 name: PDFTranslator
 channels:
-    - conda-forge
-    - defaults
+  - conda-forge  # Prioritize conda-forge for broader package availability
+  - defaults
 dependencies:
-    - python=3.10
-    - pip
-    - pip:
-          - huggingface_hub
-          - tqdm
-          - langchain
-          - langchain-ollama
-          - langchain_community
-          - langchain-text-splitters
-          - PyMuPDF
-          - nltk
-          - Pillow
-          - python-docx
-          - reportlab
+  # Core Python and Pip
+  - python=3.10
+  - pip
+
+  # Main dependencies available via Conda
+  # Using versions specified in requirements.txt where applicable
+  # - pymupdf=1.25.0      # PDF handling (Note: conda package name is pymupdf)
+  - pillow              # Image handling
+  - nltk                # Natural Language Toolkit
+  - reportlab           # PDF generation (often used with docx)
+  - tqdm                # Progress bars
+  - pandas              # Data manipulation (used in streamlit_ui)
+  - beautifulsoup4      # HTML/XML parsing (for EPUB)
+  - ebooklib            # EPUB file handling
+  - protobuf            # Protocol buffers (often a dependency)
+  # - ollama            # Check if available on conda-forge, otherwise move to pip
+  # - streamlit         # Check if available on conda-forge, otherwise move to pip
+  # - transformers      # Check if available on conda-forge, otherwise move to pip
+  # - groq              # Check if available on conda-forge, otherwise move to pip
+  # - pymongo           # Check if available on conda-forge, otherwise move to pip
+  # - together          # Check if available on conda-forge, otherwise move to pip
+
+  # Dependencies installed via Pip within the Conda environment
+  # Use this for packages not on conda, needing specific pip versions,
+  # or known to install better via pip.
+  - pip:
+      # Langchain ecosystem
+      - langchain
+      - langchain-ollama
+      - langchain_community
+      - langchain-google-genai
+      - langchain-text-splitters
+
+      # Other libraries from requirements.txt or imports
+      - python-docx           # Word document handling
+      - supabase~=2.13.0      # Supabase client with version constraint
+      - huggingface_hub       # From original environment.yml
+      - openai                # Added from streamlit_ui.py import (ensure it's needed)
+      - pymupdf==1.25.0       # PDF handling (Note: conda package name is pymupdf)
+      - google-generativeai   # Google library for manage AI Interactions
+
+      # Add packages here if they are not found reliably on conda channels
+      - ollama                # If not found/stable on conda-forge
+      - streamlit             # If not found/stable on conda-forge
+      - transformers          # If not found/stable on conda-forge
+      - groq                  # If not found/stable on conda-forge
+      - pymongo               # If not found/stable on conda-forge
+      - together              # If not found/stable on conda-forge
+      - tiktoken
+
+# Notes:
+# 1. Prioritized conda-forge channel.
+# 2. Listed packages primarily under conda dependencies if commonly available.
+# 3. Moved packages with specific version constraints (like supabase) or those often installed via pip (like langchain) to the pip section.
+# 4. Added comments for packages where conda availability might vary (ollama, streamlit, etc.) - you might need to move them between the conda `dependencies` section and the `pip:` section based on installation success.
+# 5. Included `openai` based on the import in `streamlit_ui.py`, assuming it's a required dependency for that part of the project.
+# 6. Kept `huggingface_hub` as it was in the original environment.yml.
+# 7. Ensured all packages from requirements.txt are included either in the conda or pip section.

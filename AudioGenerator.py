@@ -1,9 +1,10 @@
 import os.path
-import shutil
 import subprocess
 import tempfile
 from pathlib import Path
 
+import nltk
+from langchain_text_splitters import NLTKTextSplitter
 from tqdm import tqdm
 
 
@@ -22,8 +23,11 @@ class AudioGenerator:
         self.output_dir = Path(output_dir)
         self.final_output = final_output
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        nltk.download('punkt_tab')
+        self.target_text_spliter = NLTKTextSplitter(chunk_size=1900, chunk_overlap=0,
+                                                    language="spanish")
 
-    def text_to_audio(self, text, output_file):
+    def _text_to_audio(self, text, output_file):
         """
         Converts the given text to audio using macOS's 'say' command and saves as .m4a.
 
@@ -42,7 +46,7 @@ class AudioGenerator:
             print(f"Error during text-to-audio conversion: {e}")
             raise
 
-    def merge_audio_files(self, audio_files):
+    def _merge_audio_files(self, audio_files):
         """
         Merges multiple .m4a audio files into one using ffmpeg.
 
@@ -58,7 +62,8 @@ class AudioGenerator:
 
             # Use ffmpeg to concatenate the audio files
             subprocess.run(
-                ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(file_list), "-c:a", "libfdk_aac", "-b:a", "64k",
+                ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(file_list), "-c:a", "libfdk_aac", "-b:a",
+                 "64k",
                  self.final_output],
                 check=True
             )
@@ -71,7 +76,7 @@ class AudioGenerator:
             if file_list.exists():
                 file_list.unlink()
 
-    def process_texts(self, texts):
+    def process_texts(self, texts) -> bool:
         """
         Converts a list of texts to individual .m4a audio files and merges them into one final .m4a file.
 
@@ -81,28 +86,37 @@ class AudioGenerator:
         if os.path.exists(self.final_output):
             return None
 
+        all_text = "".join(texts)
+        chunks = self.target_text_spliter.split_text(all_text)
+
         audio_files = []
 
         try:
             # Convert each text to an individual .m4a audio file
-            for i, text in tqdm(enumerate(texts, start=1), desc="Processing Texts", unit="Text"):
-                if "text" in text:
-                    audio_file = self.output_dir / f"chunk_{i:04d}.m4a"
-                    self.text_to_audio(text["text"]
-                                       .replace("”", "\"")
-                                       .replace("“", "\"")
-                                       .replace("’", "'")
-                                       .replace("‘", "'")
-                                       .replace("—", "-")
-                                       .replace("…", "...")
-                                       .replace("<br>", "\n")
-                                       , audio_file)
-                    audio_files.append(audio_file)
+            for i, text in tqdm(enumerate(chunks, start=1), desc="Processing Texts", unit="Text"):
+                # if "text" in text:
+                audio_file = self.output_dir / f"chunk_{i:04d}.m4a"
+                self._text_to_audio(text
+                                    .replace("”", "\"")
+                                    .replace("“", "\"")
+                                    .replace("’", "'")
+                                    .replace("‘", "'")
+                                    .replace("—", "-")
+                                    .replace("…", "...")
+                                    .replace("<br>", "\n")
+                                    , audio_file)
+                audio_files.append(audio_file)
 
             # Merge all .m4a audio files into one
-            self.merge_audio_files(audio_files)
+            self._merge_audio_files(audio_files)
         finally:
             # Clean up intermediate audio files
             if self.output_dir.exists():
-                shutil.rmtree(self.output_dir)
+                for file in self.output_dir.iterdir():
+                    if file.is_file():
+                        file.unlink()
+                self.output_dir.rmdir()
                 print(f"Intermediate audio files deleted: {self.output_dir}")
+            return True
+
+
