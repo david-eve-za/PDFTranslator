@@ -1,39 +1,38 @@
 # environment.yml
-# Defines the conda environment for the PDFTranslator project.
-# To create the environment: conda env create -f environment.yml
-# To activate the environment: conda activate PDFTranslator
+# Define el entorno conda para el proyecto PDFTranslator.
+# Este archivo prioriza la instalación de paquetes Python a través de pip
+# dentro del entorno conda, manteniendo solo las dependencias base y binarias
+# esenciales en la sección de conda.
+#
+# Para crear el entorno: conda env create -f environment.yml
+# Para activar el entorno: conda activate PDFTranslator
 
 name: PDFTranslator
 channels:
-  - conda-forge  # Prioritize conda-forge for broader package availability
+  - conda-forge  # Prioriza conda-forge para una mayor disponibilidad de paquetes
   - defaults
+
 dependencies:
-  # Core Python and Pip
-  - python=3.10
+  # Dependencias base esenciales para el entorno conda
+  - python=3.12
   - pip
+  # ffmpeg es una dependencia binaria requerida por moviepy.
+  # Es mejor gestionarla a través de conda o del sistema operativo.
+  - ffmpeg
 
-  # Main dependencies available via Conda
-  # Using versions specified in requirements.txt where applicable
-  # - pymupdf=1.25.0      # PDF handling (Note: conda package name is pymupdf)
-  - pillow              # Image handling
-  - nltk                # Natural Language Toolkit
-  - reportlab           # PDF generation (often used with docx)
-  - tqdm                # Progress bars
-  - pandas              # Data manipulation (used in streamlit_ui)
-  - beautifulsoup4      # HTML/XML parsing (for EPUB)
-  - ebooklib            # EPUB file handling
-  - protobuf            # Protocol buffers (often a dependency)
-  # - ollama            # Check if available on conda-forge, otherwise move to pip
-  # - streamlit         # Check if available on conda-forge, otherwise move to pip
-  # - transformers      # Check if available on conda-forge, otherwise move to pip
-  # - groq              # Check if available on conda-forge, otherwise move to pip
-  # - pymongo           # Check if available on conda-forge, otherwise move to pip
-  # - together          # Check if available on conda-forge, otherwise move to pip
-
-  # Dependencies installed via Pip within the Conda environment
-  # Use this for packages not on conda, needing specific pip versions,
-  # or known to install better via pip.
+  # Todas las demás dependencias de Python se gestionan a través de pip
   - pip:
+      # Paquetes movidos de la sección principal de dependencias de conda:
+      - pillow>=11.1.0,<12.0.0 # MOVED FROM CONDA - Pip will now install a version compatible with 'together'
+      - nltk                # Natural Language Toolkit
+      - reportlab           # Generación de PDF (a menudo usado con docx)
+      - tqdm                # Barras de progreso
+      - pandas              # Manipulación de datos (usado en streamlit_ui)
+      - beautifulsoup4      # Análisis HTML/XML (para EPUB)
+      - ebooklib            # Manejo de archivos EPUB
+      - protobuf            # Buffers de protocolo (dependencia común)
+
+      # Paquetes que ya estaban en la sección pip o comentados:
       # Langchain ecosystem
       - langchain
       - langchain-ollama
@@ -41,28 +40,26 @@ dependencies:
       - langchain-google-genai
       - langchain-text-splitters
 
-      # Other libraries from requirements.txt or imports
-      - python-docx           # Word document handling
-      - supabase~=2.13.0      # Supabase client with version constraint
-      - huggingface_hub       # From original environment.yml
-      - openai                # Added from streamlit_ui.py import (ensure it's needed)
-      - pymupdf==1.25.0       # PDF handling (Note: conda package name is pymupdf)
-      - google-generativeai   # Google library for manage AI Interactions
+      # Otras librerías del proyecto
+      - python-docx           # Manejo de documentos Word
+      - supabase~=2.13.0      # Cliente Supabase con restricción de versión
+      - huggingface_hub       # Del environment.yml original
+      - openai                # Cliente OpenAI (asumiendo que es necesario)
+      - pymupdf==1.25.0       # Manejo de PDF (especificando versión vía pip)
+      - google-generativeai   # Librería de Google para interacciones con IA
+      - ollama                # Cliente Ollama
+      - streamlit             # Framework para UI web
+      - transformers          # Librería de Hugging Face para modelos
+      - groq                  # Cliente Groq
+      - pymongo               # Cliente MongoDB
+      - together              # Cliente Together AI
+      - tiktoken              # Utilidad de tokens
+      - moviepy               # Edición de video (requiere ffmpeg)
 
-      # Add packages here if they are not found reliably on conda channels
-      - ollama                # If not found/stable on conda-forge
-      - streamlit             # If not found/stable on conda-forge
-      - transformers          # If not found/stable on conda-forge
-      - groq                  # If not found/stable on conda-forge
-      - pymongo               # If not found/stable on conda-forge
-      - together              # If not found/stable on conda-forge
-      - tiktoken
-
-# Notes:
-# 1. Prioritized conda-forge channel.
-# 2. Listed packages primarily under conda dependencies if commonly available.
-# 3. Moved packages with specific version constraints (like supabase) or those often installed via pip (like langchain) to the pip section.
-# 4. Added comments for packages where conda availability might vary (ollama, streamlit, etc.) - you might need to move them between the conda `dependencies` section and the `pip:` section based on installation success.
-# 5. Included `openai` based on the import in `streamlit_ui.py`, assuming it's a required dependency for that part of the project.
-# 6. Kept `huggingface_hub` as it was in the original environment.yml.
-# 7. Ensured all packages from requirements.txt are included either in the conda or pip section.
+# Notas:
+# 1. Se han movido casi todos los paquetes Python a la sección `pip:`.
+# 2. `python`, `pip` y `ffmpeg` se mantienen en la sección principal de `dependencies`
+#    porque son esenciales para configurar el entorno y las herramientas binarias.
+# 3. Esta configuración centraliza la gestión de versiones de paquetes Python en pip,
+#    lo que puede simplificar la resolución de dependencias.
+# 4. Para aplicar estos cambios, actualiza tu entorno conda.

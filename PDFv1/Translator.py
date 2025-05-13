@@ -11,129 +11,159 @@ logger = logging.getLogger(__name__)
 
 
 class TranslatorAgent:
-    # Modificado para aceptar una instancia de GeminiAI
+    # Modified to accept a GeminiAI instance
     def __init__(self, MAX_TOKENS_PER_CALL=8000):
-        self.llm_client = GeminiAI() # Guarda la instancia del cliente LLM
+        self.llm_client = GeminiAI()  # Stores the LLM client instance
 
-        # Splitter para dividir el texto ANTES de la traducción si excede el límite
-        # Usará la función count_tokens del cliente LLM proporcionado
+        # Splitter to divide text BEFORE translation if it exceeds the limit
+        # Will use the count_tokens function of the provided LLM client
         self.pre_translation_splitter = RecursiveCharacterTextSplitter(
-            # El tamaño del chunk debe ser menor que el límite total de la API,
-            # considerando el system prompt y el prompt de usuario base.
-            # Calcularemos esto dinámicamente en translate_text.
-            chunk_size=MAX_TOKENS_PER_CALL, # Valor inicial, se ajustará
-            chunk_overlap=0, # Un solapamiento mayor puede ayudar con el contexto entre chunks
-            length_function=self.llm_client.count_tokens, # Usa el contador de tokens del cliente Gemini
-            separators=["\n\n", "\n", ". ", ", ", " ", ""] # Separadores comunes para dividir texto
+            # The chunk size should be less than the API's total limit,
+            # considering the system prompt and the base user prompt.
+            # We will calculate this dynamically in translate_text.
+            chunk_size=MAX_TOKENS_PER_CALL,  # Initial value, will be adjusted
+            chunk_overlap=0,  # A larger overlap might help with context between chunks
+            length_function=self.llm_client.count_tokens,  # Uses the Gemini client's token counter
+            separators=["\n\n", "\n", ". ", ", ", " ", ""]  # Common separators for splitting text
         )
 
-    # El método count_tokens ya no es necesario aquí, usaremos self.llm_client.count_tokens
+    # The count_tokens method is no longer needed here, we will use self.llm_client.count_tokens
 
     def _get_translation_prompt_template(self, source_lang: str, target_lang: str) -> str:
-        """Genera la plantilla del prompt detallado para el LLM, sin el texto."""
-        # ESTE PROMPT ES CRUCIAL - AJÚSTALO SEGÚN SEA NECESARIO
-        # Se ha movido la parte variable {text_chunk} fuera para calcular el tamaño base
+        """Generates the detailed and optimized prompt template for the LLM."""
+        # THIS PROMPT IS CRUCIAL.
+        # It's designed to guide the LLM through a multi-step process
+        # of cleaning, translating, and refining literary text.
         prompt_template = f"""
-        Eres un traductor experto y editor multilingüe especializado en literatura, incluyendo novelas ligeras japonesas, chinas y coreanas, así como ficción occidental.
+You are a MASTER TRANSLATOR and meticulous LITERARY EDITOR. Your expertise spans diverse genres, including Japanese, Chinese, and Korean light novels, and Western fiction. You are tasked with translating and refining a text with utmost precision.
 
-        Tarea Principal: Traduce el siguiente texto del {source_lang} al {target_lang}.
+**Primary Objective:** Translate the provided text from {source_lang} to {target_lang} with exceptional accuracy, meticulously preserving its original style, tone, and authorial intent.
 
-        Texto a procesar:
-        \"\"\"
-        {{text_chunk}}
-        \"\"\"
+**Text for Processing:**
+\"\"\"
+{{text_chunk}}
+\"\"\"
 
-        Instrucciones Detalladas (Sigue estrictamente estos pasos):
+**Mandatory Processing Protocol (Follow these steps rigorously):**
 
-        1.  **Análisis Inicial y Coherencia:** Lee el texto completo. Si detectas partes gravemente incoherentes, corruptas o sin sentido (más allá de posibles errores de OCR o extracción), intenta inferir el significado correcto basándote en el contexto circundante. Si es imposible, traduce la parte problemática lo mejor posible indicando la incertidumbre si es necesario, pero **NO** inventes contenido extenso.
-        2.  **Limpieza Preliminar:** Identifica y **ELIMINA** completamente cualquier texto que parezca ser un encabezado (ej. nombre del libro/capítulo repetido en cada página), pie de página (ej. numeración de página, avisos repetitivos), o números de página sueltos que interrumpan el flujo del texto narrativo. **NO** elimines los números de capítulo o títulos de sección que formen parte del contenido real.
-        3.  **Análisis Gramatical y Corrección (Idioma Origen):** Antes de traducir, revisa la gramática y la estructura del texto en {source_lang}. Corrige errores obvios de puntuación, sintaxis o palabras mal escritas que puedan haber surgido de la extracción (OCR/conversión). Si hay frases incompletas, intenta completarlas basándote en el contexto inmediato si es claro, de lo contrario, tradúcelas tal como están. **NO** reescribas el estilo del autor.
-        4.  **Traducción Fiel:** Realiza la traducción al {target_lang}. Mantén el tono, estilo y significado del texto original lo más fielmente posible.
-            * **Modismos y Expresiones Culturales:** Traduce los modismos y referencias culturales de forma que tengan sentido en {target_lang}. Si no hay un equivalente directo, usa una explicación concisa o una adaptación cultural apropiada, manteniendo el espíritu original. Evita traducciones literales sin sentido. Para novelas J/C/K, presta atención a los honoríficos y términos específicos, traduciéndolos consistentemente (ej., 'senpai' puede quedarse como 'senpai' o adaptarse según el contexto).
-            * **Nombres Propios:** Mantén los nombres de personajes y lugares tal como están en el original, a menos que tengan una forma estándar establecida en {target_lang} (ej., London -> Londres).
-        5.  **Validación Gramatical y Puntuación (Idioma Destino):** Revisa minuciosamente la gramática, la ortografía y la puntuación del texto traducido en {target_lang}. Asegúrate de que las frases sean fluidas y naturales en el idioma de destino. Corrige cualquier error manteniendo parrafos coherentes eliminando saltos de linea innecesarios.
-        6.  **Limpieza Final:** Revisa el texto traducido final y **ELIMINA** cualquier sección que claramente sea un índice, tabla de contenidos, página de copyright, bibliografía, notas del traductor original (a menos que aporten contexto crucial), o publicidad que no forme parte de la narrativa.
-        7.  **Formato:** Devuelve ÚNICAMENTE el texto traducido y limpio, sin ningún comentario adicional, saludo, o explicación tuya fuera del propio texto traducido. Mantén los saltos de párrafo del texto original donde sea apropiado para la fluidez en {target_lang}.
+1.  **Content Integrity Check & Source Text Pre-Correction ({source_lang}):**
+    *   Thoroughly scan the entire text for any severe incoherence, corruption, or nonsensical segments. These often result from poor OCR or digital extraction.
+    *   If such issues are identified, attempt to infer the correct meaning from the immediate surrounding context.
+    *   Correct obvious typographical errors, misspellings, and punctuation mistakes in the {source_lang} text that clearly hinder comprehension or accurate translation.
+    *   If sentences are incomplete due to extraction errors, try to complete them logically based on immediate context ONLY if the intended meaning is unequivocally clear. Otherwise, translate the fragment as-is, preserving its broken nature.
+    *   **CRITICAL:** DO NOT invent new information, add content, or extensively rewrite the author's original style. If a small segment is truly untranslatable due to severe corruption and context does not clarify it, translate it as best as possible and you MAY indicate deep uncertainty within the translated text itself using bracketed, concise notes (e.g., "[corrupted text, best guess: ...]" or "[unclear phrase, literal translation: ...]"). Avoid this unless absolutely necessary.
 
-        Idioma Origen: {source_lang}
-        Idioma Destino: {target_lang}
+2.  **Structural Cleaning (Pre-Translation - Applied to Source Text):**
+    *   Identify and **COMPLETELY REMOVE** any extraneous text elements that are not part of the core narrative content. This primarily includes:
+        *   Repetitive headers (e.g., book/chapter titles appearing on every page).
+        *   Repetitive footers (e.g., page numbers, publisher notices, disclaimers repeated on pages).
+        *   Stray page numbers or running heads embedded within the narrative flow.
+    *   **DO NOT REMOVE:** Chapter numbers, actual chapter titles, or section headings that are integral parts of the story's structure and appear only once at the beginning of such sections.
 
-        Texto Traducido y Limpio:
-        """
+3.  **High-Fidelity Translation ({source_lang} to {target_lang}):**
+    *   Perform a precise, nuanced, and culturally sensitive translation into {target_lang}.
+    *   **Style & Tone:** Meticulously replicate the author's original voice, narrative style (e.g., formal, informal, humorous, poetic), and emotional tone.
+    *   **Idioms & Cultural Nuances:** Translate idioms, metaphors, and cultural references in a way that is natural and meaningful to a {target_lang} reader. If a direct equivalent is lacking, use a concise, contextually fitting adaptation or a very brief, unobtrusive explanation if essential for understanding. Avoid awkward or nonsensical literal translations.
+    *   **Specialized Terminology (e.g., J/C/K literature):** For East Asian texts, handle honorifics (e.g., -san, -nim, gege, oppa), specific cultural terms, and unique concepts with consistency. Either retain them if they are commonly understood by the target audience or adapt them thoughtfully and consistently.
+    *   **Proper Nouns:** Retain original character names, place names, and specific fictional terms unless a widely accepted, standard translation exists in {target_lang} (e.g., "London" to "Londres" if target is Spanish). Maintain consistency in their usage.
+
+4.  **Post-Translation Refinement & Validation ({target_lang}):**
+    *   Thoroughly review the translated text in {target_lang} for grammatical accuracy, correct spelling, and appropriate punctuation.
+    *   Ensure all sentences are fluent, natural-sounding, and well-constructed in {target_lang}.
+    *   **Paragraph Integrity:** Adjust paragraph breaks to ensure a natural, readable flow in {target_lang}. While generally respecting the source's paragraph delineations, prioritize coherence and readability in the target language. Remove superfluous line breaks that create choppy or fragmented text. Ensure paragraphs are well-formed.
+
+5.  **Final Content Pruning (Post-Translation - Applied to Translated Text):**
+    *   Review the translated text one last time and **REMOVE** any remaining non-narrative, structural, or paratextual sections that are not part of the story itself. This includes:
+        *   Tables of contents, indices, glossaries.
+        *   Copyright pages, dedications, acknowledgments (unless these are intrinsically part of the narrative or a foreword/afterword you are explicitly asked to translate).
+        *   Bibliographies, reference lists.
+        *   Original translator's notes or editor's notes (unless they provide critical context *for the story itself* and are not merely linguistic or publishing notes).
+        *   Advertisements, publisher information, or promotional material.
+
+6.  **Output Formatting (Strict Adherence Required):**
+    *   You MUST return **ONLY** the fully translated, cleaned, and refined narrative text.
+    *   **ABSOLUTELY NO** additional comments, greetings, preambles, apologies, self-reflections, or postscripts from you (the AI) should be included in the output.
+    *   The output should be a single, continuous block of text, ready for direct use as the translated literary work.
+
+Source Language: {source_lang}
+Target Language: {target_lang}
+
+**Final Translated and Polished Text:**
+"""
         return prompt_template
 
-    def translate_text(self, full_text: str, source_lang: str, target_lang: str, MAX_TOKENS_PER_CALL=8000) -> Optional[str]:
-        """Divide, traduce y une el texto usando el LLM a través del cliente GeminiAI."""
-        logger.info(f"Iniciando traducción de {source_lang} a {target_lang}...")
+    def translate_text(self, full_text: str, source_lang: str, target_lang: str, MAX_TOKENS_PER_CALL=8000) -> Optional[
+        str]:
+        """Splits, translates, and joins the text using the LLM via the GeminiAI client."""
+        logger.info(f"Starting translation from {source_lang} to {target_lang}...")
 
-        # 1. Calcular el tamaño del prompt base y el system prompt para determinar el espacio para el contenido
+        # 1. Calculate the size of the base prompt and system prompt to determine space for content
         base_prompt_template = self._get_translation_prompt_template(source_lang, target_lang)
-        # Usamos un placeholder corto para estimar el tamaño del prompt sin el chunk real
+        # We use a short placeholder to estimate the prompt size without the actual chunk
         prompt_base_tokens = self.llm_client.count_tokens(base_prompt_template.format(text_chunk="[chunk]"))
 
-        max_content_tokens = MAX_TOKENS_PER_CALL - prompt_base_tokens  # Opción 2: Buffer fijo
-        max_content_tokens = max(100, max_content_tokens)  # Asegurar que no sea negativo o muy pequeño
+        max_content_tokens = MAX_TOKENS_PER_CALL - prompt_base_tokens
+        max_content_tokens = max(100, max_content_tokens)  # Ensure it's not negative or too small
 
-        logger.info(f"  - Tokens Prompt Base (estimado): {prompt_base_tokens}")
-        logger.info(f"  - Tokens Montenido por Chunk: {max_content_tokens}")
-        logger.info(f"  - Límite Total por Llamada API (configurado): {MAX_TOKENS_PER_CALL}")
+        logger.info(f"  - Base Prompt Tokens (estimated): {prompt_base_tokens}")
+        logger.info(f"  - Content Tokens per Chunk: {max_content_tokens}")
+        logger.info(f"  - Total Limit per API Call (configured): {MAX_TOKENS_PER_CALL}")
 
-
-        # Ajustar el tamaño del chunk del splitter dinámicamente
+        # Adjust the splitter's chunk size dynamically
         self.pre_translation_splitter._chunk_size = max_content_tokens
 
-        # 2. Dividir el texto original en chunks usando el tamaño calculado
+        # 2. Split the original text into chunks using the calculated size
         original_chunks = self.pre_translation_splitter.split_text(full_text)
-        logger.info(f"  - Texto original dividido en {len(original_chunks)} chunks para traducción (tamaño objetivo: {max_content_tokens} tokens).")
+        logger.info(
+            f"  - Original text split into {len(original_chunks)} chunks for translation (target size: {max_content_tokens} tokens).")
 
         if not original_chunks:
-             print("  - Advertencia: El texto original resultó en 0 chunks después de dividir. Verifique el texto de entrada.")
-             return "" # Devolver cadena vacía si no hay chunks
+            logger.warning("  - Warning: The original text resulted in 0 chunks after splitting. Check the input text.")
+            return ""  # Return empty string if no chunks
 
         translated_text_parts = []
         total_chunks = len(original_chunks)
         for i, chunk in enumerate(original_chunks):
             current_chunk_tokens = self.llm_client.count_tokens(chunk)
-            logger.info(f"  - Traduciendo chunk {i + 1}/{total_chunks} ({current_chunk_tokens} tokens)...")
+            logger.info(f"  - Translating chunk {i + 1}/{total_chunks} ({current_chunk_tokens} tokens)...")
 
-            # Verificar si el chunk individual excede el límite (raro con RecursiveCharacterTextSplitter, pero posible)
+            # Check if the individual chunk exceeds the limit (rare with RecursiveCharacterTextSplitter, but possible)
             if current_chunk_tokens > max_content_tokens:
                 logger.warning(
-                    f"  - Advertencia: Chunk {i + 1} ({current_chunk_tokens} tokens) excede el límite de contenido calculado ({max_content_tokens} tokens). Esto puede causar errores. Se intentará de todos modos.")
+                    f"  - Warning: Chunk {i + 1} ({current_chunk_tokens} tokens) exceeds the calculated content limit ({max_content_tokens} tokens). This may cause errors. Attempting anyway.")
 
-            # Generar el prompt completo para este chunk
+            # Generate the full prompt for this chunk
             prompt = base_prompt_template.format(text_chunk=chunk)
 
             try:
-                # Llamada al modelo usando el método del cliente GeminiAI
-                # Este método maneja el rate limiting y logging interno
+                # Call the model using the GeminiAI client's method
+                # This method handles rate limiting and internal logging
                 translated_chunk = self.llm_client.call_model(prompt)
 
-                # Validación básica de la respuesta
-                if not translated_chunk or len(translated_chunk) < len(chunk) * 0.2: # Heurística muy básica
+                # Basic validation of the response
+                if not translated_chunk or len(translated_chunk) < len(chunk) * 0.2:  # Very basic heuristic
                     logger.warning(
-                        f"  - Advertencia: Posible problema con la traducción del chunk {i + 1}. Respuesta vacía o muy corta.")
-                    # Decide si reintentar, omitir, o usar la respuesta parcial
-                    # Por simplicidad, la usaremos pero imprimimos advertencia.
-                    # Podrías añadir lógica de reintento aquí.
+                        f"  - Warning: Possible issue with the translation of chunk {i + 1}. Response empty or very short.")
+                    # Decide whether to retry, skip, or use the partial response
+                    # For simplicity, we'll use it but print a warning.
+                    # You could add retry logic here.
                     if not translated_chunk:
-                         translated_chunk = f"[TRADUCCION_VACIA_CHUNK_{i+1}]" # Añadir marcador si está vacía
-
+                        translated_chunk = f"[EMPTY_TRANSLATION_CHUNK_{i + 1}]"  # Add marker if empty
 
                 translated_text_parts.append(translated_chunk)
-                # No necesitamos imprimir éxito aquí, call_model ya lo hace.
-                # print(f"  - Chunk {i + 1}/{total_chunks} traducido.")
+                # We don't need to print success here, call_model already does.
+                # logger.info(f"  - Chunk {i + 1}/{total_chunks} translated.")
 
             except Exception as e:
-                # El método call_model ya debería imprimir errores, pero podemos añadir contexto
-                logger.error(f"Error durante el procesamiento del chunk {i + 1} en TranslatorAgent: {e}")
-                # Opción: añadir un marcador de error y continuar, o detener el proceso
-                translated_text_parts.append(f"[ERROR_TRADUCCION_CHUNK_{i + 1}]")
-                # return None # Descomentar si prefieres detener en caso de error
+                # The call_model method should already log errors, but we can add context
+                logger.error(f"Error during processing of chunk {i + 1} in TranslatorAgent: {e}")
+                # Option: add an error marker and continue, or stop the process
+                translated_text_parts.append(f"[TRANSLATION_ERROR_CHUNK_{i + 1}]")
+                # return None # Uncomment if you prefer to stop on error
 
-        logger.info("Traducción de todos los chunks completada.")
-        # Unir los chunks traducidos. Usar doble salto de línea como separador estándar.
+        logger.info("Translation of all chunks completed.")
+        # Join the translated chunks. Use double newline as a standard separator.
         full_translated_text = "\n\n".join(translated_text_parts)
-        # Limpieza final de posibles marcadores de error o saltos excesivos
+        # Final cleanup of possible error markers or excessive newlines
         full_translated_text = re.sub(r'\n{3,}', '\n\n', full_translated_text).strip()
         return full_translated_text
