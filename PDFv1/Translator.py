@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Optional
+from typing import Optional, Tuple
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -11,26 +11,45 @@ logger = logging.getLogger(__name__)
 
 
 class TranslatorAgent:
-    # Modified to accept a GeminiAI instance
-    def __init__(self, MAX_TOKENS_PER_CALL=8000):
-        self.llm_client = GeminiAI()  # Stores the LLM client instance
+    # --- Constants for clarity and maintainability ---
+    _DEFAULT_MAX_TOKENS_PER_CALL = 8000
+    _PROMPT_CHUNK_PLACEHOLDER = "[chunk]"  # Placeholder for estimating prompt size
+    _MIN_CONTENT_TOKENS = 100  # Minimum tokens allowed for content after prompt
+    _SHORT_TRANSLATION_THRESHOLD_FACTOR = 0.2  # Factor to detect potentially problematic short translations
+    _EMPTY_CHUNK_MARKER_FORMAT = "[EMPTY_TRANSLATION_CHUNK_{index}]"
+    _ERROR_CHUNK_MARKER_FORMAT = "[TRANSLATION_ERROR_CHUNK_{index}]"
 
-        # Splitter to divide text BEFORE translation if it exceeds the limit
-        # Will use the count_tokens function of the provided LLM client
+    # The detailed prompt template. Kept within the method that uses it for locality,
+    # as it's specific to the translation task and uses f-string formatting.
+    # If it were static, it could be a class constant.
+    # Given its length, ensure your IDE handles multi-line strings well for readability.
+
+    def __init__(self, default_max_tokens_per_call: int = _DEFAULT_MAX_TOKENS_PER_CALL):
+        """
+        Initializes the TranslatorAgent.
+
+        Args:
+            default_max_tokens_per_call: The default maximum number of tokens
+                                         for an LLM API call. This can be
+                                         overridden in the translate_text method.
+        """
+        self.llm_client = GeminiAI()
+        self.default_max_tokens_per_call = default_max_tokens_per_call
+
+        # Splitter to divide text BEFORE translation if it exceeds the limit.
+        # Its chunk_size will be dynamically adjusted in translate_text.
         self.pre_translation_splitter = RecursiveCharacterTextSplitter(
-            # The chunk size should be less than the API's total limit,
-            # considering the system prompt and the base user prompt.
-            # We will calculate this dynamically in translate_text.
-            chunk_size=MAX_TOKENS_PER_CALL,  # Initial value, will be adjusted
-            chunk_overlap=0,  # A larger overlap might help with context between chunks
-            length_function=self.llm_client.count_tokens,  # Uses the Gemini client's token counter
-            separators=["\n\n", "\n", ". ", ", ", " ", ""]  # Common separators for splitting text
+            chunk_size=self.default_max_tokens_per_call,  # Initial value, adjusted dynamically
+            chunk_overlap=0,  # A larger overlap might help with context
+            length_function=self.llm_client.count_tokens,
+            separators=["\n\n", "\n", ". ", ", ", " ", ""],
         )
 
-    # The count_tokens method is no longer needed here, we will use self.llm_client.count_tokens
-
     def _get_translation_prompt_template(self, source_lang: str, target_lang: str) -> str:
-        """Generates the detailed and optimized prompt template for the LLM."""
+        """
+        Generates the detailed and optimized prompt template for the LLM.
+        This prompt is crucial for guiding the LLM's translation process.
+        """
         # THIS PROMPT IS CRUCIAL.
         # It's designed to guide the LLM through a multi-step process
         # of cleaning, translating, and refining literary text.
@@ -92,78 +111,154 @@ Target Language: {target_lang}
 """
         return prompt_template
 
-    def translate_text(self, full_text: str, source_lang: str, target_lang: str, MAX_TOKENS_PER_CALL=8000) -> Optional[
-        str]:
-        """Splits, translates, and joins the text using the LLM via the GeminiAI client."""
-        logger.info(f"Starting translation from {source_lang} to {target_lang}...")
+    def _setup_text_splitting_parameters(
+            self, source_lang: str, target_lang: str, effective_max_tokens_per_call: int
+    ) -> int:
+        """
+        Calculates token limits for text chunks and adjusts the pre-translation splitter.
 
-        # 1. Calculate the size of the base prompt and system prompt to determine space for content
+        Returns:
+            The maximum number of tokens allowed for content in each chunk.
+        """
         base_prompt_template = self._get_translation_prompt_template(source_lang, target_lang)
-        # We use a short placeholder to estimate the prompt size without the actual chunk
-        prompt_base_tokens = self.llm_client.count_tokens(base_prompt_template.format(text_chunk="[chunk]"))
+        # Estimate prompt size using a placeholder for the actual text chunk
+        prompt_base_tokens = self.llm_client.count_tokens(
+            base_prompt_template.format(text_chunk=self._PROMPT_CHUNK_PLACEHOLDER)
+        )
 
-        max_content_tokens = MAX_TOKENS_PER_CALL - prompt_base_tokens
-        max_content_tokens = max(100, max_content_tokens)  # Ensure it's not negative or too small
+        max_content_tokens = effective_max_tokens_per_call - prompt_base_tokens
+        # Ensure max_content_tokens is not negative or too small
+        max_content_tokens = max(self._MIN_CONTENT_TOKENS, max_content_tokens)
 
         logger.info(f"  - Base Prompt Tokens (estimated): {prompt_base_tokens}")
-        logger.info(f"  - Content Tokens per Chunk: {max_content_tokens}")
-        logger.info(f"  - Total Limit per API Call (configured): {MAX_TOKENS_PER_CALL}")
+        logger.info(f"  - Max Content Tokens per Chunk: {max_content_tokens}")
+        logger.info(f"  - Total Limit per API Call (effective): {effective_max_tokens_per_call}")
 
-        # Adjust the splitter's chunk size dynamically
+        # Adjust the splitter's chunk size dynamically.
+        # Note: Accessing _chunk_size directly is a workaround if no public setter exists.
         self.pre_translation_splitter._chunk_size = max_content_tokens
+        return max_content_tokens
 
-        # 2. Split the original text into chunks using the calculated size
+    def _translate_single_chunk(
+            self,
+            chunk: str,
+            chunk_index: int,
+            total_chunks: int,
+            max_content_tokens: int,
+            base_prompt_template_with_chunk_placeholder: str
+    ) -> str:
+        """
+        Translates a single chunk of text using the LLM.
+
+        Args:
+            chunk: The text chunk to translate.
+            chunk_index: The 0-based index of the current chunk.
+            total_chunks: The total number of chunks.
+            max_content_tokens: The maximum token limit for this chunk's content.
+            base_prompt_template_with_chunk_placeholder: The prompt template with
+                                                         source/target languages filled,
+                                                         still containing '{text_chunk}'.
+        Returns:
+            The translated chunk, or a marker string if an error occurred or
+            the translation was empty.
+        """
+        current_chunk_tokens = self.llm_client.count_tokens(chunk)
+        logger.info(
+            f"  - Translating chunk {chunk_index + 1}/{total_chunks} ({current_chunk_tokens} tokens)..."
+        )
+
+        if current_chunk_tokens > max_content_tokens:
+            logger.warning(
+                f"  - Warning: Chunk {chunk_index + 1} ({current_chunk_tokens} tokens) "
+                f"exceeds the calculated content limit ({max_content_tokens} tokens). "
+                "This may cause errors. Attempting anyway."
+            )
+
+        prompt = base_prompt_template_with_chunk_placeholder.format(text_chunk=chunk)
+
+        try:
+            translated_chunk = self.llm_client.call_model(prompt)
+
+            # Validate the response: check for empty or unusually short translations
+            if not translated_chunk or \
+                    len(translated_chunk) < len(chunk) * self._SHORT_TRANSLATION_THRESHOLD_FACTOR:
+                logger.warning(
+                    f"  - Warning: Possible issue with the translation of chunk {chunk_index + 1}. "
+                    "Response empty or very short."
+                )
+                if not translated_chunk:  # Handles None or empty string from LLM
+                    return self._EMPTY_CHUNK_MARKER_FORMAT.format(index=chunk_index + 1)
+
+            # Ensure a string is returned, even if call_model hypothetically returned None
+            # and it wasn't caught by the 'if not translated_chunk' above.
+            return translated_chunk if translated_chunk is not None else ""
+
+        except Exception as e:
+            logger.error(f"Error during LLM call for chunk {chunk_index + 1}: {e}")
+            return self._ERROR_CHUNK_MARKER_FORMAT.format(index=chunk_index + 1)
+
+    def translate_text(self, full_text: str, source_lang: str, target_lang: str,
+                       max_tokens_per_call_override: Optional[int] = None) -> str:
+        """
+        Splits, translates, and joins the text using the LLM via the GeminiAI client.
+
+        Args:
+            full_text: The entire text to be translated.
+            source_lang: The source language of the text.
+            target_lang: The target language for translation.
+            max_tokens_per_call_override: Optionally override the default max tokens
+                                          for LLM API calls for this specific translation.
+
+        Returns:
+            The full translated text as a single string. Returns an empty string
+            if the input text results in no processable chunks. May contain
+            error markers for failed chunks.
+        """
+        logger.info(f"Starting translation from {source_lang} to {target_lang}...")
+
+        effective_max_tokens = (
+            max_tokens_per_call_override
+            if max_tokens_per_call_override is not None
+            else self.default_max_tokens_per_call
+        )
+
+        max_content_tokens = self._setup_text_splitting_parameters(
+            source_lang, target_lang, effective_max_tokens
+        )
+
         original_chunks = self.pre_translation_splitter.split_text(full_text)
         logger.info(
-            f"  - Original text split into {len(original_chunks)} chunks for translation (target size: {max_content_tokens} tokens).")
+            f"  - Original text split into {len(original_chunks)} chunks for translation "
+            f"(target content token size: {max_content_tokens})."
+        )
 
         if not original_chunks:
             logger.warning("  - Warning: The original text resulted in 0 chunks after splitting. Check the input text.")
-            return ""  # Return empty string if no chunks
+            return ""
 
         translated_text_parts = []
         total_chunks = len(original_chunks)
+
+        # Get the base prompt template once, with {text_chunk} as a placeholder
+        # This template already has source_lang and target_lang filled in.
+        prompt_template_for_chunks = self._get_translation_prompt_template(source_lang, target_lang)
+
         for i, chunk in enumerate(original_chunks):
-            current_chunk_tokens = self.llm_client.count_tokens(chunk)
-            logger.info(f"  - Translating chunk {i + 1}/{total_chunks} ({current_chunk_tokens} tokens)...")
-
-            # Check if the individual chunk exceeds the limit (rare with RecursiveCharacterTextSplitter, but possible)
-            if current_chunk_tokens > max_content_tokens:
-                logger.warning(
-                    f"  - Warning: Chunk {i + 1} ({current_chunk_tokens} tokens) exceeds the calculated content limit ({max_content_tokens} tokens). This may cause errors. Attempting anyway.")
-
-            # Generate the full prompt for this chunk
-            prompt = base_prompt_template.format(text_chunk=chunk)
-
-            try:
-                # Call the model using the GeminiAI client's method
-                # This method handles rate limiting and internal logging
-                translated_chunk = self.llm_client.call_model(prompt)
-
-                # Basic validation of the response
-                if not translated_chunk or len(translated_chunk) < len(chunk) * 0.2:  # Very basic heuristic
-                    logger.warning(
-                        f"  - Warning: Possible issue with the translation of chunk {i + 1}. Response empty or very short.")
-                    # Decide whether to retry, skip, or use the partial response
-                    # For simplicity, we'll use it but print a warning.
-                    # You could add retry logic here.
-                    if not translated_chunk:
-                        translated_chunk = f"[EMPTY_TRANSLATION_CHUNK_{i + 1}]"  # Add marker if empty
-
-                translated_text_parts.append(translated_chunk)
-                # We don't need to print success here, call_model already does.
-                # logger.info(f"  - Chunk {i + 1}/{total_chunks} translated.")
-
-            except Exception as e:
-                # The call_model method should already log errors, but we can add context
-                logger.error(f"Error during processing of chunk {i + 1} in TranslatorAgent: {e}")
-                # Option: add an error marker and continue, or stop the process
-                translated_text_parts.append(f"[TRANSLATION_ERROR_CHUNK_{i + 1}]")
-                # return None # Uncomment if you prefer to stop on error
+            translated_chunk_content = self._translate_single_chunk(
+                chunk,
+                chunk_index=i,
+                total_chunks=total_chunks,
+                max_content_tokens=max_content_tokens,
+                base_prompt_template_with_chunk_placeholder=prompt_template_for_chunks
+            )
+            translated_text_parts.append(translated_chunk_content)
 
         logger.info("Translation of all chunks completed.")
-        # Join the translated chunks. Use double newline as a standard separator.
+
+        # Join the translated chunks.
         full_translated_text = "\n\n".join(translated_text_parts)
-        # Final cleanup of possible error markers or excessive newlines
+
+        # Final cleanup: reduce multiple newlines to a maximum of two, and strip whitespace.
         full_translated_text = re.sub(r'\n{3,}', '\n\n', full_translated_text).strip()
+
         return full_translated_text
