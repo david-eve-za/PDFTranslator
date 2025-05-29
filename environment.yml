@@ -14,7 +14,7 @@ channels:
 
 dependencies:
   # Dependencias base esenciales para el entorno conda
-  - python=3.12
+  - python=3.11
   - pip
   # ffmpeg es una dependencia binaria requerida por moviepy.
   # Es mejor gestionarla a través de conda o del sistema operativo.
@@ -47,6 +47,8 @@ dependencies:
       - openai                # Cliente OpenAI (asumiendo que es necesario)
       - pymupdf==1.25.0       # Manejo de PDF (especificando versión vía pip)
       - google-generativeai   # Librería de Google para interacciones con IA
+      - google-cloud-aiplatform
+      - sentencepiece
       - ollama                # Cliente Ollama
       - streamlit             # Framework para UI web
       - transformers          # Librería de Hugging Face para modelos
