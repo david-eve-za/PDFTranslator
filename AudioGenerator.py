@@ -18,6 +18,7 @@ def _ensure_nltk_punkt():
     """
     Ensures that the NLTK 'punkt' tokenizer data is available.
     Downloads it if not found. This function is designed to run once.
+    Raises RuntimeError if download fails, as 'punkt' is critical.
     """
     global _NLTK_PUNKT_DOWNLOADED
     if _NLTK_PUNKT_DOWNLOADED:
@@ -34,12 +35,24 @@ def _ensure_nltk_punkt():
             _NLTK_PUNKT_DOWNLOADED = True
         except Exception as e:
             logger.error(f"Failed to download NLTK 'punkt' tokenizer: {e}", exc_info=True)
-            # Depending on strictness, you might want to raise an error here
-            # or allow the program to continue, potentially failing later.
+            # NLTK 'punkt' is essential for text splitting.
+            # Raising an error to prevent further issues.
+            raise RuntimeError(
+                "NLTK 'punkt' tokenizer is required but could not be downloaded. "
+                "Please check your internet connection or NLTK setup."
+            ) from e
 
 
 class AudioGenerator:
-    def __init__(self, voice="Paulina", final_output="final_audio.m4a"):
+    _TEXT_NORMALIZATION_MAP = {
+        "”": "\"", "“": "\"",  # Smart double quotes to standard double quotes
+        "’": "'", "‘": "'",  # Smart single quotes to standard apostrophe
+        "—": "-", "–": "-",  # Em/En dashes to hyphen
+        "…": "...",  # Ellipsis
+        "<br>": "\n"  # HTML line break
+    }
+
+    def __init__(self, voice="Paulina"):
         """
         Initialize the AudioGenerator class.
 
@@ -48,7 +61,6 @@ class AudioGenerator:
         - final_output (str or Path): File path for the final merged audio file.
         """
         self.voice = voice
-        self.final_output = Path(final_output)  # Store as Path object
         self.output_dir = None  # Will be set to the temporary directory path within process_texts
 
         _ensure_nltk_punkt()  # Ensure 'punkt' is available
@@ -59,6 +71,13 @@ class AudioGenerator:
             language="spanish"  # NLTKTextSplitter uses this for appropriate sentence tokenization
         )
 
+    def _normalize_text_chunk(self, text_chunk: str) -> str:
+        """Normalizes a text chunk by replacing typographic characters and HTML breaks."""
+        normalized_chunk = text_chunk
+        for old, new in self._TEXT_NORMALIZATION_MAP.items():
+            normalized_chunk = normalized_chunk.replace(old, new)
+        return normalized_chunk
+
     def _text_to_audio(self, text_chunk: str, output_audio_file: Path):
         """
         Converts a text chunk to an audio file using macOS's 'say' command.
@@ -67,7 +86,7 @@ class AudioGenerator:
         - text_chunk (str): The text to convert.
         - output_audio_file (Path): Path to save the generated audio chunk.
         """
-        # Temporary file to pass text to 'say' command, created within the managed temp dir
+        # Temporary file to pass text to 'say' command, created within the managed temp dir.
         # This temp file for text is specific to this call and will be cleaned up with the directory.
         temp_text_file = self.output_dir / f"{output_audio_file.stem}_text.txt"
         try:
@@ -92,7 +111,7 @@ class AudioGenerator:
             if temp_text_file.exists():
                 temp_text_file.unlink()
 
-    def _merge_audio_files(self, audio_files: list[Path]):
+    def _merge_audio_files(self, audio_files: list[Path], target_file: Path):
         """
         Merges multiple .m4a audio files into one using ffmpeg.
 
@@ -109,25 +128,24 @@ class AudioGenerator:
                     f.write(f"file '{audio_path.resolve()}'\n")
 
             # Ensure final output directory exists
-            self.final_output.parent.mkdir(parents=True, exist_ok=True)
+            target_file.parent.mkdir(parents=True, exist_ok=True)
 
             # Use ffmpeg to concatenate the audio files
             # -y: overwrite output files without asking
             # -f concat: use the concat demuxer
-            # -safe 0: necessary if using absolute paths in the list file (though relative is often safer)
-            # -c:a libfdk_aac: good quality AAC encoder (ensure ffmpeg is compiled with it)
-            #   Alternative: -c:a aac (built-in ffmpeg AAC encoder, quality might vary)
+            # -safe 0: necessary if using absolute paths in the list file
+            # -c:a aac: standard AAC encoder
             # -b:a 64k: audio bitrate for voice, adjust as needed
             subprocess.run(
                 [
                     "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(file_list_path),
-                    "-c:a", "aac", "-b:a", "64k",  # Using standard 'aac' for broader compatibility
-                    str(self.final_output)
+                    "-c:a", "aac", "-b:a", "64k",
+                    str(target_file)
                 ],
                 check=True,
                 capture_output=True, text=True  # Capture output for logging
             )
-            logger.info(f"All audio files merged into: {self.final_output}")
+            logger.info(f"All audio files merged into: {target_file}")
         except subprocess.CalledProcessError as e:
             logger.error(f"Error during audio merging with ffmpeg: {e.stderr}")
             raise
@@ -139,7 +157,7 @@ class AudioGenerator:
             if file_list_path.exists():
                 file_list_path.unlink()
 
-    def process_texts(self, text_content: str) -> bool:
+    def process_texts(self, text_content: str, output_filename: Path) -> bool:
         """
         Converts a large text content to individual .m4a audio files for chunks
         and merges them into one final .m4a file.
@@ -155,15 +173,15 @@ class AudioGenerator:
             logger.warning("Input text is empty. Skipping audio generation.")
             return False
 
-        if self.final_output.exists():
-            logger.info(f"Final output file already exists: {self.final_output}. Skipping.")
-            return False  # Or True, depending on desired behavior for existing files
+        if output_filename.exists():
+            logger.info(f"Final output file already exists: {output_filename}. Skipping.")
+            # Consider if True is more appropriate if the goal is "ensure file exists"
+            return False
 
-        # Ensure the parent directory for the final output file exists
         try:
-            self.final_output.parent.mkdir(parents=True, exist_ok=True)
+            output_filename.parent.mkdir(parents=True, exist_ok=True)
         except Exception as e:
-            logger.error(f"Could not create parent directory for {self.final_output}: {e}", exc_info=True)
+            logger.error(f"Could not create parent directory for {output_filename}: {e}", exc_info=True)
             return False
 
         chunks = self.target_text_spliter.split_text(text_content)
@@ -175,44 +193,37 @@ class AudioGenerator:
 
         try:
             with tempfile.TemporaryDirectory(prefix="audio_chunks_") as temp_dir_str:
-                self.output_dir = Path(temp_dir_str)  # Set self.output_dir for helper methods
+                self.output_dir = Path(temp_dir_str)
                 logger.info(f"Using temporary directory for audio chunks: {self.output_dir}")
 
                 for i, chunk_text in tqdm(enumerate(chunks, start=1), total=len(chunks), desc="Generating Audio Chunks",
                                           unit="chunk"):
-                    # Normalize common typographic characters that 'say' might misinterpret
-                    normalized_chunk = chunk_text \
-                        .replace("”", "\"").replace("“", "\"") \
-                        .replace("’", "'").replace("‘", "'") \
-                        .replace("—", "-").replace("–", "-") \
-                        .replace("…", "...") \
-                        .replace("<br>", "\n")  # Handle HTML line breaks if any
-
+                    normalized_chunk = self._normalize_text_chunk(chunk_text)
                     chunk_audio_file = self.output_dir / f"chunk_{i:04d}.m4a"
                     self._text_to_audio(normalized_chunk, chunk_audio_file)
                     audio_files_generated.append(chunk_audio_file)
 
                 if not audio_files_generated:
                     logger.warning("No audio chunks were successfully generated. Cannot merge.")
-                    return False  # self.output_dir will be cleaned by 'with' statement
+                    return False
 
                 logger.info(f"Generated {len(audio_files_generated)} audio chunks. Merging...")
-                self._merge_audio_files(audio_files_generated)
+                self._merge_audio_files(audio_files=audio_files_generated,target_file=output_filename)
 
-            # This block executes after the 'with' block has successfully exited (temp dir cleaned)
-            logger.info(f"Successfully created final audio: {self.final_output}")
+            logger.info(f"Successfully created final audio: {output_filename}")
             logger.info(f"Temporary audio processing directory ({self.output_dir}) and its contents have been removed.")
             return True
 
-        except subprocess.CalledProcessError as e:
-            # Errors from _text_to_audio or _merge_audio_files if they raise
-            # Error message already logged by the helper methods.
-            logger.error(f"Audio generation process failed due to a subprocess error.")
+        except subprocess.CalledProcessError:
+            # Error message already logged by the helper methods (_text_to_audio or _merge_audio_files).
+            logger.error("Audio generation process failed due to a subprocess error.")
+            return False
+        except RuntimeError as e:  # Catch the RuntimeError from _ensure_nltk_punkt if it was raised during init
+            logger.error(f"Audio generation failed due to a critical setup error: {e}")
             return False
         except Exception as e:
             logger.error(f"An unexpected error occurred during audio processing: {e}", exc_info=True)
             return False
         finally:
-            # Ensure self.output_dir is reset if it was set, good practice though
-            # TemporaryDirectory handles cleanup of the path it managed.
+            # Reset self.output_dir; TemporaryDirectory handles actual cleanup.
             self.output_dir = None
