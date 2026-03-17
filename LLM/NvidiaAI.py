@@ -38,7 +38,8 @@ class NvidiaAI(LLMService):
         return self.config.nvidia_model_name
 
     def count_tokens(self, text: str) -> int:
-        pass
+        token_ids = self._tokenizer.encode(text, add_special_tokens=False)
+        return len(token_ids)
 
     def split_into_limit(self, text: str) -> List[str]:
         pass
