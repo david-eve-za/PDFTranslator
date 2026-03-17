@@ -21,3 +21,4 @@ docling-core
 pdfplumber
 pytest
 pytest-cov
+langchain-nvidia-ai-endpoints
