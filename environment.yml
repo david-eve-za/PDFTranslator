@@ -1,0 +1,27 @@
+name: PDFTranslator
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+    - beautifulsoup4
+    - ebooklib
+    - PyMuPDF
+    - gradio
+    - google-generativeai
+    - google-api-core
+    - google-genai
+    - langchain-core
+    - langchain-ollama
+    - langchain-google-genai
+    - langchain-text-splitters
+    - langchain-nvidia-ai-endpoints
+    - moviepy
+    - nltk
+    - pillow
+    - sentencepiece
+    - tqdm
+    - transformers
+    - rapidfuzz
