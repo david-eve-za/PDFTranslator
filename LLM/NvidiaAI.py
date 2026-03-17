@@ -42,7 +42,13 @@ class NvidiaAI(LLMService):
         return len(token_ids)
 
     def split_into_limit(self, text: str) -> List[str]:
-        pass
+        text_splitter = NLTKTextSplitter(
+            chunk_size=self.config.nvidia_context_size,
+            chunk_overlap=0,
+            language="english",
+            length_function=self.count_tokens,
+        )
+        return text_splitter.split_text(text)
 
     def _download_and_cache_tokenizer(self):
         """
