@@ -35,7 +35,7 @@ class NvidiaAI(LLMService):
         return response.content
 
     def get_current_model_name(self) -> str:
-        pass
+        return self.config.nvidia_model_name
 
     def count_tokens(self, text: str) -> int:
         pass
