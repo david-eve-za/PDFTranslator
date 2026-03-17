@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List
 
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
+from langchain_text_splitters import NLTKTextSplitter
 from transformers import AutoTokenizer
 
 from GlobalConfig import GlobalConfig
@@ -27,7 +28,11 @@ class NvidiaAI(LLMService):
         )
 
     def call_model(self, prompt: str) -> str:
-        pass
+        response = self._model.invoke(prompt)
+        self._logger.info(
+            f"Call to '{self.get_current_model_name()}' successful. Usage: {response.usage_metadata}"
+        )
+        return response.content
 
     def get_current_model_name(self) -> str:
         pass
