@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 # --- Strategy Pattern for Filtering (Open/Closed Principle) ---
 
+
 class FileFilter(ABC):
     """Abstract base class for a file filtering strategy."""
 
@@ -42,7 +43,8 @@ class ExcludeTranslatedFilter(FileFilter):
 
 # --- Main Class (Single Responsibility & Dependency Inversion) ---
 
-class FilesFinder:
+
+class FileFinder:
     """
     Finds files in a given directory based on type and a set of filter strategies.
     This class is responsible only for finding and returning file paths.
@@ -50,7 +52,7 @@ class FilesFinder:
 
     def __init__(self, source_path: str):
         """
-        Initializes the FilesFinder.
+        Initializes the FileFinder.
 
         Args:
             source_path: The path to the directory to search in.
@@ -59,14 +61,16 @@ class FilesFinder:
             FileNotFoundError: If the source path does not exist.
             NotADirectoryError: If the source path is not a directory.
         """
-        logger.info(f"Initializing FilesFinder with source path: {source_path}")
+        logger.info(f"Initializing FileFinder with source path: {source_path}")
         self.input_dir = Path(source_path)
         if not self.input_dir.exists():
             logger.error(f"Source path does not exist: {self.input_dir}")
             raise FileNotFoundError(f"Source path does not exist: {self.input_dir}")
         if not self.input_dir.is_dir():
             logger.error(f"Source path is not a directory: {self.input_dir}")
-            raise NotADirectoryError(f"Source path is not a directory: {self.input_dir}")
+            raise NotADirectoryError(
+                f"Source path is not a directory: {self.input_dir}"
+            )
 
     def get_files(self, file_type: str, filters: List[FileFilter]) -> List[Path]:
         """

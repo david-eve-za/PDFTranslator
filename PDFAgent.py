@@ -9,7 +9,7 @@ import tempfile
 from GlobalConfig import GlobalConfig
 from tools.VideoGenerator import VideoGenerator
 from tools.AudioGenerator import AudioGenerator
-from tools.FileFinder import FilesFinder, IsFileFilter, ExcludeTranslatedFilter
+from tools.FileFinder import FileFinder, IsFileFilter, ExcludeTranslatedFilter
 from tools.TextExtractor import TextExtractor
 from tools.Translator import Translator
 
@@ -240,7 +240,7 @@ def initialize_services() -> Optional[Tuple]:
     try:
         # config = GlobalConfig() # Get the global config
         # if Path(config.input_path).is_dir():
-        #     file_finder = FilesFinder(config.input_path) # FilesFinder needs input_path to initialize
+        # file_finder = FileFinder(config.input_path) # FileFinder needs input_path to initialize
         translation_agent = Translator()
         audio_generator = AudioGenerator()
         video_generator = VideoGenerator()
@@ -248,7 +248,7 @@ def initialize_services() -> Optional[Tuple]:
             translation_agent,
             audio_generator,
             video_generator,
-        )  # FilesFinder is not passed, it's used directly in process_files
+        )  # FileFinder is not passed, it's used directly in process_files
     except Exception as e:
         logging.error(f"Error initializing services: {e}")
         return None
@@ -259,7 +259,7 @@ def process_files(services: Tuple) -> Tuple[int, int]:
     Finds and processes all the files.
     """
     config = GlobalConfig()
-    file_finder = FilesFinder(
+    file_finder = FileFinder(
         config.input_path
     )  # Re-initialize FileFinder here for consistency
 
