@@ -60,7 +60,7 @@ class GlobalConfig(metaclass=_Singleton):
         self.ollama_local_tokenizer_dir: str = "tokenizer_aya-expanse"
         self.ollama_local_tokenizer_name: str = "openai/gpt-oss-120b"
 
-        # Nvidia settings
+        # NvidiaLLM settings
         self.nvidia_retry_attempts = 6
         self.nvidia_request_timeout = 600
         self.nvidia_top_p = 0.95
