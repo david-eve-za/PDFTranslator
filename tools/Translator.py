@@ -3,7 +3,7 @@ import re
 import gradio as gr
 
 from GlobalConfig import GlobalConfig
-from llm.GeminiAI import GeminiAI
+from llm.gemini_llm import GeminiAI
 from llm.nvidia_llm import NvidiaAI
 from llm.OllamaAI import OllamaAI
 from llm.base_llm import BaseLLM
