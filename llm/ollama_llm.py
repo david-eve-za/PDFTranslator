@@ -10,6 +10,8 @@ from llm.base_llm import BaseLLM
 
 
 class OllamaLLM(BaseLLM):
+    """Ollama local LLM connector using langchain-ollama."""
+
     def __init__(self):
         self._logger = logging.getLogger(__name__)
         self.config = GlobalConfig()

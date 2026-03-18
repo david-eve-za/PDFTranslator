@@ -6,9 +6,17 @@ from pydub import AudioSegment
 from google.genai import types
 from typing import List, Dict, Union
 
+
 class GeminiTextToSpeech:
-    def __init__(self, api_key: str = None, model: str = "gemini-2.5-flash-preview-tts",
-                 voice: str = "Kore", sample_rate: int = 24000, channels: int = 1, sample_width: int = 2):
+    def __init__(
+        self,
+        api_key: str = None,
+        model: str = "gemini-2.5-flash-preview-tts",
+        voice: str = "Kore",
+        sample_rate: int = 24000,
+        channels: int = 1,
+        sample_width: int = 2,
+    ):
         """
         Inicializa el cliente de Gemini Text-to-Speech.
 
@@ -25,7 +33,9 @@ class GeminiTextToSpeech:
         load_dotenv()
         self.api_key = api_key or os.getenv("GOOGLE_API_KEY")
         if not self.api_key:
-            raise ValueError("API key for Google Generative AI must be provided in parameter or via GOOGLE_API_KEY env var.")
+            raise ValueError(
+                "API key for Google Generative AI must be provided in parameter or via GOOGLE_API_KEY env var."
+            )
         # genai.api_key = self.api_key
 
         self.client = genai.Client()
@@ -43,22 +53,24 @@ class GeminiTextToSpeech:
         _, extension = os.path.splitext(output_path)
         extension = extension.lower()
 
-        if extension == '.wav':
+        if extension == ".wav":
             with wave.open(output_path, "wb") as wf:
                 wf.setnchannels(self.channels)
                 wf.setsampwidth(self.sample_width)
                 wf.setframerate(self.sample_rate)
                 wf.writeframes(pcm_bytes)
-        elif extension == '.mp3':
+        elif extension == ".mp3":
             audio_segment = AudioSegment(
                 data=pcm_bytes,
                 sample_width=self.sample_width,
                 frame_rate=self.sample_rate,
-                channels=self.channels
+                channels=self.channels,
             )
             audio_segment.export(output_path, format="mp3")
         else:
-            raise ValueError(f"Formato de archivo no soportado: '{extension}'. Use '.wav' o '.mp3'.")
+            raise ValueError(
+                f"Formato de archivo no soportado: '{extension}'. Use '.wav' o '.mp3'."
+            )
 
     def text_to_speech(self, text: str, output_path: str = "output.wav"):
         """
@@ -78,27 +90,30 @@ class GeminiTextToSpeech:
                             voice_name=self.voice
                         )
                     )
-                )
-            )
+                ),
+            ),
         )
 
-        # Extraer los datos del primer candidato
+        # Extract data from the first candidate
         candidate = response.candidates[0]
         part = candidate.content.parts[0]
         inline_data = part.inline_data.data
 
-        # Si viene como URL o base64, necesitarás lógica adicional
+        # If it comes as URL or base64, additional logic will be needed
         if isinstance(inline_data, (bytes, bytearray)):
             pcm_bytes = inline_data
         elif isinstance(inline_data, str):
-            raise RuntimeError("Audio data is a string (URL or base64). Additional download or decode logic required.")
+            raise RuntimeError(
+                "Audio data is a string (URL or base64). Additional download or decode logic required."
+            )
         else:
             raise RuntimeError(f"Unexpected audio data type: {type(inline_data)}")
 
-        # Guardar como WAV
+        # Save as WAV
         self._save_audio(pcm_bytes, output_path)
         print(f"✅ Saved audio to {output_path}")
         return output_path
+
 
 # Lista de voces
 def get_gemini_tts_voices() -> List[Dict[str, Union[str, List[str]]]]:
@@ -130,7 +145,6 @@ def get_gemini_tts_voices() -> List[Dict[str, Union[str, List[str]]]]:
         {"name": "Sulafat", "gender": "Female", "style_suggestion": "Warm"},
         {"name": "Vindemiatrix", "gender": "Female", "style_suggestion": "Gentle"},
         {"name": "Achernar", "gender": "Female", "style_suggestion": "Soft"},
-
         # Voces Masculinas (Male)
         {"name": "Puck", "gender": "Male", "style_suggestion": "Upbeat"},
         {"name": "Charon", "gender": "Male", "style_suggestion": "Informative"},
@@ -151,21 +165,25 @@ def get_gemini_tts_voices() -> List[Dict[str, Union[str, List[str]]]]:
     ]
     return voices_data
 
+
 # Ejemplo de uso
 if __name__ == "__main__":
     voices = get_gemini_tts_voices()
 
     for voice in voices:
+        print(
+            f"Nombre: {voice['name']}, Género: {voice['gender']}, Sugerencia de Estilo: {voice['style_suggestion']}"
+        )
 
-        print(f"Nombre: {voice['name']}, Género: {voice['gender']}, Sugerencia de Estilo: {voice['style_suggestion']}")
-
-        tts = GeminiTextToSpeech(voice=voice['name'])
+        tts = GeminiTextToSpeech(voice=voice["name"])
         text_to_say = "Hola mundo! Esta es una prueba del modelo de texto a voz de Gemini. Ahora puedo guardar en WAV y también en MP3."
 
         # TODO: Get full current path
         current_dir = os.path.dirname(os.path.abspath(__file__))
         # output_wav_path = os.path.join(current_dir, f"gemini_tts_test_{voice['name']}.wav")
-        output_mp3_path = os.path.join(f"{current_dir}/audiobooks", f"gemini_tts_test_{voice['name']}.mp3")
+        output_mp3_path = os.path.join(
+            f"{current_dir}/audiobooks", f"gemini_tts_test_{voice['name']}.mp3"
+        )
 
         # tts.text_to_speech(text_to_say, output_path=output_wav_path)
         tts.text_to_speech(text_to_say, output_path=output_mp3_path)

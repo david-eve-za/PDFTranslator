@@ -19,16 +19,16 @@ EPUB_EXTENSION = ".epub"
 
 class TextExtractor:
     """
-    An agent responsible for extracting and cleaning text from PDF and EPUB files.
+    Extracts and cleans text from PDF and EPUB files.
     """
 
     def __init__(self, html_tags_to_remove: Optional[List[str]] = None):
         """
-        Initializes the text extraction agent.
+        Initializes the text extractor.
 
         Args:
             html_tags_to_remove: A list of HTML tags to be removed from the content of EPUBs.
-                                 If not provided, a default list will be used.
+            If not provided, a default list will be used.
         """
         self._extraction_methods: Dict[str, Callable] = {
             PDF_EXTENSION: self._extract_from_pdf,

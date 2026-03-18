@@ -15,6 +15,10 @@ logger = logging.getLogger(__name__)
 
 
 class Translator:
+    """
+    Translates text using configurable LLM backends with chunking support.
+    """
+
     _EMPTY_CHUNK_MARKER_FORMAT = "[EMPTY_TRANSLATION_CHUNK_{index}]"
     _ERROR_CHUNK_MARKER_FORMAT = "[TRANSLATION_ERROR_CHUNK_{index}]"
 
