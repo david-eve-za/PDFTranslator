@@ -27,7 +27,7 @@ class GlobalConfig(metaclass=_Singleton):
         self.target_lang: str = "es-MX"
         self.output_format: str = "m4a"
         self.gen_video: bool = False
-        self.agent: str = "gemini"  # Main agent selector ('gemini', 'ollama')
+        self.agent: str = "nvidia"  # Main agent selector ('gemini', 'ollama')
 
         # Tool settings
         self.translation_prompt_path: str = "tools/translation_prompt.txt"
@@ -68,7 +68,7 @@ class GlobalConfig(metaclass=_Singleton):
         self.nvidia_model_rate_limit = 30
         self.nvidia_context_size = 3000
         self.nvidia_model_name = "mistralai/mistral-large-3-675b-instruct-2512"
-        self.nvidia_local_tokenizer_dir: str = "llama-3.3-70b-instruct"
+        self.nvidia_local_tokenizer_dir: str = "mistral-large-3-675b-instruct-2512"
         self.nvidia_local_tokenizer_name: str = "mistralai/Mistral-Large-3-675B-Instruct-2512"
 
         # --- Internal State ---
