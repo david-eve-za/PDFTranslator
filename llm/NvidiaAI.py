@@ -7,7 +7,7 @@ from langchain_text_splitters import NLTKTextSplitter
 from transformers import AutoTokenizer
 
 from GlobalConfig import GlobalConfig
-from LLM.llm_service import LLMService
+from llm.llm_service import LLMService
 
 
 class NvidiaAI(LLMService):

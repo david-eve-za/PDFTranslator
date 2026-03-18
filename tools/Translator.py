@@ -3,10 +3,10 @@ import re
 import gradio as gr
 
 from GlobalConfig import GlobalConfig
-from LLM.GeminiAI import GeminiAI
-from LLM.NvidiaAI import NvidiaAI
-from LLM.OllamaAI import OllamaAI
-from LLM.llm_service import LLMService
+from llm.GeminiAI import GeminiAI
+from llm.NvidiaAI import NvidiaAI
+from llm.OllamaAI import OllamaAI
+from llm.llm_service import LLMService
 from tools import OverlapCleaner
 from tools.OverlapCleaner import clean_overlap
 

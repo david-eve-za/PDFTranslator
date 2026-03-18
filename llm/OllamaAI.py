@@ -6,11 +6,10 @@ from langchain_text_splitters import NLTKTextSplitter
 from transformers import AutoTokenizer
 
 from GlobalConfig import GlobalConfig
-from LLM.llm_service import LLMService
+from llm.llm_service import LLMService
 
 
 class OllamaAI(LLMService):
-
     def __init__(self):
         self._logger = logging.getLogger(__name__)
         self.config = GlobalConfig()
@@ -27,7 +26,9 @@ class OllamaAI(LLMService):
 
     def call_model(self, prompt: str) -> str:
         response = self._model.invoke(prompt)
-        self._logger.info(f"Call to '{self.get_current_model_name()}' successful. Usage: {response.usage_metadata}")
+        self._logger.info(
+            f"Call to '{self.get_current_model_name()}' successful. Usage: {response.usage_metadata}"
+        )
         return response.content
 
     def get_current_model_name(self) -> str:
@@ -42,7 +43,7 @@ class OllamaAI(LLMService):
             chunk_size=self.config.ollama_context_size,
             chunk_overlap=0,
             language="english",
-            length_function=self.count_tokens
+            length_function=self.count_tokens,
         )
         return text_spliter.split_text(text)
 
@@ -54,16 +55,22 @@ class OllamaAI(LLMService):
         if tokenizer_dir.exists():
             self._logger.info(f"Tokenizer already cached in {tokenizer_dir}")
         else:
-            self._logger.info(f"Downloading tokenizer for {self.config.ollama_model_id}…")
-            tokenizer = AutoTokenizer.from_pretrained(self.config.ollama_local_tokenizer_name, use_fast=True)
+            self._logger.info(
+                f"Downloading tokenizer for {self.config.ollama_model_id}…"
+            )
+            tokenizer = AutoTokenizer.from_pretrained(
+                self.config.ollama_local_tokenizer_name, use_fast=True
+            )
             tokenizer_dir.mkdir(parents=True, exist_ok=True)
             tokenizer.save_pretrained(tokenizer_dir)
             self._logger.info(f"Tokenizer saved in {tokenizer_dir}")
 
         return AutoTokenizer.from_pretrained(tokenizer_dir, use_fast=True)
 
+
 if __name__ == "__main__":
     import ollama
+
     cmd = ollama.Client()
     models = cmd.list()
     for model in models.models:
