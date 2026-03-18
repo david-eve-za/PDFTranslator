@@ -1,0 +1,638 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.9.23, pytest-8.4.2, pluggy-1.6.0 -- /opt/homebrew/Caskroom/miniconda/base/envs/PDFTranslator/bin/python
+cachedir: .pytest_cache
+rootdir: /Volumes/Elements2/PycharmProjects/PDFTranslator
+plugins: anyio-4.12.1, langsmith-0.4.37
+collecting ... collected 9 items
+
+tests/test_no_config_json.py::test_no_config_json_created PASSED         [ 11%]
+tests/test_no_config_json.py::test_error_message_no_config_json_mention PASSED [ 22%]
+tests/test_nvidia_ai.py::test_nvidia_ai_call_model PASSED                [ 33%]
+tests/test_nvidia_ai.py::test_nvidia_ai_count_tokens PASSED              [ 44%]
+tests/test_nvidia_ai.py::test_nvidia_ai_split_into_limit FAILED          [ 55%]
+tests/test_nvidia_ai.py::test_nvidia_ai_get_model_name FAILED            [ 66%]
+tests/test_simplified_text_extractor.py::test_extract_text_returns_string_not_tuple FAILED [ 77%]
+tests/test_simplified_text_extractor.py::test_no_image_extraction_occurs FAILED [ 88%]
+tests/test_simplified_text_extractor.py::test_extract_text_error_returns_none PASSED [100%]
+
+=================================== FAILURES ===================================
+_______________________ test_nvidia_ai_split_into_limit ________________________
+
+    @pytest.mark.skipif(
+        os.environ.get("NVIDIA_API_KEY", "").startswith("nvapi-") is False,
+        reason="NVIDIA_API_KEY not set",
+    )
+    def test_nvidia_ai_split_into_limit():
+        """Test text splitting."""
+        nvidia = NvidiaAI()
+        text = "hello " * 10000  # Large text
+        chunks = nvidia.split_into_limit(text)
+        assert isinstance(chunks, list)
+        assert len(chunks) > 0
+        for chunk in chunks:
+            tokens = nvidia.count_tokens(chunk)
+>           assert tokens <= nvidia.config.nvidia_context_size
+E           assert 10000 <= 3000
+E            +  where 3000 = <GlobalConfig.GlobalConfig object at 0x1266a0cd0>.nvidia_context_size
+E            +    where <GlobalConfig.GlobalConfig object at 0x1266a0cd0> = <LLM.NvidiaAI.NvidiaAI object at 0x1266a0e50>.config
+
+tests/test_nvidia_ai.py:44: AssertionError
+________________________ test_nvidia_ai_get_model_name _________________________
+
+    @pytest.mark.skipif(
+        os.environ.get("NVIDIA_API_KEY", "").startswith("nvapi-") is False,
+        reason="NVIDIA_API_KEY not set",
+    )
+    def test_nvidia_ai_get_model_name():
+        """Test getting current model name."""
+        nvidia = NvidiaAI()
+        name = nvidia.get_current_model_name()
+        assert isinstance(name, str)
+>       assert name.startswith("meta/")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x124749a50>('meta/')
+E        +    where <built-in method startswith of str object at 0x124749a50> = 'mistralai/mistral-large-3-675b-instruct-2512'.startswith
+
+tests/test_nvidia_ai.py:56: AssertionError
+__________________ test_extract_text_returns_string_not_tuple __________________
+
+self = <tools.TextExtractor.TextExtractorAgent object at 0x1439d55b0>
+file_path = '/var/folders/vb/x2lv2kwx3l9_dzyhf4828fs00000gn/T/tmp1fpvkjdi.pdf'
+
+    def extract_text(self, file_path: str) -> Optional[str]:
+        """
+        Extracts and cleans text from a given file.
+    
+        Args:
+            file_path: The path to the file (PDF or EPUB).
+    
+        Returns:
+            The cleaned text as a string, or None if the file type is not supported or an error occurs.
+        """
+        path_obj = Path(file_path)
+        extension = path_obj.suffix.lower()
+        logger.info(f"Starting text extraction from: {path_obj.name}")
+    
+        extraction_method = self._extraction_methods.get(extension)
+        if not extraction_method:
+            logger.warning(
+                f"Unsupported extension '{extension}' for file {path_obj.name}"
+            )
+            return None
+    
+        try:
+            if not path_obj.is_file():
+                raise FileNotFoundError(f"File not found at path: {file_path}")
+    
+>           return extraction_method(path_obj)
+
+tools/TextExtractor.py:70: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tools/TextExtractor.py:150: in _extract_from_pdf
+    doc = fitz.open(pdf_path)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = Document('/var/folders/vb/x2lv2kwx3l9_dzyhf4828fs00000gn/T/tmp1fpvkjdi.pdf')
+filename = '/var/folders/vb/x2lv2kwx3l9_dzyhf4828fs00000gn/T/tmp1fpvkjdi.pdf'
+stream = None, filetype = None, rect = None, width = 0, height = 0
+fontsize = 11
+
+    def __init__(self, filename=None, stream=None, filetype=None, rect=None, width=0, height=0, fontsize=11):
+        """Creates a document. Use 'open' as a synonym.
+    
+        Notes:
+            Basic usages:
+            open() - new PDF document
+            open(filename) - string or pathlib.Path, must have supported
+                    file extension.
+            open(type, buffer) - type: valid extension, buffer: bytes object.
+            open(stream=buffer, filetype=type) - keyword version of previous.
+            open(filename, fileype=type) - filename with unrecognized extension.
+            rect, width, height, fontsize: layout reflowable document
+            on open (e.g. EPUB). Ignored if n/a.
+        """
+        # We temporarily set JM_mupdf_show_errors=0 while we are constructing,
+        # then restore its original value in a `finally:` block.
+        #
+        global JM_mupdf_show_errors
+        JM_mupdf_show_errors_old = JM_mupdf_show_errors
+        JM_mupdf_show_errors = 0
+    
+        try:
+            self.is_closed    = False
+            self.is_encrypted = False
+            self.is_encrypted = False
+            self.metadata    = None
+            self.FontInfos   = []
+            self.Graftmaps   = {}
+            self.ShownPages  = {}
+            self.InsertedImages  = {}
+            self._page_refs  = weakref.WeakValueDictionary()
+            if isinstance(filename, mupdf.PdfDocument):
+                pdf_document = filename
+                self.this = pdf_document
+                self.this_is_pdf = True
+                return
+    
+            w = width
+            h = height
+            r = JM_rect_from_py(rect)
+            if not mupdf.fz_is_infinite_rect(r):
+                w = r.x1 - r.x0
+                h = r.y1 - r.y0
+    
+            self._name = filename
+            self.stream = stream
+    
+            if stream is not None:
+                if filename is not None and filetype is None:
+                    # 2025-05-06: Use <filename> as the filetype. This is
+                    # reversing precedence - we used to use <filename> if both
+                    # were set.
+                    filetype = filename
+                if isinstance(stream, (bytes, memoryview)):
+                    pass
+                elif isinstance(stream, bytearray):
+                    stream = bytes(stream)
+                elif isinstance(stream, io.BytesIO):
+                    stream = stream.getvalue()
+                else:
+                    raise TypeError(f"bad stream: {type(stream)=}.")
+                self.stream = stream
+    
+                assert isinstance(stream, (bytes, memoryview))
+                if len(stream) == 0:
+                    # MuPDF raise an exception for this but also generates
+                    # warnings, which is not very helpful for us. So instead we
+                    # raise a specific exception.
+                    raise EmptyFileError('Cannot open empty stream.')
+    
+                stream2 = mupdf.fz_open_memory(mupdf.python_buffer_data(stream), len(stream))
+                try:
+                    doc = mupdf.fz_open_document_with_stream(filetype if filetype else '', stream2)
+                except Exception as e:
+                    if g_exceptions_verbose > 1:    exception_info()
+                    raise FileDataError('Failed to open stream') from e
+    
+            elif filename:
+                assert not stream
+                if isinstance(filename, str):
+                    pass
+                elif hasattr(filename, "absolute"):
+                    filename = str(filename)
+                elif hasattr(filename, "name"):
+                    filename = filename.name
+                else:
+                    raise TypeError(f"bad filename: {type(filename)=} {filename=}.")
+                self._name = filename
+    
+                # Generate our own specific exceptions. This avoids MuPDF
+                # generating warnings etc.
+                if not os.path.exists(filename):
+                    raise FileNotFoundError(f"no such file: '{filename}'")
+                elif not os.path.isfile(filename):
+                    raise FileDataError(f"'{filename}' is no file")
+                elif os.path.getsize(filename) == 0:
+>                   raise EmptyFileError(f'Cannot open empty file: {filename=}.')
+E                   pymupdf.EmptyFileError: Cannot open empty file: filename='/var/folders/vb/x2lv2kwx3l9_dzyhf4828fs00000gn/T/tmp1fpvkjdi.pdf'.
+
+/opt/homebrew/Caskroom/miniconda/base/envs/PDFTranslator/lib/python3.9/site-packages/pymupdf/__init__.py:2979: EmptyFileError
+
+During handling of the above exception, another exception occurred:
+
+    def test_extract_text_returns_string_not_tuple():
+        """Test that extract_text returns str, not Tuple[str, List[Path]]."""
+        extractor = TextExtractorAgent()
+    
+        # Mock a simple PDF
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+            tmp_path = tmp.name
+    
+        try:
+            # We'll mock the actual extraction since PDF parsing is complex
+            with patch.object(extractor, "_extract_from_pdf") as mock_extract:
+                mock_extract.return_value = "test text"
+>               result = extractor.extract_text(tmp_path)
+
+tests/test_simplified_text_extractor.py:22: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tools.TextExtractor.TextExtractorAgent object at 0x1439d55b0>
+file_path = '/var/folders/vb/x2lv2kwx3l9_dzyhf4828fs00000gn/T/tmp1fpvkjdi.pdf'
+
+    def extract_text(self, file_path: str) -> Optional[str]:
+        """
+        Extracts and cleans text from a given file.
+    
+        Args:
+            file_path: The path to the file (PDF or EPUB).
+    
+        Returns:
+            The cleaned text as a string, or None if the file type is not supported or an error occurs.
+        """
+        path_obj = Path(file_path)
+        extension = path_obj.suffix.lower()
+        logger.info(f"Starting text extraction from: {path_obj.name}")
+    
+        extraction_method = self._extraction_methods.get(extension)
+        if not extraction_method:
+            logger.warning(
+                f"Unsupported extension '{extension}' for file {path_obj.name}"
+            )
+            return None
+    
+        try:
+            if not path_obj.is_file():
+                raise FileNotFoundError(f"File not found at path: {file_path}")
+    
+            return extraction_method(path_obj)
+    
+        except FileNotFoundError as e:
+            logger.error(f"File error: {e}", exc_info=True)
+>       except (epub.EpubException, zipfile.BadZipFile, fitz.PyMuPDFError) as e:
+E       AttributeError: module 'fitz' has no attribute 'PyMuPDFError'
+
+tools/TextExtractor.py:74: AttributeError
+_______________________ test_no_image_extraction_occurs ________________________
+
+self = Document('/var/folders/vb/x2lv2kwx3l9_dzyhf4828fs00000gn/T/tmp9j049bh4/test.pdf')
+filename = '/var/folders/vb/x2lv2kwx3l9_dzyhf4828fs00000gn/T/tmp9j049bh4/test.pdf'
+stream = None, filetype = None, rect = None, width = 0, height = 0
+fontsize = 11
+
+    def __init__(self, filename=None, stream=None, filetype=None, rect=None, width=0, height=0, fontsize=11):
+        """Creates a document. Use 'open' as a synonym.
+    
+        Notes:
+            Basic usages:
+            open() - new PDF document
+            open(filename) - string or pathlib.Path, must have supported
+                    file extension.
+            open(type, buffer) - type: valid extension, buffer: bytes object.
+            open(stream=buffer, filetype=type) - keyword version of previous.
+            open(filename, fileype=type) - filename with unrecognized extension.
+            rect, width, height, fontsize: layout reflowable document
+            on open (e.g. EPUB). Ignored if n/a.
+        """
+        # We temporarily set JM_mupdf_show_errors=0 while we are constructing,
+        # then restore its original value in a `finally:` block.
+        #
+        global JM_mupdf_show_errors
+        JM_mupdf_show_errors_old = JM_mupdf_show_errors
+        JM_mupdf_show_errors = 0
+    
+        try:
+            self.is_closed    = False
+            self.is_encrypted = False
+            self.is_encrypted = False
+            self.metadata    = None
+            self.FontInfos   = []
+            self.Graftmaps   = {}
+            self.ShownPages  = {}
+            self.InsertedImages  = {}
+            self._page_refs  = weakref.WeakValueDictionary()
+            if isinstance(filename, mupdf.PdfDocument):
+                pdf_document = filename
+                self.this = pdf_document
+                self.this_is_pdf = True
+                return
+    
+            w = width
+            h = height
+            r = JM_rect_from_py(rect)
+            if not mupdf.fz_is_infinite_rect(r):
+                w = r.x1 - r.x0
+                h = r.y1 - r.y0
+    
+            self._name = filename
+            self.stream = stream
+    
+            if stream is not None:
+                if filename is not None and filetype is None:
+                    # 2025-05-06: Use <filename> as the filetype. This is
+                    # reversing precedence - we used to use <filename> if both
+                    # were set.
+                    filetype = filename
+                if isinstance(stream, (bytes, memoryview)):
+                    pass
+                elif isinstance(stream, bytearray):
+                    stream = bytes(stream)
+                elif isinstance(stream, io.BytesIO):
+                    stream = stream.getvalue()
+                else:
+                    raise TypeError(f"bad stream: {type(stream)=}.")
+                self.stream = stream
+    
+                assert isinstance(stream, (bytes, memoryview))
+                if len(stream) == 0:
+                    # MuPDF raise an exception for this but also generates
+                    # warnings, which is not very helpful for us. So instead we
+                    # raise a specific exception.
+                    raise EmptyFileError('Cannot open empty stream.')
+    
+                stream2 = mupdf.fz_open_memory(mupdf.python_buffer_data(stream), len(stream))
+                try:
+                    doc = mupdf.fz_open_document_with_stream(filetype if filetype else '', stream2)
+                except Exception as e:
+                    if g_exceptions_verbose > 1:    exception_info()
+                    raise FileDataError('Failed to open stream') from e
+    
+            elif filename:
+                assert not stream
+                if isinstance(filename, str):
+                    pass
+                elif hasattr(filename, "absolute"):
+                    filename = str(filename)
+                elif hasattr(filename, "name"):
+                    filename = filename.name
+                else:
+                    raise TypeError(f"bad filename: {type(filename)=} {filename=}.")
+                self._name = filename
+    
+                # Generate our own specific exceptions. This avoids MuPDF
+                # generating warnings etc.
+                if not os.path.exists(filename):
+                    raise FileNotFoundError(f"no such file: '{filename}'")
+                elif not os.path.isfile(filename):
+                    raise FileDataError(f"'{filename}' is no file")
+                elif os.path.getsize(filename) == 0:
+                    raise EmptyFileError(f'Cannot open empty file: {filename=}.')
+    
+                if filetype:
+                    # Override the type implied by <filename>. MuPDF does not
+                    # have a way to do this directly so we open via a stream.
+                    try:
+                        fz_stream = mupdf.fz_open_file(filename)
+                        doc = mupdf.fz_open_document_with_stream(filetype, fz_stream)
+                    except Exception as e:
+                        if g_exceptions_verbose > 1:    exception_info()
+                        raise FileDataError(f'Failed to open file {filename!r} as type {filetype!r}.') from e
+                else:
+                    try:
+>                       doc = mupdf.fz_open_document(filename)
+
+/opt/homebrew/Caskroom/miniconda/base/envs/PDFTranslator/lib/python3.9/site-packages/pymupdf/__init__.py:2992: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+filename = '/var/folders/vb/x2lv2kwx3l9_dzyhf4828fs00000gn/T/tmp9j049bh4/test.pdf'
+
+    def fz_open_document(filename):
+        r"""
+        Class-aware wrapper for `::fz_open_document()`.
+        	Open a document file and read its basic structure so pages and
+        	objects can be located. MuPDF will try to repair broken
+        	documents (without actually changing the file contents).
+    
+        	The returned fz_document is used when calling most other
+        	document related functions.
+    
+        	filename: a path to a file as it would be given to open(2).
+        """
+>       return _mupdf.fz_open_document(filename)
+E       pymupdf.mupdf.FzErrorFormat: code=7: no objects found
+
+/opt/homebrew/Caskroom/miniconda/base/envs/PDFTranslator/lib/python3.9/site-packages/pymupdf/mupdf.py:48462: FzErrorFormat
+
+The above exception was the direct cause of the following exception:
+
+self = <tools.TextExtractor.TextExtractorAgent object at 0x1439d0700>
+file_path = '/var/folders/vb/x2lv2kwx3l9_dzyhf4828fs00000gn/T/tmp9j049bh4/test.pdf'
+
+    def extract_text(self, file_path: str) -> Optional[str]:
+        """
+        Extracts and cleans text from a given file.
+    
+        Args:
+            file_path: The path to the file (PDF or EPUB).
+    
+        Returns:
+            The cleaned text as a string, or None if the file type is not supported or an error occurs.
+        """
+        path_obj = Path(file_path)
+        extension = path_obj.suffix.lower()
+        logger.info(f"Starting text extraction from: {path_obj.name}")
+    
+        extraction_method = self._extraction_methods.get(extension)
+        if not extraction_method:
+            logger.warning(
+                f"Unsupported extension '{extension}' for file {path_obj.name}"
+            )
+            return None
+    
+        try:
+            if not path_obj.is_file():
+                raise FileNotFoundError(f"File not found at path: {file_path}")
+    
+>           return extraction_method(path_obj)
+
+tools/TextExtractor.py:70: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tools/TextExtractor.py:150: in _extract_from_pdf
+    doc = fitz.open(pdf_path)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = Document('/var/folders/vb/x2lv2kwx3l9_dzyhf4828fs00000gn/T/tmp9j049bh4/test.pdf')
+filename = '/var/folders/vb/x2lv2kwx3l9_dzyhf4828fs00000gn/T/tmp9j049bh4/test.pdf'
+stream = None, filetype = None, rect = None, width = 0, height = 0
+fontsize = 11
+
+    def __init__(self, filename=None, stream=None, filetype=None, rect=None, width=0, height=0, fontsize=11):
+        """Creates a document. Use 'open' as a synonym.
+    
+        Notes:
+            Basic usages:
+            open() - new PDF document
+            open(filename) - string or pathlib.Path, must have supported
+                    file extension.
+            open(type, buffer) - type: valid extension, buffer: bytes object.
+            open(stream=buffer, filetype=type) - keyword version of previous.
+            open(filename, fileype=type) - filename with unrecognized extension.
+            rect, width, height, fontsize: layout reflowable document
+            on open (e.g. EPUB). Ignored if n/a.
+        """
+        # We temporarily set JM_mupdf_show_errors=0 while we are constructing,
+        # then restore its original value in a `finally:` block.
+        #
+        global JM_mupdf_show_errors
+        JM_mupdf_show_errors_old = JM_mupdf_show_errors
+        JM_mupdf_show_errors = 0
+    
+        try:
+            self.is_closed    = False
+            self.is_encrypted = False
+            self.is_encrypted = False
+            self.metadata    = None
+            self.FontInfos   = []
+            self.Graftmaps   = {}
+            self.ShownPages  = {}
+            self.InsertedImages  = {}
+            self._page_refs  = weakref.WeakValueDictionary()
+            if isinstance(filename, mupdf.PdfDocument):
+                pdf_document = filename
+                self.this = pdf_document
+                self.this_is_pdf = True
+                return
+    
+            w = width
+            h = height
+            r = JM_rect_from_py(rect)
+            if not mupdf.fz_is_infinite_rect(r):
+                w = r.x1 - r.x0
+                h = r.y1 - r.y0
+    
+            self._name = filename
+            self.stream = stream
+    
+            if stream is not None:
+                if filename is not None and filetype is None:
+                    # 2025-05-06: Use <filename> as the filetype. This is
+                    # reversing precedence - we used to use <filename> if both
+                    # were set.
+                    filetype = filename
+                if isinstance(stream, (bytes, memoryview)):
+                    pass
+                elif isinstance(stream, bytearray):
+                    stream = bytes(stream)
+                elif isinstance(stream, io.BytesIO):
+                    stream = stream.getvalue()
+                else:
+                    raise TypeError(f"bad stream: {type(stream)=}.")
+                self.stream = stream
+    
+                assert isinstance(stream, (bytes, memoryview))
+                if len(stream) == 0:
+                    # MuPDF raise an exception for this but also generates
+                    # warnings, which is not very helpful for us. So instead we
+                    # raise a specific exception.
+                    raise EmptyFileError('Cannot open empty stream.')
+    
+                stream2 = mupdf.fz_open_memory(mupdf.python_buffer_data(stream), len(stream))
+                try:
+                    doc = mupdf.fz_open_document_with_stream(filetype if filetype else '', stream2)
+                except Exception as e:
+                    if g_exceptions_verbose > 1:    exception_info()
+                    raise FileDataError('Failed to open stream') from e
+    
+            elif filename:
+                assert not stream
+                if isinstance(filename, str):
+                    pass
+                elif hasattr(filename, "absolute"):
+                    filename = str(filename)
+                elif hasattr(filename, "name"):
+                    filename = filename.name
+                else:
+                    raise TypeError(f"bad filename: {type(filename)=} {filename=}.")
+                self._name = filename
+    
+                # Generate our own specific exceptions. This avoids MuPDF
+                # generating warnings etc.
+                if not os.path.exists(filename):
+                    raise FileNotFoundError(f"no such file: '{filename}'")
+                elif not os.path.isfile(filename):
+                    raise FileDataError(f"'{filename}' is no file")
+                elif os.path.getsize(filename) == 0:
+                    raise EmptyFileError(f'Cannot open empty file: {filename=}.')
+    
+                if filetype:
+                    # Override the type implied by <filename>. MuPDF does not
+                    # have a way to do this directly so we open via a stream.
+                    try:
+                        fz_stream = mupdf.fz_open_file(filename)
+                        doc = mupdf.fz_open_document_with_stream(filetype, fz_stream)
+                    except Exception as e:
+                        if g_exceptions_verbose > 1:    exception_info()
+                        raise FileDataError(f'Failed to open file {filename!r} as type {filetype!r}.') from e
+                else:
+                    try:
+                        doc = mupdf.fz_open_document(filename)
+                    except Exception as e:
+                        if g_exceptions_verbose > 1:    exception_info()
+>                       raise FileDataError(f'Failed to open file {filename!r}.') from e
+E                       pymupdf.FileDataError: Failed to open file '/var/folders/vb/x2lv2kwx3l9_dzyhf4828fs00000gn/T/tmp9j049bh4/test.pdf'.
+
+/opt/homebrew/Caskroom/miniconda/base/envs/PDFTranslator/lib/python3.9/site-packages/pymupdf/__init__.py:2995: FileDataError
+
+During handling of the above exception, another exception occurred:
+
+    def test_no_image_extraction_occurs():
+        """Test that no image extraction directories are created."""
+        extractor = TextExtractorAgent()
+    
+        with tempfile.TemporaryDirectory() as tmpdir:
+            test_pdf = Path(tmpdir) / "test.pdf"
+            test_pdf.write_text("dummy content")
+    
+            # Mock the PDF extraction to return text
+            with patch.object(extractor, "_extract_from_pdf") as mock_extract:
+                mock_extract.return_value = "test text"
+>               result = extractor.extract_text(str(test_pdf))
+
+tests/test_simplified_text_extractor.py:43: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tools.TextExtractor.TextExtractorAgent object at 0x1439d0700>
+file_path = '/var/folders/vb/x2lv2kwx3l9_dzyhf4828fs00000gn/T/tmp9j049bh4/test.pdf'
+
+    def extract_text(self, file_path: str) -> Optional[str]:
+        """
+        Extracts and cleans text from a given file.
+    
+        Args:
+            file_path: The path to the file (PDF or EPUB).
+    
+        Returns:
+            The cleaned text as a string, or None if the file type is not supported or an error occurs.
+        """
+        path_obj = Path(file_path)
+        extension = path_obj.suffix.lower()
+        logger.info(f"Starting text extraction from: {path_obj.name}")
+    
+        extraction_method = self._extraction_methods.get(extension)
+        if not extraction_method:
+            logger.warning(
+                f"Unsupported extension '{extension}' for file {path_obj.name}"
+            )
+            return None
+    
+        try:
+            if not path_obj.is_file():
+                raise FileNotFoundError(f"File not found at path: {file_path}")
+    
+            return extraction_method(path_obj)
+    
+        except FileNotFoundError as e:
+            logger.error(f"File error: {e}", exc_info=True)
+>       except (epub.EpubException, zipfile.BadZipFile, fitz.PyMuPDFError) as e:
+E       AttributeError: module 'fitz' has no attribute 'PyMuPDFError'
+
+tools/TextExtractor.py:74: AttributeError
+=============================== warnings summary ===============================
+<frozen importlib._bootstrap>:228
+<frozen importlib._bootstrap>:228
+tests/test_nvidia_ai.py::test_nvidia_ai_call_model
+  <frozen importlib._bootstrap>:228: DeprecationWarning: builtin type SwigPyPacked has no __module__ attribute
+
+<frozen importlib._bootstrap>:228
+<frozen importlib._bootstrap>:228
+tests/test_nvidia_ai.py::test_nvidia_ai_call_model
+  <frozen importlib._bootstrap>:228: DeprecationWarning: builtin type SwigPyObject has no __module__ attribute
+
+<frozen importlib._bootstrap>:228
+  <frozen importlib._bootstrap>:228: DeprecationWarning: builtin type swigvarlink has no __module__ attribute
+
+tests/test_nvidia_ai.py::test_nvidia_ai_call_model
+tests/test_nvidia_ai.py::test_nvidia_ai_count_tokens
+tests/test_nvidia_ai.py::test_nvidia_ai_split_into_limit
+tests/test_nvidia_ai.py::test_nvidia_ai_get_model_name
+  /opt/homebrew/Caskroom/miniconda/base/envs/PDFTranslator/lib/python3.9/site-packages/langchain_nvidia_ai_endpoints/_common.py:234: UserWarning: Found mistralai/mistral-large-3-675b-instruct-2512 in available_models, but type is unknown and inference may fail.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_nvidia_ai.py::test_nvidia_ai_split_into_limit - assert 1000...
+FAILED tests/test_nvidia_ai.py::test_nvidia_ai_get_model_name - AssertionErro...
+FAILED tests/test_simplified_text_extractor.py::test_extract_text_returns_string_not_tuple
+FAILED tests/test_simplified_text_extractor.py::test_no_image_extraction_occurs
+================== 4 failed, 5 passed, 11 warnings in 14.34s ===================
+sys:1: DeprecationWarning: builtin type swigvarlink has no __module__ attribute
