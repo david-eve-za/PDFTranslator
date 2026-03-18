@@ -4,7 +4,7 @@ import gradio as gr
 
 from GlobalConfig import GlobalConfig
 from LLM.GeminiAI import GeminiAI
-from LLM.NvidiaNIM import NvidiaNIM
+from LLM.NvidiaAI import NvidiaAI
 from LLM.OllamaAI import OllamaAI
 from LLM.llm_service import LLMService
 from tools import OverlapCleaner
@@ -29,25 +29,26 @@ class TranslatorAgent:
 
     def _create_llm_client(self) -> LLMService:
         """Factory function to create an LLM client."""
-        if self.config.agent == 'gemini':
+        if self.config.agent == "gemini":
             return GeminiAI()
-        elif self.config.agent == 'ollama':
+        elif self.config.agent == "ollama":
             return OllamaAI()
-        elif self.config.agent == 'nvidia':
-            return NvidiaNIM()
+        elif self.config.agent == "nvidia":
+            return NvidiaAI()
         else:
-            raise ValueError(f"Unsupported agent specified in config: {self.config.agent}")
+            raise ValueError(
+                f"Unsupported agent specified in config: {self.config.agent}"
+            )
 
-    def _get_translation_prompt_template(self, source_lang: str, target_lang: str) -> str:
-        with open(self.config.translation_prompt_path, "r", encoding='utf-8') as f:
+    def _get_translation_prompt_template(
+        self, source_lang: str, target_lang: str
+    ) -> str:
+        with open(self.config.translation_prompt_path, "r", encoding="utf-8") as f:
             prompt_template = f.read()
         return prompt_template.format(source_lang=source_lang, target_lang=target_lang)
 
     def _translate_single_chunk(
-            self,
-            chunk: str,
-            chunk_index: int,
-            base_prompt_template: str
+        self, chunk: str, chunk_index: int, base_prompt_template: str
     ) -> str:
         prompt = base_prompt_template.format(text_chunk=chunk)
         try:
@@ -57,11 +58,19 @@ class TranslatorAgent:
             logger.error(f"Error during LLM call for chunk {chunk_index + 1}: {e}")
             return self._ERROR_CHUNK_MARKER_FORMAT.format(index=chunk_index + 1)
 
-    def _translate_chunks(self, chunks: list[str], source_lang: str, target_lang: str) -> list[str]:
+    def _translate_chunks(
+        self, chunks: list[str], source_lang: str, target_lang: str
+    ) -> list[str]:
         translated_chunks = []
-        prompt_template = self._get_translation_prompt_template(source_lang, target_lang)
+        prompt_template = self._get_translation_prompt_template(
+            source_lang, target_lang
+        )
 
-        iterator = self._progress.tqdm(enumerate(chunks), desc="Translating Chunks...") if self._progress else enumerate(chunks)
+        iterator = (
+            self._progress.tqdm(enumerate(chunks), desc="Translating Chunks...")
+            if self._progress
+            else enumerate(chunks)
+        )
 
         for i, chunk in iterator:
             translated_chunk = self._translate_single_chunk(chunk, i, prompt_template)
@@ -72,16 +81,22 @@ class TranslatorAgent:
     def translate_text(self, full_text: str, source_lang: str, target_lang: str) -> str:
         original_chunks = self.llm_client.split_into_limit(full_text)
 
-        logger.info(f"  - Original text split into {len(original_chunks)} chunks for translation.")
+        logger.info(
+            f"  - Original text split into {len(original_chunks)} chunks for translation."
+        )
 
         if not original_chunks:
-            logger.warning("  - Warning: The original text resulted in 0 chunks. Check input.")
+            logger.warning(
+                "  - Warning: The original text resulted in 0 chunks. Check input."
+            )
             return ""
 
-        translated_text_parts = self._translate_chunks(original_chunks, source_lang, target_lang)
+        translated_text_parts = self._translate_chunks(
+            original_chunks, source_lang, target_lang
+        )
 
         logger.info("Translation of all chunks completed.")
         full_translated_text = "\n\n".join(translated_text_parts)
-        full_translated_text = re.sub(r'\n{3,}', '\n\n', full_translated_text).strip()
+        full_translated_text = re.sub(r"\n{3,}", "\n\n", full_translated_text).strip()
 
         return full_translated_text
