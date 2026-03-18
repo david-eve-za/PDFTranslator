@@ -195,7 +195,7 @@ class TextExtractorAgent:
         cleaned_text = self._clean_extracted_text(full_text)
         return cleaned_text, image_paths
 
-    def _extract_from_epub(self, epub_path: Path) -> Tuple[str, List[Path]]:
+    def _extract_from_epub(self, epub_path: Path) -> str:
         """
         Extracts and cleans text from an EPUB file.
         """
