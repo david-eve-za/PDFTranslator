@@ -67,9 +67,9 @@ class GlobalConfig(metaclass=_Singleton):
         self.nvidia_max_bucket_size = 10
         self.nvidia_model_rate_limit = 30
         self.nvidia_context_size = 3000
-        self.nvidia_model_name = "meta/llama-3.3-70b-instruct"
+        self.nvidia_model_name = "mistralai/mistral-large-3-675b-instruct-2512"
         self.nvidia_local_tokenizer_dir: str = "llama-3.3-70b-instruct"
-        self.nvidia_local_tokenizer_name: str = "openai/gpt-oss-120b"
+        self.nvidia_local_tokenizer_name: str = "mistralai/Mistral-Large-3-675B-Instruct-2512"
 
         # --- Internal State ---
         self._config_path: Optional[str] = None
