@@ -17,7 +17,7 @@ PDF_EXTENSION = ".pdf"
 EPUB_EXTENSION = ".epub"
 
 
-class TextExtractorAgent:
+class TextExtractor:
     """
     An agent responsible for extracting and cleaning text from PDF and EPUB files.
     """
@@ -71,7 +71,12 @@ class TextExtractorAgent:
 
         except FileNotFoundError as e:
             logger.error(f"File error: {e}", exc_info=True)
-        except (epub.EpubException, zipfile.BadZipFile, fitz.PyMuPDFError) as e:
+        except (
+            epub.EpubException,
+            zipfile.BadZipFile,
+            fitz.EmptyFileError,
+            fitz.FileDataError,
+        ) as e:
             logger.error(
                 f"Error processing file '{path_obj.name}'. It may be corrupt or invalid: {e}",
                 exc_info=True,

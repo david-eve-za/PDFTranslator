@@ -10,7 +10,7 @@ from GlobalConfig import GlobalConfig
 from tools.VideoGenerator import VideoGenerator
 from tools.AudioGenerator import AudioGenerator
 from tools.FileFinder import FilesFinder, IsFileFilter, ExcludeTranslatedFilter
-from tools.TextExtractor import TextExtractorAgent
+from tools.TextExtractor import TextExtractor
 from tools.Translator import TranslatorAgent
 
 import warnings
@@ -165,7 +165,7 @@ def process_single_file(file_path: Path, services: Tuple) -> bool:
         )
         return True
 
-    text_extractor = TextExtractorAgent()
+    text_extractor = TextExtractor()
     original_text = text_extractor.extract_text(file_path=file_path)
 
     if not original_text or not original_text.strip():

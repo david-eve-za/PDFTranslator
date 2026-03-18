@@ -4,12 +4,12 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 import pytest
 
-from tools.TextExtractor import TextExtractorAgent
+from tools.TextExtractor import TextExtractor
 
 
 def test_extract_text_returns_string_not_tuple():
     """Test that extract_text returns str, not Tuple[str, List[Path]]."""
-    extractor = TextExtractorAgent()
+    extractor = TextExtractor()
 
     # Mock a simple PDF
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
@@ -31,7 +31,7 @@ def test_extract_text_returns_string_not_tuple():
 
 def test_no_image_extraction_occurs():
     """Test that no image extraction directories are created."""
-    extractor = TextExtractorAgent()
+    extractor = TextExtractor()
 
     with tempfile.TemporaryDirectory() as tmpdir:
         test_pdf = Path(tmpdir) / "test.pdf"
@@ -51,7 +51,7 @@ def test_no_image_extraction_occurs():
 
 def test_extract_text_error_returns_none():
     """Test that extract_text returns None on error."""
-    extractor = TextExtractorAgent()
+    extractor = TextExtractor()
 
     # Test with non-existent file
     result = extractor.extract_text("/non/existent/file.pdf")
