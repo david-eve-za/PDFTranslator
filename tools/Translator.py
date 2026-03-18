@@ -14,13 +14,13 @@ from tools.OverlapCleaner import clean_overlap
 logger = logging.getLogger(__name__)
 
 
-class TranslatorAgent:
+class Translator:
     _EMPTY_CHUNK_MARKER_FORMAT = "[EMPTY_TRANSLATION_CHUNK_{index}]"
     _ERROR_CHUNK_MARKER_FORMAT = "[TRANSLATION_ERROR_CHUNK_{index}]"
 
     def __init__(self, progress: gr.Progress = None):
         """
-        Initializes the TranslatorAgent, creating the appropriate LLM client
+        Initializes the Translator, creating the appropriate LLM client
         based on the global configuration.
         """
         self.config = GlobalConfig()

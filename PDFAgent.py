@@ -11,7 +11,7 @@ from tools.VideoGenerator import VideoGenerator
 from tools.AudioGenerator import AudioGenerator
 from tools.FileFinder import FilesFinder, IsFileFilter, ExcludeTranslatedFilter
 from tools.TextExtractor import TextExtractor
-from tools.Translator import TranslatorAgent
+from tools.Translator import Translator
 
 import warnings
 
@@ -48,9 +48,7 @@ def setup_logging():
     root_logger.addHandler(file_handler)
 
 
-def translate_text(
-    translator: TranslatorAgent, text: str, file_path: Path
-) -> Optional[str]:
+def translate_text(translator: Translator, text: str, file_path: Path) -> Optional[str]:
     """
     Translates the given text.
     """
@@ -243,7 +241,7 @@ def initialize_services() -> Optional[Tuple]:
         # config = GlobalConfig() # Get the global config
         # if Path(config.input_path).is_dir():
         #     file_finder = FilesFinder(config.input_path) # FilesFinder needs input_path to initialize
-        translation_agent = TranslatorAgent()
+        translation_agent = Translator()
         audio_generator = AudioGenerator()
         video_generator = VideoGenerator()
         return (
