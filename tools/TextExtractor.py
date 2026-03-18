@@ -200,5 +200,4 @@ class TextExtractorAgent:
 
         full_text = "\n\n".join(text_sections)
         cleaned_text = self._clean_extracted_text(full_text)
-        # This EPUB implementation does not extract images, so it returns an empty list.
-        return cleaned_text, []
+        return cleaned_text
