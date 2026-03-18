@@ -166,7 +166,7 @@ def process_single_file(file_path: Path, services: Tuple) -> bool:
         return True
 
     text_extractor = TextExtractorAgent()
-    original_text, images_list = text_extractor.extract_text(file_path=file_path)
+    original_text = text_extractor.extract_text(file_path=file_path)
 
     if not original_text or not original_text.strip():
         logging.warning(
@@ -223,7 +223,7 @@ def process_single_file(file_path: Path, services: Tuple) -> bool:
 
     if config.gen_video:
         video_success = generate_video(
-            video_generator, images_list, output_audio_filename, file_path
+            video_generator, [], output_audio_filename, file_path
         )
         if not video_success:
             logging.error(
