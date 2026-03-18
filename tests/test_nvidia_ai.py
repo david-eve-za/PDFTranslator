@@ -1,6 +1,6 @@
 import os
 import pytest
-from llm.nvidia_llm import NvidiaAI
+from llm.nvidia_llm import NvidiaLLM
 
 
 @pytest.mark.skipif(
@@ -9,7 +9,7 @@ from llm.nvidia_llm import NvidiaAI
 )
 def test_nvidia_ai_call_model():
     """Test calling NVIDIA NIM model."""
-    nvidia = NvidiaAI()
+    nvidia = NvidiaLLM()
     response = nvidia.call_model("Say 'test' and nothing else.")
     assert isinstance(response, str)
     assert len(response) > 0
@@ -22,7 +22,7 @@ def test_nvidia_ai_call_model():
 )
 def test_nvidia_ai_count_tokens():
     """Test token counting."""
-    nvidia = NvidiaAI()
+    nvidia = NvidiaLLM()
     count = nvidia.count_tokens("hello world")
     assert isinstance(count, int)
     assert count > 0
@@ -34,7 +34,7 @@ def test_nvidia_ai_count_tokens():
 )
 def test_nvidia_ai_split_into_limit():
     """Test text splitting."""
-    nvidia = NvidiaAI()
+    nvidia = NvidiaLLM()
     text = "hello " * 10000  # Large text
     chunks = nvidia.split_into_limit(text)
     assert isinstance(chunks, list)
@@ -50,7 +50,7 @@ def test_nvidia_ai_split_into_limit():
 )
 def test_nvidia_ai_get_model_name():
     """Test getting current model name."""
-    nvidia = NvidiaAI()
+    nvidia = NvidiaLLM()
     name = nvidia.get_current_model_name()
     assert isinstance(name, str)
     assert name.startswith("meta/")

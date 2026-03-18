@@ -5,6 +5,7 @@ from typing import Type, Dict, Any, Optional, List
 
 class _Singleton(type):
     """A metaclass that creates a Singleton base class when called."""
+
     _instances: Dict[Type, object] = {}
 
     def __call__(cls, *args, **kwargs):
@@ -33,7 +34,7 @@ class GlobalConfig(metaclass=_Singleton):
         self.translation_prompt_path: str = "tools/translation_prompt.txt"
         self.voice: str = "Paulina"
 
-        # GeminiAI settings
+        # GeminiLLM settings
         self.gemini_model_names: List[str] = ["gemma-3-27b-it"]
         self.gemini_temperature: float = 0.2
         self.gemini_top_p: float = 0.95
@@ -48,7 +49,7 @@ class GlobalConfig(metaclass=_Singleton):
             "gemma-3-27b-it": 5,
         }
 
-        # OllamaAI settings
+        # OllamaLLM settings
         self.ollama_default_model_name: str = "aya-expanse:32b"
         self.ollama_validate_model: bool = True
         self.ollama_temperature: float = 0.2
@@ -69,7 +70,9 @@ class GlobalConfig(metaclass=_Singleton):
         self.nvidia_context_size = 3000
         self.nvidia_model_name = "mistralai/mistral-large-3-675b-instruct-2512"
         self.nvidia_local_tokenizer_dir: str = "mistral-large-3-675b-instruct-2512"
-        self.nvidia_local_tokenizer_name: str = "mistralai/Mistral-Large-3-675B-Instruct-2512"
+        self.nvidia_local_tokenizer_name: str = (
+            "mistralai/Mistral-Large-3-675B-Instruct-2512"
+        )
 
         # --- Internal State ---
         self._config_path: Optional[str] = None
@@ -114,7 +117,7 @@ class GlobalConfig(metaclass=_Singleton):
             "nvidia_context_size": int,
             "nvidia_model_name": str,
             "nvidia_local_tokenizer_dir": str,
-            "nvidia_local_tokenizer_name": str
+            "nvidia_local_tokenizer_name": str,
         }
 
     def _validate(self, data: Dict[str, Any]) -> None:
@@ -123,14 +126,16 @@ class GlobalConfig(metaclass=_Singleton):
 
         for key, expected_type in expected_types.items():
             if key in data and not isinstance(data[key], expected_type):
-                raise ValueError(f"Invalid type for configuration key '{key}'. "
-                                 f"Expected {expected_type}, got {type(data[key]).__name__}.")
+                raise ValueError(
+                    f"Invalid type for configuration key '{key}'. "
+                    f"Expected {expected_type}, got {type(data[key]).__name__}."
+                )
 
     def load(self, config_path: str) -> None:
         """Loads configuration from a JSON file."""
         self._config_path = config_path
         try:
-            with open(config_path, 'r', encoding='utf-8') as f:
+            with open(config_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
         except FileNotFoundError:
             raise FileNotFoundError(f"Configuration file not found at: {config_path}")
@@ -150,10 +155,12 @@ class GlobalConfig(metaclass=_Singleton):
             raise ValueError("A path must be provided to save the configuration.")
 
         self._config_path = path_to_save
-        config_data = {key: getattr(self, key) for key in self._get_expected_types().keys()}
+        config_data = {
+            key: getattr(self, key) for key in self._get_expected_types().keys()
+        }
 
         try:
-            with open(path_to_save, 'w', encoding='utf-8') as f:
+            with open(path_to_save, "w", encoding="utf-8") as f:
                 json.dump(config_data, f, indent=4)
         except IOError as e:
             print(f"Error saving configuration to {path_to_save}: {e}")
@@ -169,11 +176,13 @@ class GlobalConfig(metaclass=_Singleton):
 
     def __str__(self) -> str:
         """String representation of the current configuration."""
-        config_data = {key: getattr(self, key) for key in self._get_expected_types().keys()}
+        config_data = {
+            key: getattr(self, key) for key in self._get_expected_types().keys()
+        }
         return json.dumps(config_data, indent=2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     config = GlobalConfig()
     print("--- Default Config ---")
     print(config)

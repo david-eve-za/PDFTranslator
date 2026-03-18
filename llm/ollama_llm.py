@@ -9,7 +9,7 @@ from GlobalConfig import GlobalConfig
 from llm.base_llm import BaseLLM
 
 
-class OllamaAI(BaseLLM):
+class OllamaLLM(BaseLLM):
     def __init__(self):
         self._logger = logging.getLogger(__name__)
         self.config = GlobalConfig()

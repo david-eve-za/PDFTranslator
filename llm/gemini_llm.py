@@ -18,19 +18,19 @@ from llm.base_llm import BaseLLM
 
 
 # --- Custom Exceptions ---
-class GeminiAIError(Exception):
+class GeminiLLMError(Exception):
     """Base exception for errors in the GeminiLLM service."""
 
     pass
 
 
-class GeminiAIInitializationError(GeminiAIError):
+class GeminiLLMInitializationError(GeminiLLMError):
     """Raised when the GeminiLLM service fails to initialize."""
 
     pass
 
 
-class GeminiAPICallError(GeminiAIError):
+class GeminiAPICallError(GeminiLLMError):
     """Raised when a call to the Gemini API fails."""
 
     pass
@@ -53,7 +53,7 @@ class GeminiLLM(BaseLLM):
         self._logger.info("Initializing GeminiLLM...")
 
         if not self.config.gemini_model_names:
-            raise GeminiAIInitializationError(
+            raise GeminiLLMInitializationError(
                 "Gemini model names list cannot be empty in config."
             )
 
@@ -66,7 +66,7 @@ class GeminiLLM(BaseLLM):
             self._llm_client = self._create_llm_client_for_current_model()
         except (FileNotFoundError, ValueError) as e:
             self._logger.error(f"Initialization failed: {e}", exc_info=True)
-            raise GeminiAIInitializationError(f"Initialization failed: {e}") from e
+            raise GeminiLLMInitializationError(f"Initialization failed: {e}") from e
 
         self._logger.info(
             f"GeminiLLM service initialized successfully. Starting with model '{self.get_current_model_name()}'."
@@ -126,7 +126,7 @@ class GeminiLLM(BaseLLM):
                     f"An unexpected error occurred with '{current_model_name}': {e}",
                     exc_info=True,
                 )
-                raise GeminiAIError(f"An unexpected error occurred: {e}") from e
+                raise GeminiLLMError(f"An unexpected error occurred: {e}") from e
 
         self._logger.error(
             f"Failed to get a valid response from model '{self.get_current_model_name()}' after {max_retries} attempts."
@@ -193,7 +193,7 @@ class GeminiLLM(BaseLLM):
             self._logger.error(
                 f"Failed to initialize client for '{model_name}': {e}", exc_info=True
             )
-            raise GeminiAIInitializationError(
+            raise GeminiLLMInitializationError(
                 f"Failed to initialize client for '{model_name}': {e}"
             ) from e
 
@@ -212,7 +212,7 @@ class GeminiLLM(BaseLLM):
                 f"Failed to load tokenizer model from '{tokenizer_path}': {e}",
                 exc_info=True,
             )
-            raise GeminiAIInitializationError(
+            raise GeminiLLMInitializationError(
                 f"Failed to load tokenizer model: {e}"
             ) from e
 

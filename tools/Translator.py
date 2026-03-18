@@ -3,9 +3,9 @@ import re
 import gradio as gr
 
 from GlobalConfig import GlobalConfig
-from llm.gemini_llm import GeminiAI
-from llm.nvidia_llm import NvidiaAI
-from llm.ollama_llm import OllamaAI
+from llm.gemini_llm import GeminiLLM
+from llm.nvidia_llm import NvidiaLLM
+from llm.ollama_llm import OllamaLLM
 from llm.base_llm import BaseLLM
 from tools import OverlapCleaner
 from tools.OverlapCleaner import clean_overlap
@@ -30,11 +30,11 @@ class Translator:
     def _create_llm_client(self) -> BaseLLM:
         """Factory function to create an LLM client."""
         if self.config.agent == "gemini":
-            return GeminiAI()
+            return GeminiLLM()
         elif self.config.agent == "ollama":
-            return OllamaAI()
+            return OllamaLLM()
         elif self.config.agent == "nvidia":
-            return NvidiaAI()
+            return NvidiaLLM()
         else:
             raise ValueError(
                 f"Unsupported agent specified in config: {self.config.agent}"
