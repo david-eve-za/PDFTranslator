@@ -19,13 +19,13 @@ from llm.base_llm import BaseLLM
 
 # --- Custom Exceptions ---
 class GeminiAIError(Exception):
-    """Base exception for errors in the GeminiAI service."""
+    """Base exception for errors in the GeminiLLM service."""
 
     pass
 
 
 class GeminiAIInitializationError(GeminiAIError):
-    """Raised when the GeminiAI service fails to initialize."""
+    """Raised when the GeminiLLM service fails to initialize."""
 
     pass
 
@@ -43,14 +43,14 @@ def _get_api_key() -> str:
     return api_key
 
 
-class GeminiAI(BaseLLM):
+class GeminiLLM(BaseLLM):
     """BaseLLM implementation for Google's Gemini models."""
 
     def __init__(self):
         self.config = GlobalConfig()
         self.genai_client = genai.Client()
         self._logger = logging.getLogger(__name__)
-        self._logger.info("Initializing GeminiAI...")
+        self._logger.info("Initializing GeminiLLM...")
 
         if not self.config.gemini_model_names:
             raise GeminiAIInitializationError(
@@ -69,7 +69,7 @@ class GeminiAI(BaseLLM):
             raise GeminiAIInitializationError(f"Initialization failed: {e}") from e
 
         self._logger.info(
-            f"GeminiAI service initialized successfully. Starting with model '{self.get_current_model_name()}'."
+            f"GeminiLLM service initialized successfully. Starting with model '{self.get_current_model_name()}'."
         )
 
     def get_current_model_name(self) -> str:
