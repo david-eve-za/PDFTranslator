@@ -326,33 +326,15 @@ def main():
     )
     args = parser.parse_args()
 
-    # --- Configuration Loading ---
-    try:
-        config.load(CONFIG_FILE_NAME)
-        logging.info(f"Loaded configuration from {CONFIG_FILE_NAME}")
-    except FileNotFoundError:
-        logging.info(
-            f"{CONFIG_FILE_NAME} not found. Using default settings and command-line arguments."
-        )
-    except ValueError as e:
-        logging.error(
-            f"Error loading {CONFIG_FILE_NAME}: {e}. Please check the file format."
-        )
-        return
-
     # Override with command-line arguments
     config.update_from_args(args)
 
     if not config.input_path:
         logging.error(
-            "Input path is not specified in config.json or as a command-line argument. Exiting."
+            "Input path is not specified as a command-line argument. Exiting."
         )
         parser.print_help()
         return
-
-    # --- Save final config ---
-    config.save(CONFIG_FILE_NAME)
-    logging.info(f"Final configuration saved to {CONFIG_FILE_NAME}")
 
     input_path = Path(config.input_path)
 
