@@ -147,8 +147,6 @@ class TextExtractorAgent:
         Extracts text from a PDF file.
         """
         extracted_pages: List[str] = []
-        image_paths: List[Path] = []
-        images_dir = pdf_path.parent / f"images_{pdf_path.stem}"
         doc = fitz.open(pdf_path)
 
         with doc:
