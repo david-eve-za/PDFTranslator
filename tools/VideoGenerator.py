@@ -4,42 +4,50 @@ import os
 from pathlib import Path
 from typing import List
 
-# --- Inicio del Monkey-Patch ---
+# --- Start of Monkey-Patch ---
 # This monkey-patch is necessary because moviepy versions prior to 2.0.0rc1 expect
 # PIL.Image.ANTIALIAS, which was removed in Pillow 10.0.0. This code restores
 # the alias to ensure compatibility with older moviepy versions.
 import PIL.Image
 from moviepy import AudioFileClip, ImageClip, CompositeVideoClip, concatenate_videoclips
 
-# Intentar parchear PIL.Image.ANTIALIAS si falta (Pillow >= 9.0.0)
-# y una versión antigua de MoviePy lo espera.
-# ANTIALIAS era un alias de LANCZOS (valor entero 1).
-if not hasattr(PIL.Image, 'ANTIALIAS'):
+# Try to patch PIL.Image.ANTIALIAS if missing (Pillow >= 9.0.0)
+# and an older version of MoviePy expects it.
+# ANTIALIAS was an alias for LANCZOS (integer value 1).
+if not hasattr(PIL.Image, "ANTIALIAS"):
     try:
-        # Pillow >= 9 usa PIL.Image.Resampling.LANCZOS (enum) o PIL.Image.LANCZOS (constante entera)
-        if hasattr(PIL.Image, 'LANCZOS'): # Constante entera PIL.Image.LANCZOS
+        # Pillow >= 9 uses PIL.Image.Resampling.LANCZOS (enum) or PIL.Image.LANCZOS (integer constant)
+        if hasattr(PIL.Image, "LANCZOS"):  # Integer constant PIL.Image.LANCZOS
             PIL.Image.ANTIALIAS = PIL.Image.LANCZOS
             # print("INFO: Se ha parcheado PIL.Image.ANTIALIAS usando PIL.Image.LANCZOS.")
             logging.info("Monkey-patched PIL.Image.ANTIALIAS using PIL.Image.LANCZOS.")
-        elif hasattr(PIL.Image, 'Resampling') and hasattr(PIL.Image.Resampling, 'LANCZOS'):
-            PIL.Image.ANTIALIAS = PIL.Image.Resampling.LANCZOS # Miembro del Enum
+        elif hasattr(PIL.Image, "Resampling") and hasattr(
+            PIL.Image.Resampling, "LANCZOS"
+        ):
+            PIL.Image.ANTIALIAS = PIL.Image.Resampling.LANCZOS  # Member of Enum
             # print("INFO: Se ha parcheado PIL.Image.ANTIALIAS usando PIL.Image.Resampling.LANCZOS.")
-            logging.info("Monkey-patched PIL.Image.ANTIALIAS using PIL.Image.Resampling.LANCZOS.")
+            logging.info(
+                "Monkey-patched PIL.Image.ANTIALIAS using PIL.Image.Resampling.LANCZOS."
+            )
         else:
-            # Como último recurso, asignar el valor entero conocido.
+            # As a last resort, assign the known integer value.
             PIL.Image.ANTIALIAS = 1
             # print("INFO: Se ha parcheado PIL.Image.ANTIALIAS con el valor entero 1.")
             logging.info("Monkey-patched PIL.Image.ANTIALIAS with integer value 1.")
     except Exception as e:
         # print(f"ADVERTENCIA: No se pudo parchear PIL.Image.ANTIALIAS: {e}")
         logging.warning(f"Could not monkey-patch PIL.Image.ANTIALIAS: {e}")
-# --- Fin del Monkey-Patch ---
+# --- End of Monkey-Patch ---
 
 logger = logging.getLogger(__name__)
 
 
 class VideoGenerator:
-    def __init__(self, default_output_fps: int = 24, default_image_resolution: tuple = (1280, 720)):
+    def __init__(
+        self,
+        default_output_fps: int = 24,
+        default_image_resolution: tuple = (1280, 720),
+    ):
         """
         Initializes the VideoGenerator.
 
@@ -52,12 +60,12 @@ class VideoGenerator:
         self.default_image_resolution = default_image_resolution
 
     def create_video_from_images_and_audio(
-            self,
-            image_paths: List[str],
-            audio_path: str,
-            output_video_path: str,
-            fps: int = None,
-            image_resolution: tuple = None
+        self,
+        image_paths: List[str],
+        audio_path: str,
+        output_video_path: str,
+        fps: int = None,
+        image_resolution: tuple = None,
     ) -> bool:
         """
         Creates a video by sequencing images and setting an audio track.
@@ -82,7 +90,11 @@ class VideoGenerator:
             return False
 
         output_fps = fps if fps is not None else self.default_output_fps
-        target_resolution = image_resolution if image_resolution is not None else self.default_image_resolution
+        target_resolution = (
+            image_resolution
+            if image_resolution is not None
+            else self.default_image_resolution
+        )
 
         try:
             logger.info(f"Loading audio from: {audio_path}")
@@ -90,13 +102,16 @@ class VideoGenerator:
             audio_duration = audio_clip.duration
 
             if audio_duration <= 0:
-                logger.error("Audio duration is zero or negative. Cannot determine image display times.")
+                logger.error(
+                    "Audio duration is zero or negative. Cannot determine image display times."
+                )
                 return False
 
             num_images = len(image_paths)
             duration_per_image = audio_duration / num_images
             logger.info(
-                f"Audio duration: {audio_duration:.2f}s. Number of images: {num_images}. Duration per image: {duration_per_image:.2f}s.")
+                f"Audio duration: {audio_duration:.2f}s. Number of images: {num_images}. Duration per image: {duration_per_image:.2f}s."
+            )
 
             video_clips = []
             for i, img_path in enumerate(image_paths):
@@ -111,15 +126,21 @@ class VideoGenerator:
                         # and adding black bars if necessary (or cropping, depending on strategy)
                         # For simplicity, let's resize and let moviepy handle aspect.
                         # A more robust solution might involve padding.
-                        img_clip = img_clip.resized(height=target_resolution[1])  # Resize based on height
-                        if img_clip.w > target_resolution[0]:  # If too wide, resize based on width
+                        img_clip = img_clip.resized(
+                            height=target_resolution[1]
+                        )  # Resize based on height
+                        if (
+                            img_clip.w > target_resolution[0]
+                        ):  # If too wide, resize based on width
                             img_clip = img_clip.resized(width=target_resolution[0])
 
                         # To center and pad to target_resolution:
                         if target_resolution:
-                            img_clip = CompositeVideoClip([img_clip.with_position('center')],
-                                                          size=target_resolution,
-                                                          bg_color=(0, 0, 0))  # Black background
+                            img_clip = CompositeVideoClip(
+                                [img_clip.with_position("center")],
+                                size=target_resolution,
+                                bg_color=(0, 0, 0),
+                            )  # Black background
 
                     # img_clip = img_clip.set_duration(duration_per_image)
                     video_clips.append(img_clip)
@@ -129,7 +150,9 @@ class VideoGenerator:
                     continue
 
             if not video_clips:
-                logger.error("No valid images could be processed to create video clips.")
+                logger.error(
+                    "No valid images could be processed to create video clips."
+                )
                 audio_clip.close()
                 return False
 
@@ -140,7 +163,9 @@ class VideoGenerator:
             # This can be important if concatenate_videoclips has minor precision issues
             # final_video_clip = final_video_clip.set_duration(audio_duration)
 
-            logger.info(f"Writing final video to: {output_video_path} with FPS: {output_fps}")
+            logger.info(
+                f"Writing final video to: {output_video_path} with FPS: {output_fps}"
+            )
             # Use libx264 for H.264 video (common) and aac for audio.
             # threads can be used to speed up encoding if ffmpeg supports it.
             # preset can be 'ultrafast', 'fast', 'medium', 'slow', 'slower' (tradeoff speed vs compression)
@@ -151,7 +176,7 @@ class VideoGenerator:
                 audio_codec="aac",
                 temp_audiofile=f"{Path(output_video_path).stem}_temp_audio.m4a",  # moviepy recommendation
                 remove_temp=True,
-                threads=os.cpu_count()  # Use available CPU cores
+                threads=os.cpu_count(),  # Use available CPU cores
                 # preset="medium" # Good balance
             )
 
@@ -163,10 +188,10 @@ class VideoGenerator:
             return False
         finally:
             # Close clips if they were opened
-            if 'audio_clip' in locals() and audio_clip:
+            if "audio_clip" in locals() and audio_clip:
                 audio_clip.close()
-            if 'video_clips' in locals():
+            if "video_clips" in locals():
                 for clip in video_clips:
                     clip.close()
-            if 'final_video_clip' in locals() and final_video_clip:
+            if "final_video_clip" in locals() and final_video_clip:
                 final_video_clip.close()
