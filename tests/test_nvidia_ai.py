@@ -1,6 +1,6 @@
 import os
 import pytest
-from llm.NvidiaAI import NvidiaAI
+from llm.nvidia_llm import NvidiaAI
 
 
 @pytest.mark.skipif(

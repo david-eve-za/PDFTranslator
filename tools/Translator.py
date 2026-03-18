@@ -4,7 +4,7 @@ import gradio as gr
 
 from GlobalConfig import GlobalConfig
 from llm.GeminiAI import GeminiAI
-from llm.NvidiaAI import NvidiaAI
+from llm.nvidia_llm import NvidiaAI
 from llm.OllamaAI import OllamaAI
 from llm.base_llm import BaseLLM
 from tools import OverlapCleaner
