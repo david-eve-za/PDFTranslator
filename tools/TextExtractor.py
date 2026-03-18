@@ -166,32 +166,9 @@ class TextExtractorAgent:
                         f"  - PDF: Could not extract text from page {page_num}: {e}"
                     )
 
-                    # Image extraction removed - if extract_images:
-                    image_list = page.get_images(full=True)
-                    for img_index, img_info in enumerate(image_list):
-                        xref = img_info[0]
-                        base_image = doc.extract_image(xref)
-                        if not base_image:
-                            continue
-
-                        image_bytes = base_image["image"]
-                        image_ext = base_image["ext"]
-                        image_filename = f"page{page_num}_img{img_index}.{image_ext}"
-
-                        try:
-                            images_dir.mkdir(parents=True, exist_ok=True)
-                            image_save_path = images_dir / image_filename
-                            with open(image_save_path, "wb") as img_file:
-                                img_file.write(image_bytes)
-                            image_paths.append(image_save_path)
-                        except OSError as e:
-                            logger.error(
-                                f"  - PDF: Could not save image {image_filename}: {e}"
-                            )
-
         full_text = "\n\n".join(extracted_pages)
         cleaned_text = self._clean_extracted_text(full_text)
-        return cleaned_text, image_paths
+        return cleaned_text
 
     def _extract_from_epub(self, epub_path: Path) -> str:
         """
