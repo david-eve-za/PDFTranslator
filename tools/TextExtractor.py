@@ -142,11 +142,9 @@ class TextExtractorAgent:
         logger.info("  - Text cleaning complete.")
         return cleaned_text
 
-    def _extract_from_pdf(
-        self, pdf_path: Path, extract_images: bool
-    ) -> Tuple[str, List[Path]]:
+    def _extract_from_pdf(self, pdf_path: Path) -> str:
         """
-        Extracts text and optionally images from a PDF file.
+        Extracts text from a PDF file.
         """
         extracted_pages: List[str] = []
         image_paths: List[Path] = []
@@ -170,7 +168,7 @@ class TextExtractorAgent:
                         f"  - PDF: Could not extract text from page {page_num}: {e}"
                     )
 
-                if extract_images:
+                    # Image extraction removed - if extract_images:
                     image_list = page.get_images(full=True)
                     for img_index, img_info in enumerate(image_list):
                         xref = img_info[0]
