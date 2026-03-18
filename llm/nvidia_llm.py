@@ -10,7 +10,7 @@ from GlobalConfig import GlobalConfig
 from llm.base_llm import BaseLLM
 
 
-class NvidiaAI(BaseLLM):
+class NvidiaLLM(BaseLLM):
     """NVIDIA NIM cloud API connector using langchain-nvidia-ai-endpoints."""
 
     def __init__(self):
@@ -24,7 +24,7 @@ class NvidiaAI(BaseLLM):
             verbose=True,
         )
         self._logger.info(
-            f"NvidiaAI initialized with model: {self.config.nvidia_model_name}"
+            f"NvidiaLLM initialized with model: {self.config.nvidia_model_name}"
         )
 
     def call_model(self, prompt: str) -> str:
