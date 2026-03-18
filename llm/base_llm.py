@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List
 
 
-class LLMService(ABC):
+class BaseLLM(ABC):
     @abstractmethod
     def call_model(self, prompt: str) -> str:
         pass

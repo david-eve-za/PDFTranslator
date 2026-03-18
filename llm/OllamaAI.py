@@ -6,10 +6,10 @@ from langchain_text_splitters import NLTKTextSplitter
 from transformers import AutoTokenizer
 
 from GlobalConfig import GlobalConfig
-from llm.llm_service import LLMService
+from llm.base_llm import BaseLLM
 
 
-class OllamaAI(LLMService):
+class OllamaAI(BaseLLM):
     def __init__(self):
         self._logger = logging.getLogger(__name__)
         self.config = GlobalConfig()

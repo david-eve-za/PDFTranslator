@@ -6,7 +6,7 @@ from GlobalConfig import GlobalConfig
 from llm.GeminiAI import GeminiAI
 from llm.NvidiaAI import NvidiaAI
 from llm.OllamaAI import OllamaAI
-from llm.llm_service import LLMService
+from llm.base_llm import BaseLLM
 from tools import OverlapCleaner
 from tools.OverlapCleaner import clean_overlap
 
@@ -27,7 +27,7 @@ class TranslatorAgent:
         self.llm_client = self._create_llm_client()
         self._progress = progress
 
-    def _create_llm_client(self) -> LLMService:
+    def _create_llm_client(self) -> BaseLLM:
         """Factory function to create an LLM client."""
         if self.config.agent == "gemini":
             return GeminiAI()

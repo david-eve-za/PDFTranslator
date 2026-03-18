@@ -7,10 +7,10 @@ from langchain_text_splitters import NLTKTextSplitter
 from transformers import AutoTokenizer
 
 from GlobalConfig import GlobalConfig
-from llm.llm_service import LLMService
+from llm.base_llm import BaseLLM
 
 
-class NvidiaAI(LLMService):
+class NvidiaAI(BaseLLM):
     """NVIDIA NIM cloud API connector using langchain-nvidia-ai-endpoints."""
 
     def __init__(self):

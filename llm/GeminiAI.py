@@ -14,7 +14,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_text_splitters import NLTKTextSplitter
 
 from GlobalConfig import GlobalConfig
-from llm.llm_service import LLMService
+from llm.base_llm import BaseLLM
 
 
 # --- Custom Exceptions ---
@@ -43,8 +43,8 @@ def _get_api_key() -> str:
     return api_key
 
 
-class GeminiAI(LLMService):
-    """LLMService implementation for Google's Gemini models."""
+class GeminiAI(BaseLLM):
+    """BaseLLM implementation for Google's Gemini models."""
 
     def __init__(self):
         self.config = GlobalConfig()
