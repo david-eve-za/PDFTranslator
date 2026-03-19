@@ -77,11 +77,18 @@ class GlobalConfig(metaclass=_Singleton):
         # Database settings
         self.db_host: str = "localhost"
         self.db_port: int = 5432
-        self.db_name: str = "pdftranslator"
-        self.db_user: str = "postgres"
-        self.db_password: str = ""
+        self.db_name: str = "book_translator"
+        self.db_user: str = "translator_user"
+        self.db_password: str = 'uQ201/-R]f3"j@]N7/L:'
         self.db_min_pool_size: int = 2
         self.db_max_pool_size: int = 10
+
+        # NVIDIA NIM settings for embeddings and reranking
+        self.nvidia_nim_api_key: str = ""
+        self.nvidia_embed_model: str = "nvidia/llama-3.2-nv-embedqa-1b-v2"
+        self.nvidia_rerank_model: str = "nvidia/llama-3.2-nv-rerankqa-1b-v2"
+        self.nvidia_embed_batch_size: int = 32
+        self.nvidia_rerank_top_n: int = 10
 
         # --- Internal State ---
         self._config_path: Optional[str] = None
@@ -134,6 +141,11 @@ class GlobalConfig(metaclass=_Singleton):
             "db_password": str,
             "db_min_pool_size": int,
             "db_max_pool_size": int,
+            "nvidia_nim_api_key": str,
+            "nvidia_embed_model": str,
+            "nvidia_rerank_model": str,
+            "nvidia_embed_batch_size": int,
+            "nvidia_rerank_top_n": int,
         }
 
     def _validate(self, data: Dict[str, Any]) -> None:
