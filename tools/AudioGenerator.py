@@ -20,17 +20,19 @@ def _ensure_nltk_punkt():
     if _NLTK_PUNKT_DOWNLOADED:
         return
     try:
-        nltk.data.find('tokenizers/punkt')
+        nltk.data.find("tokenizers/punkt")
         logger.debug("NLTK 'punkt' tokenizer found.")
         _NLTK_PUNKT_DOWNLOADED = True
     except (nltk.downloader.DownloadError, LookupError):
         logger.info("NLTK 'punkt' tokenizer not found. Downloading...")
         try:
-            nltk.download('punkt', quiet=True)
+            nltk.download("punkt", quiet=True)
             logger.info("NLTK 'punkt' tokenizer downloaded successfully.")
             _NLTK_PUNKT_DOWNLOADED = True
         except Exception as e:
-            logger.error(f"Failed to download NLTK 'punkt' tokenizer: {e}", exc_info=True)
+            logger.error(
+                f"Failed to download NLTK 'punkt' tokenizer: {e}", exc_info=True
+            )
             # NLTK 'punkt' is essential for text splitting.
             # Raising an error to prevent further issues.
             raise RuntimeError(
@@ -43,7 +45,7 @@ import logging
 import subprocess
 import tempfile
 from pathlib import Path
-import gradio as gr
+
 import nltk
 from langchain_text_splitters import NLTKTextSplitter
 from tqdm import tqdm
@@ -71,17 +73,19 @@ def _ensure_nltk_punkt():
     if _NLTK_PUNKT_DOWNLOADED:
         return
     try:
-        nltk.data.find('tokenizers/punkt')
+        nltk.data.find("tokenizers/punkt")
         logger.debug("NLTK 'punkt' tokenizer found.")
         _NLTK_PUNKT_DOWNLOADED = True
     except (DownloadError, LookupError):
         logger.info("NLTK 'punkt' tokenizer not found. Downloading...")
         try:
-            nltk.download('punkt', quiet=True)
+            nltk.download("punkt", quiet=True)
             logger.info("NLTK 'punkt' tokenizer downloaded successfully.")
             _NLTK_PUNKT_DOWNLOADED = True
         except Exception as e:
-            logger.error(f"Failed to download NLTK 'punkt' tokenizer: {e}", exc_info=True)
+            logger.error(
+                f"Failed to download NLTK 'punkt' tokenizer: {e}", exc_info=True
+            )
             raise RuntimeError(
                 "NLTK 'punkt' tokenizer is required but could not be downloaded. "
                 "Please check your internet connection or NLTK setup."
@@ -93,17 +97,20 @@ import shutil
 
 class AudioGenerator:
     _TEXT_NORMALIZATION_MAP = {
-        "”": "\"", "“": "\"",
-        "’": "'", "‘": "'",
-        "—": "-", "–": "-",
+        "”": '"',
+        "“": '"',
+        "’": "'",
+        "‘": "'",
+        "—": "-",
+        "–": "-",
         "…": "...",
-        "<br>": "\n"
+        "<br>": "\n",
     }
 
-    def __init__(self, progress: gr.Progress = None):
+    def __init__(self, progress=None):
         if not shutil.which("say"):
             raise RuntimeError("The 'say' command is not available on this system.")
-        
+
         config = GlobalConfig()
         self.voice = config.voice
         self.output_dir = None
@@ -111,12 +118,9 @@ class AudioGenerator:
         _ensure_nltk_punkt()
 
         self.target_text_spliter = NLTKTextSplitter(
-            chunk_size=500,
-            chunk_overlap=0,
-            language="spanish"
+            chunk_size=500, chunk_overlap=0, language="spanish"
         )
         self._progress = progress
-
 
     def _normalize_text_chunk(self, text_chunk: str) -> str:
         """Normalizes a text chunk by replacing typographic characters and HTML breaks."""
@@ -137,21 +141,35 @@ class AudioGenerator:
         # This temp file for text is specific to this call and will be cleaned up with the directory.
         temp_text_file = self.output_dir / f"{output_audio_file.stem}_text.txt"
         try:
-            with open(temp_text_file, "w", encoding='utf-8') as f:
+            with open(temp_text_file, "w", encoding="utf-8") as f:
                 f.write(text_chunk)
 
             # Using -f to read from file can be more robust for special characters
             subprocess.run(
-                ["say", "-v", self.voice, "-o", str(output_audio_file), "-f", str(temp_text_file)],
+                [
+                    "say",
+                    "-v",
+                    self.voice,
+                    "-o",
+                    str(output_audio_file),
+                    "-f",
+                    str(temp_text_file),
+                ],
                 check=True,
-                capture_output=True, text=True  # Capture output for logging
+                capture_output=True,
+                text=True,  # Capture output for logging
             )
             logger.info(f"Audio chunk saved: {output_audio_file}")
         except subprocess.CalledProcessError as e:
-            logger.error(f"Error during text-to-audio conversion for {output_audio_file.name}: {e.stderr}")
+            logger.error(
+                f"Error during text-to-audio conversion for {output_audio_file.name}: {e.stderr}"
+            )
             raise
         except Exception as e:
-            logger.error(f"Unexpected error in _text_to_audio for {output_audio_file.name}: {e}", exc_info=True)
+            logger.error(
+                f"Unexpected error in _text_to_audio for {output_audio_file.name}: {e}",
+                exc_info=True,
+            )
             raise
         finally:
             # Clean up the temporary text file immediately if it exists
@@ -168,7 +186,7 @@ class AudioGenerator:
         # Create a text file listing all input audio files, within the managed temp dir
         file_list_path = self.output_dir / "ffmpeg_file_list.txt"
         try:
-            with open(file_list_path, "w", encoding='utf-8') as f:
+            with open(file_list_path, "w", encoding="utf-8") as f:
                 for audio_path in audio_files:
                     # ffmpeg concat demuxer requires relative paths or escaped absolute paths.
                     # Using absolute paths with 'file' directive.
@@ -188,22 +206,40 @@ class AudioGenerator:
             # -ar 24000: sample rate
             subprocess.run(
                 [
-                    "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(file_list_path),
-                    "-filter_complex", "[0:a]loudnorm=I=-16:LRA=11:TP=-1.5,compand=attacks=0.02:decays=0.1:points=-80/-80|-30/-10|-20/-8|0/0,highpass=f=80,lowpass=f=12000,aresample=24000,pan=stereo|c0=c0|c1=c0[a]",
-                    "-map","[a]",
-                    "-ac", "1",  # Mono
-                    "-c:a", "libfdk_aac",  # aac codec
-                    "-b:a", "48k",  # Bitrate for stereo
-                    "-ar", "24000",
-                    "-profile:a","aac_he",
+                    "ffmpeg",
+                    "-y",
+                    "-f",
+                    "concat",
+                    "-safe",
+                    "0",
+                    "-i",
+                    str(file_list_path),
+                    "-filter_complex",
+                    "[0:a]loudnorm=I=-16:LRA=11:TP=-1.5,compand=attacks=0.02:decays=0.1:points=-80/-80|-30/-10|-20/-8|0/0,highpass=f=80,lowpass=f=12000,aresample=24000,pan=stereo|c0=c0|c1=c0[a]",
+                    "-map",
+                    "[a]",
+                    "-ac",
+                    "1",  # Mono
+                    "-c:a",
+                    "libfdk_aac",  # aac codec
+                    "-b:a",
+                    "48k",  # Bitrate for stereo
+                    "-ar",
+                    "24000",
+                    "-profile:a",
+                    "aac_he",
                     "-vn",
-                    "-compression_level","12",
-                    "-cutoff","12000",
-                    "-movflags", "+faststart",
-                    str(target_file)
+                    "-compression_level",
+                    "12",
+                    "-cutoff",
+                    "12000",
+                    "-movflags",
+                    "+faststart",
+                    str(target_file),
                 ],
                 check=True,
-                capture_output=True, text=True  # Capture output for logging
+                capture_output=True,
+                text=True,  # Capture output for logging
             )
             logger.info(f"All audio files merged into: {target_file}")
         except subprocess.CalledProcessError as e:
@@ -234,25 +270,32 @@ class AudioGenerator:
             return False
 
         if output_filename.exists():
-            logger.info(f"Final output file already exists: {output_filename}. Skipping.")
+            logger.info(
+                f"Final output file already exists: {output_filename}. Skipping."
+            )
             # Consider if True is more appropriate if the goal is "ensure file exists"
             return False
 
         try:
             output_filename.parent.mkdir(parents=True, exist_ok=True)
         except Exception as e:
-            logger.error(f"Could not create parent directory for {output_filename}: {e}", exc_info=True)
+            logger.error(
+                f"Could not create parent directory for {output_filename}: {e}",
+                exc_info=True,
+            )
             return False
 
         chunks = self.target_text_spliter.split_text(text_content)
         if not chunks:
-            logger.warning("Text splitting resulted in no chunks. Skipping audio generation.")
+            logger.warning(
+                "Text splitting resulted in no chunks. Skipping audio generation."
+            )
             return False
 
-        for i in range(len(chunks)-1):
+        for i in range(len(chunks) - 1):
             current_chunk = chunks[i]
-            next_chunk = chunks[i+1]
-            cleaned = clean_overlap(prev_text=current_chunk,next_text=next_chunk)
+            next_chunk = chunks[i + 1]
+            cleaned = clean_overlap(prev_text=current_chunk, next_text=next_chunk)
             if not cleaned.__eq__(next_chunk):
                 print(f"Cleaned chunk: {cleaned}")
 
@@ -261,13 +304,21 @@ class AudioGenerator:
         try:
             with tempfile.TemporaryDirectory(prefix="audio_chunks_") as temp_dir_str:
                 self.output_dir = Path(temp_dir_str)
-                logger.info(f"Using temporary directory for audio chunks: {self.output_dir}")
+                logger.info(
+                    f"Using temporary directory for audio chunks: {self.output_dir}"
+                )
 
-                iterator = self._progress.tqdm(enumerate(chunks), desc="Generating Audio Chunks",
-                                               unit="chunk") if self._progress else tqdm(enumerate(chunks, start=1),
-                                                                                         total=len(chunks),
-                                                                                         desc="Generating Audio Chunks",
-                                                                                         unit="chunk")
+            if self._progress:
+                iterator = self._progress(
+                    enumerate(chunks), desc="Generating Audio Chunks", unit="chunk"
+                )
+            else:
+                iterator = tqdm(
+                    enumerate(chunks, start=1),
+                    total=len(chunks),
+                    desc="Generating Audio Chunks",
+                    unit="chunk",
+                )
 
                 for i, chunk_text in iterator:
                     normalized_chunk = self._normalize_text_chunk(chunk_text)
@@ -276,14 +327,22 @@ class AudioGenerator:
                     audio_files_generated.append(chunk_audio_file)
 
                 if not audio_files_generated:
-                    logger.warning("No audio chunks were successfully generated. Cannot merge.")
+                    logger.warning(
+                        "No audio chunks were successfully generated. Cannot merge."
+                    )
                     return False
 
-                logger.info(f"Generated {len(audio_files_generated)} audio chunks. Merging...")
-                self._merge_audio_files(audio_files=audio_files_generated, target_file=output_filename)
+                logger.info(
+                    f"Generated {len(audio_files_generated)} audio chunks. Merging..."
+                )
+                self._merge_audio_files(
+                    audio_files=audio_files_generated, target_file=output_filename
+                )
 
             logger.info(f"Successfully created final audio: {output_filename}")
-            logger.info(f"Temporary audio processing directory ({self.output_dir}) and its contents have been removed.")
+            logger.info(
+                f"Temporary audio processing directory ({self.output_dir}) and its contents have been removed."
+            )
             return True
 
         except subprocess.CalledProcessError:
@@ -294,7 +353,10 @@ class AudioGenerator:
             logger.error(f"Audio generation failed due to a critical setup error: {e}")
             return False
         except Exception as e:
-            logger.error(f"An unexpected error occurred during audio processing: {e}", exc_info=True)
+            logger.error(
+                f"An unexpected error occurred during audio processing: {e}",
+                exc_info=True,
+            )
             return False
         finally:
             # Reset self.output_dir; TemporaryDirectory handles actual cleanup.
