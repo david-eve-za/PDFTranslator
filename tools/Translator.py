@@ -1,6 +1,5 @@
 import logging
 import re
-import gradio as gr
 
 from GlobalConfig import GlobalConfig
 from llm.gemini_llm import GeminiLLM
