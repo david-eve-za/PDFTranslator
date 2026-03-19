@@ -4,6 +4,8 @@ import numpy as np
 
 from database.repositories.base import BaseRepository
 from database.models import Chapter
+from database.services.vector_store import VectorStoreService
+from langchain_core.documents import Document
 
 
 class ChapterRepository(BaseRepository[Chapter]):
@@ -12,6 +14,7 @@ class ChapterRepository(BaseRepository[Chapter]):
         self._pool: Optional[ConnectionPool] = None
         self._min_size = min_size
         self._max_size = max_size
+        self._vector_service = VectorStoreService()
 
     def _get_pool(self) -> ConnectionPool:
         if self._pool is None:
@@ -200,9 +203,41 @@ class ChapterRepository(BaseRepository[Chapter]):
                         """,
                         (embedding.tolist(), embedding.tolist(), limit),
                     )
-                rows = cur.fetchall()
-                results = []
-                for row in rows:
-                    if row[7] >= threshold:
-                        results.append(self._row_to_chapter(row[:7]))
-                return results
+        rows = cur.fetchall()
+        results = []
+        for row in rows:
+            if row[7] >= threshold:
+                results.append(self._row_to_chapter(row[:7]))
+        return results
+
+    def search_with_rerank(
+        self, query: str, volume_id: int, top_n: int = 5
+    ) -> List[Chapter]:
+        """
+        Busca capítulos con reranking semántico.
+
+        Args:
+            query: Consulta de búsqueda
+            volume_id: ID del volumen
+            top_n: Número máximo de resultados
+
+        Returns:
+            Lista de capítulos rerankeados por relevancia
+        """
+        chapters = self.get_by_volume(volume_id)
+        if not chapters:
+            return []
+
+        chapters_with_text = [c for c in chapters if c.original_text]
+        if not chapters_with_text:
+            return []
+
+        docs = [Document(page_content=c.original_text) for c in chapters_with_text]
+
+        reranked = self._vector_service.rerank_documents(
+            query=query, documents=docs, top_n=top_n
+        )
+
+        reranked_texts = [d.page_content for d in reranked]
+
+        return [c for c in chapters_with_text if c.original_text in reranked_texts]
