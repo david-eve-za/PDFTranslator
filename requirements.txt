@@ -22,3 +22,4 @@ pdfplumber
 pytest
 pytest-cov
 langchain-nvidia-ai-endpoints
+typer[all]>=0.9.0
