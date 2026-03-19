@@ -21,7 +21,7 @@ class Translator:
     _EMPTY_CHUNK_MARKER_FORMAT = "[EMPTY_TRANSLATION_CHUNK_{index}]"
     _ERROR_CHUNK_MARKER_FORMAT = "[TRANSLATION_ERROR_CHUNK_{index}]"
 
-    def __init__(self, progress: gr.Progress = None):
+    def __init__(self, progress=None):
         """
         Initializes the Translator, creating the appropriate LLM client
         based on the global configuration.
@@ -69,11 +69,10 @@ class Translator:
             source_lang, target_lang
         )
 
-        iterator = (
-            self._progress.tqdm(enumerate(chunks), desc="Translating Chunks...")
-            if self._progress
-            else enumerate(chunks)
-        )
+        if self._progress:
+            iterator = self._progress(enumerate(chunks), desc="Translating Chunks...")
+        else:
+            iterator = enumerate(chunks)
 
         for i, chunk in iterator:
             translated_chunk = self._translate_single_chunk(chunk, i, prompt_template)
