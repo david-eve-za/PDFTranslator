@@ -74,6 +74,15 @@ class GlobalConfig(metaclass=_Singleton):
             "mistralai/Mistral-Large-3-675B-Instruct-2512"
         )
 
+        # Database settings
+        self.db_host: str = "localhost"
+        self.db_port: int = 5432
+        self.db_name: str = "pdftranslator"
+        self.db_user: str = "postgres"
+        self.db_password: str = ""
+        self.db_min_pool_size: int = 2
+        self.db_max_pool_size: int = 10
+
         # --- Internal State ---
         self._config_path: Optional[str] = None
         self._is_loaded = False
@@ -118,6 +127,13 @@ class GlobalConfig(metaclass=_Singleton):
             "nvidia_model_name": str,
             "nvidia_local_tokenizer_dir": str,
             "nvidia_local_tokenizer_name": str,
+            "db_host": str,
+            "db_port": int,
+            "db_name": str,
+            "db_user": str,
+            "db_password": str,
+            "db_min_pool_size": int,
+            "db_max_pool_size": int,
         }
 
     def _validate(self, data: Dict[str, Any]) -> None:
