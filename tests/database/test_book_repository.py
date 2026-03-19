@@ -113,3 +113,26 @@ def test_find_by_title_exact(mock_pool_class, mock_pool, mock_connection):
     result = repo.find_by_title("Test Novel", fuzzy=False)
     assert len(result) == 1
     assert result[0].title == "Test Novel"
+
+
+@patch("database.repositories.book_repository.ConnectionPool")
+@patch("database.repositories.book_repository.VectorStoreService")
+def test_find_similar_works(
+    mock_vector_service, mock_pool_class, mock_pool, mock_connection
+):
+    mock_pool_class.return_value = mock_pool
+    mock_pool.connection.return_value.__enter__ = MagicMock(
+        return_value=mock_connection[0]
+    )
+    mock_connection[1].fetchall.return_value = [
+        (1, "Dragon Novel", None, "en", "es", None, None, None),
+        (2, "Magic World", None, "en", "es", None, None, None),
+    ]
+    mock_vs = MagicMock()
+    mock_vs.embed_query.return_value = [0.1, 0.2]
+    mock_vs.embed_documents.return_value = [[0.1, 0.2], [0.3, 0.4]]
+    mock_vs.find_most_similar.return_value = [0, 1]
+    mock_vector_service.return_value = mock_vs
+    repo = BookRepository("postgresql://localhost/test")
+    result = repo.find_similar_works("dragon story", top_k=2)
+    assert len(result) == 2

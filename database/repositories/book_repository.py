@@ -3,6 +3,7 @@ from psycopg_pool import ConnectionPool
 
 from database.repositories.base import BaseRepository
 from database.models import Work, Volume
+from database.services.vector_store import VectorStoreService
 
 
 class BookRepository(BaseRepository[Work]):
@@ -11,6 +12,7 @@ class BookRepository(BaseRepository[Work]):
         self._pool: Optional[ConnectionPool] = None
         self._min_size = min_size
         self._max_size = max_size
+        self._vector_service = VectorStoreService()
 
     def _get_pool(self) -> ConnectionPool:
         if self._pool is None:
@@ -227,3 +229,25 @@ class BookRepository(BaseRepository[Work]):
                     )
                     for row in rows
                 ]
+
+    def find_similar_works(self, query: str, top_k: int = 5) -> List[Work]:
+        """
+        Busca obras similares usando embeddings semánticos.
+
+        Args:
+            query: Consulta de búsqueda
+            top_k: Número máximo de resultados
+
+        Returns:
+            Lista de obras más similares
+        """
+        query_embedding = self._vector_service.embed_query(query)
+        works = self.get_all()
+        if not works:
+            return []
+        titles = [w.title for w in works]
+        title_embeddings = self._vector_service.embed_documents(titles)
+        indices = self._vector_service.find_most_similar(
+            query_embedding, title_embeddings, top_k
+        )
+        return [works[i] for i in indices]
