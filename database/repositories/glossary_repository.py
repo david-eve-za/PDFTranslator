@@ -4,6 +4,8 @@ import numpy as np
 
 from database.repositories.base import BaseRepository
 from database.models import GlossaryEntry, TermContext, ContextExample
+from database.services.vector_store import VectorStoreService
+from langchain_core.documents import Document
 
 
 class GlossaryRepository(BaseRepository[GlossaryEntry]):
@@ -12,6 +14,7 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
         self._pool: Optional[ConnectionPool] = None
         self._min_size = min_size
         self._max_size = max_size
+        self._vector_service = VectorStoreService()
 
     def _get_pool(self) -> ConnectionPool:
         if self._pool is None:
@@ -387,3 +390,35 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM context_examples WHERE id = %s", (example_id,))
                 return cur.rowcount > 0
+
+    def search_terms_with_rerank(
+        self, query: str, work_id: int, top_n: int = 10
+    ) -> List[GlossaryEntry]:
+        """
+        Busca términos usando fuzzy search + reranking semántico.
+
+        Args:
+            query: Consulta de búsqueda
+            work_id: ID de la obra
+            top_n: Número máximo de resultados
+
+        Returns:
+            Lista de términos rerankeados por relevancia
+        """
+        candidates = self.find_by_term(query, work_id=work_id, fuzzy=True)[: top_n * 2]
+
+        if not candidates:
+            return []
+
+        docs = [
+            Document(page_content=f"{entry.term}: {entry.translation or ''}")
+            for entry in candidates
+        ]
+
+        reranked = self._vector_service.rerank_documents(
+            query=query, documents=docs, top_n=top_n
+        )
+
+        reranked_terms = [doc.page_content.split(":")[0] for doc in reranked]
+
+        return [e for e in candidates if e.term in reranked_terms]

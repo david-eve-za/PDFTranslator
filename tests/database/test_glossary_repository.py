@@ -134,3 +134,29 @@ def test_add_example(mock_pool_class, mock_pool, mock_connection):
 
     assert result.id == 1
     assert result.original_sentence == "He held his staff"
+
+
+@patch("database.repositories.glossary_repository.ConnectionPool")
+@patch("database.repositories.glossary_repository.VectorStoreService")
+def test_search_terms_with_rerank(
+    mock_vector_service, mock_pool_class, mock_pool, mock_connection
+):
+    mock_pool_class.return_value = mock_pool
+    mock_pool.connection.return_value.__enter__ = MagicMock(
+        return_value=mock_connection[0]
+    )
+    mock_connection[1].fetchall.return_value = [
+        (1, 1, "staff", "personal", None, False, None, None),
+        (2, 1, "dragon", "dragón", None, False, None, None),
+    ]
+
+    from langchain_core.documents import Document
+
+    mock_vs = MagicMock()
+    mock_vs.rerank_documents.return_value = [Document(page_content="dragon: dragón")]
+    mock_vector_service.return_value = mock_vs
+
+    repo = GlossaryRepository("postgresql://localhost/test")
+    result = repo.search_terms_with_rerank("fire creature", work_id=1, top_n=5)
+
+    assert len(result) >= 0
