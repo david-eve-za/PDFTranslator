@@ -165,9 +165,9 @@ class GlobalConfig(metaclass=_Singleton):
         except IOError as e:
             print(f"Error saving configuration to {path_to_save}: {e}")
 
-    def update_from_args(self, args: Any):
-        """Updates configuration from an argparse.Namespace object."""
-        for key, value in vars(args).items():
+    def update_from_dict(self, data: dict) -> None:
+        """Updates configuration from a dictionary."""
+        for key, value in data.items():
             if hasattr(self, key) and value is not None:
                 setattr(self, key, value)
 
