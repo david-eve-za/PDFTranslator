@@ -1,10 +1,21 @@
-import argparse
 import logging
 import os
 import sys
 from pathlib import Path
 from typing import Optional, List, Tuple
-import tempfile
+
+import typer
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.panel import Panel
+from rich.progress import (
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    BarColumn,
+    TaskProgressColumn,
+)
+from rich.table import Table
 
 from GlobalConfig import GlobalConfig
 from tools.VideoGenerator import VideoGenerator
@@ -19,15 +30,15 @@ warnings.filterwarnings(
     "ignore", category=UserWarning, message=".*pkg_resources is deprecated.*"
 )
 
-# --- Constants ---
 LOG_FILE_NAME = "PDFAgent.log"
 DEFAULT_OUTPUT_SUBDIR = "audiobooks"
 DEFAULT_FILE_TYPE_TO_PROCESS = "pdf"
 
+app = typer.Typer(help="Audiobook Generator from PDF/EPUB with AI Translation")
+console = Console()
 
-# --- Logging Setup ---
+
 def setup_logging():
-    """Configures logging to stream to stdout and a log file."""
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
 
@@ -39,31 +50,29 @@ def setup_logging():
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    stream_handler = logging.StreamHandler(sys.stdout)
-    stream_handler.setFormatter(formatter)
-    root_logger.addHandler(stream_handler)
+    rich_handler = RichHandler(console=console, rich_tracebacks=True)
+    rich_handler.setFormatter(formatter)
 
     file_handler = logging.FileHandler(LOG_FILE_NAME)
     file_handler.setFormatter(formatter)
+
+    root_logger.addHandler(rich_handler)
     root_logger.addHandler(file_handler)
 
 
 def translate_text(translator: Translator, text: str, file_path: Path) -> Optional[str]:
-    """
-    Translates the given text.
-    """
     config = GlobalConfig()
-    logging.info(f"  - Translating text for: {os.path.basename(file_path)}")
+    logging.info(f" - Translating text for: {os.path.basename(file_path)}")
     translated_text = translator.translate_text(
         text, config.source_lang, config.target_lang
     )
     if not translated_text or not translated_text.strip():
         logging.warning(
-            f"  - Translation failed or resulted in empty text for {os.path.basename(file_path)}. Skipping file."
+            f" - Translation failed or resulted in empty text for {os.path.basename(file_path)}. Skipping file."
         )
         return None
     logging.info(
-        f"  - Text translated and cleaned (length: {len(translated_text)} characters)"
+        f" - Text translated and cleaned (length: {len(translated_text)} characters)"
     )
     return translated_text
 
@@ -71,10 +80,7 @@ def translate_text(translator: Translator, text: str, file_path: Path) -> Option
 def generate_audio(
     audio_generator: AudioGenerator, text: str, output_filename: Path, file_path: Path
 ) -> bool:
-    """
-    Generates audio from the given text.
-    """
-    logging.info(f"  - Generating audio for: {os.path.basename(file_path)}")
+    logging.info(f" - Generating audio for: {os.path.basename(file_path)}")
     try:
         success = audio_generator.process_texts(
             text_content=text.replace("<!-- image -->", "").strip(),
@@ -82,7 +88,7 @@ def generate_audio(
         )
     except Exception as e:
         logging.error(
-            f"  - Error during audio generation for {os.path.basename(file_path)}: {e}"
+            f" - Error during audio generation for {os.path.basename(file_path)}: {e}"
         )
         return False
     return success
@@ -94,15 +100,12 @@ def generate_video(
     audio_path: Path,
     file_path: Path,
 ) -> bool:
-    """
-    Generates a video from images and an audio file.
-    """
     config = GlobalConfig()
     if not images_list:
-        logging.info("  - No images found, skipping video generation.")
+        logging.info(" - No images found, skipping video generation.")
         return True
 
-    logging.info(f"  - Found {len(images_list)} images. Attempting to generate video.")
+    logging.info(f" - Found {len(images_list)} images. Attempting to generate video.")
     output_video_path = audio_path.with_suffix(".mp4")
     try:
         video_generator.create_video_from_images_and_audio(
@@ -111,28 +114,25 @@ def generate_video(
             output_video_path=output_video_path,
             fps=1,
         )
-        logging.info(f"  - Video created successfully at: {output_video_path}")
+        logging.info(f" - Video created successfully at: {output_video_path}")
         return True
     except Exception as e:
         logging.error(
-            f"  - Error during video generation for {os.path.basename(file_path)}: {e}"
+            f" - Error during video generation for {os.path.basename(file_path)}: {e}"
         )
         return False
 
 
 def prepare_output_paths(file_path: Path) -> Optional[Tuple[Path, Path]]:
-    """
-    Prepares the output directory and filenames.
-    """
     config = GlobalConfig()
     try:
         file_parent_dir = file_path.parent.resolve()
         dynamic_output_dir = file_parent_dir / DEFAULT_OUTPUT_SUBDIR
         dynamic_output_dir.mkdir(parents=True, exist_ok=True)
-        logging.info(f"  - Output directory: {dynamic_output_dir}")
+        logging.info(f" - Output directory: {dynamic_output_dir}")
     except OSError as e:
         logging.error(
-            f"  - Error creating output directory for {os.path.basename(file_path)}: {e}"
+            f" - Error creating output directory for {os.path.basename(file_path)}: {e}"
         )
         return None
 
@@ -144,9 +144,6 @@ def prepare_output_paths(file_path: Path) -> Optional[Tuple[Path, Path]]:
 
 
 def process_single_file(file_path: Path, services: Tuple) -> bool:
-    """
-    Processes a single file: extracts text, translates, generates audio, and optionally a video.
-    """
     config = GlobalConfig()
     translation_agent, audio_generator, video_generator = services
 
@@ -159,7 +156,7 @@ def process_single_file(file_path: Path, services: Tuple) -> bool:
 
     if output_audio_filename.exists():
         logging.info(
-            f"  - Audio file already exists: {output_audio_filename}. Skipping."
+            f" - Audio file already exists: {output_audio_filename}. Skipping."
         )
         return True
 
@@ -168,19 +165,16 @@ def process_single_file(file_path: Path, services: Tuple) -> bool:
 
     if not original_text or not original_text.strip():
         logging.warning(
-            f"  - Could not extract text or text is empty for {os.path.basename(file_path)}. Skipping file."
+            f" - Could not extract text or text is empty for {os.path.basename(file_path)}. Skipping file."
         )
         return False
     logging.info(
-        f"  - Original text extracted (length: {len(original_text)} characters)"
+        f" - Original text extracted (length: {len(original_text)} characters)"
     )
 
-    # --- User Validation Step ---
     temp_text_filename = f"{file_path.stem}_review.txt"
     temp_text_file_path = Path("reviewer") / temp_text_filename
-    temp_text_file_path.parent.mkdir(
-        parents=True, exist_ok=True
-    )  # Ensure temp dir exists
+    temp_text_file_path.parent.mkdir(parents=True, exist_ok=True)
 
     try:
         with open(temp_text_file_path, "w", encoding="utf-8") as f:
@@ -192,7 +186,7 @@ def process_single_file(file_path: Path, services: Tuple) -> bool:
         logging.info(
             "Por favor, revise el archivo y pulse Enter para continuar o Ctrl+C para cancelar."
         )
-        input()  # Wait for user to press Enter
+        input()
 
         with open(temp_text_file_path, "r", encoding="utf-8") as f:
             original_text = f.read()
@@ -204,7 +198,6 @@ def process_single_file(file_path: Path, services: Tuple) -> bool:
         if temp_text_file_path.exists():
             temp_text_file_path.unlink()
             logging.info(f"Archivo temporal eliminado: {temp_text_file_path}")
-    # --- End User Validation Step ---
 
     translated_text = translate_text(translation_agent, original_text, file_path)
     if translated_text is None:
@@ -234,13 +227,7 @@ def process_single_file(file_path: Path, services: Tuple) -> bool:
 
 
 def initialize_services() -> Optional[Tuple]:
-    """
-    Initializes and returns all the necessary service objects.
-    """
     try:
-        # config = GlobalConfig() # Get the global config
-        # if Path(config.input_path).is_dir():
-        # file_finder = FileFinder(config.input_path) # FileFinder needs input_path to initialize
         translation_agent = Translator()
         audio_generator = AudioGenerator()
         video_generator = VideoGenerator()
@@ -248,20 +235,15 @@ def initialize_services() -> Optional[Tuple]:
             translation_agent,
             audio_generator,
             video_generator,
-        )  # FileFinder is not passed, it's used directly in process_files
+        )
     except Exception as e:
         logging.error(f"Error initializing services: {e}")
         return None
 
 
-def process_files(services: Tuple) -> Tuple[int, int]:
-    """
-    Finds and processes all the files.
-    """
+def process_files_with_progress(services: Tuple) -> Tuple[int, int]:
     config = GlobalConfig()
-    file_finder = FileFinder(
-        config.input_path
-    )  # Re-initialize FileFinder here for consistency
+    file_finder = FileFinder(config.input_path)
 
     files_to_process: List[Path] = file_finder.get_files(
         file_type=DEFAULT_FILE_TYPE_TO_PROCESS,
@@ -269,29 +251,92 @@ def process_files(services: Tuple) -> Tuple[int, int]:
     )
 
     if not files_to_process:
-        logging.info(
-            f"No .{DEFAULT_FILE_TYPE_TO_PROCESS} files found in '{config.input_path}'."
+        console.print(
+            f"[yellow]No .{DEFAULT_FILE_TYPE_TO_PROCESS} files found in '{config.input_path}'[/yellow]"
         )
         return 0, 0
 
-    logging.info(
-        f"Found {len(files_to_process)} .{DEFAULT_FILE_TYPE_TO_PROCESS} file(s) to process."
-    )
+    console.print(f"[green]Found {len(files_to_process)} files to process[/green]")
 
     successful_file_count = 0
     failed_file_count = 0
 
-    for file_path in files_to_process:
-        success = process_single_file(file_path, services)
-        if success:
-            successful_file_count += 1
-        else:
-            failed_file_count += 1
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task(
+            "[cyan]Processing files...", total=len(files_to_process)
+        )
+
+        for file_path in files_to_process:
+            progress.update(task, description=f"[cyan]Processing: {file_path.name}")
+            success = process_single_file(file_path, services)
+            if success:
+                successful_file_count += 1
+            else:
+                failed_file_count += 1
+            progress.advance(task)
 
     return successful_file_count, failed_file_count
 
 
-def main():
+def print_summary_table(successful: int, failed: int):
+    table = Table(
+        title="Processing Summary", show_header=True, header_style="bold magenta"
+    )
+    table.add_column("Status", style="cyan")
+    table.add_column("Count", justify="right", style="green")
+
+    table.add_row("Successfully processed", str(successful))
+    table.add_row("Failed", str(failed))
+
+    console.print()
+    console.print(table)
+    console.print(f"\n[dim]Log file: {LOG_FILE_NAME}[/dim]")
+
+
+def validate_output_format(value: str) -> str:
+    valid_formats = {"m4a", "mp3", "aiff", "wav"}
+    if value.lower() not in valid_formats:
+        raise typer.BadParameter(f"Invalid format. Valid options: {valid_formats}")
+    return value.lower()
+
+
+@app.command()
+def main(
+    input_path: Path = typer.Argument(
+        ...,
+        exists=True,
+        help="Path to the directory or file to process",
+    ),
+    source_lang: str = typer.Option(
+        "en-US", "--source-lang", "-sl", help="Source language"
+    ),
+    target_lang: str = typer.Option(
+        "es-MX", "--target-lang", "-tl", help="Target language"
+    ),
+    output_format: str = typer.Option(
+        "m4a",
+        "--format",
+        "-f",
+        help="Final audio file format (m4a, mp3, aiff, wav)",
+        callback=validate_output_format,
+    ),
+    voice: str = typer.Option(
+        "Paulina", "--voice", help="macOS 'say' voice for the target language"
+    ),
+    gen_video: bool = typer.Option(False, "--gen-video", help="Generate a video"),
+    agent: str = typer.Option(
+        "nvidia",
+        "--agent",
+        "-a",
+        help="The agent for translation (nvidia, gemini, ollama)",
+    ),
+):
     """
     Orchestrates the process of finding files, extracting text,
     translating, and generating audiobooks.
@@ -299,73 +344,48 @@ def main():
     setup_logging()
     config = GlobalConfig()
 
-    # --- Argument Parsing ---
-    parser = argparse.ArgumentParser(
-        description="Audiobook Generator from PDF/EPUB with AI Translation"
+    config.update_from_dict(
+        {
+            "input_path": str(input_path),
+            "source_lang": source_lang,
+            "target_lang": target_lang,
+            "output_format": output_format,
+            "voice": voice,
+            "gen_video": gen_video,
+            "agent": agent,
+        }
     )
-    parser.add_argument(
-        "input_path",
-        type=str,
-        nargs="?",
-        default=None,
-        help="Path to the directory or file to process. Overrides config file.",
-    )
-    parser.add_argument("-sl", "--source_lang", help="Source language.")
-    parser.add_argument("-tl", "--target_lang", help="Target language.")
-    parser.add_argument(
-        "--output_format",
-        choices=["m4a", "mp3", "aiff", "wav"],
-        help="Final audio file format.",
-    )
-    parser.add_argument("--voice", help="macOS 'say' voice for the target language.")
-    parser.add_argument("--gen_video", action="store_true", help="Generate a video.")
-    parser.add_argument(
-        "--agent", choices=["gemini", "ollama"], help="The agent for translation."
-    )
-    args = parser.parse_args()
 
-    # Override with command-line arguments
-    config.update_from_args(args)
-
-    if not config.input_path:
-        logging.error(
-            "Input path is not specified as a command-line argument. Exiting."
+    console.print(
+        Panel.fit(
+            f"[bold blue]PDFAgent[/bold blue] - Audiobook Generator",
+            subtitle=f"Processing: {input_path.name}",
         )
-        parser.print_help()
-        return
-
-    input_path = Path(config.input_path)
-
-    if not input_path.exists():
-        logging.error(f"The input path does not exist: {input_path}")
-        return
+    )
 
     services = initialize_services()
     if not services:
-        return
+        console.print("[red]Error initializing services[/red]")
+        raise typer.Exit(1)
 
     successful_file_count = 0
     failed_file_count = 0
 
     if input_path.is_file():
-        logging.info(f"Processing a single file: {input_path.name}")
+        console.print(f"[cyan]Processing single file:[/cyan] {input_path.name}")
         if process_single_file(input_path, services):
             successful_file_count = 1
         else:
             failed_file_count = 1
     elif input_path.is_dir():
-        logging.info(f"Processing a directory: {input_path}")
-        successful_file_count, failed_file_count = process_files(services)
+        console.print(f"[cyan]Processing directory:[/cyan] {input_path}")
+        successful_file_count, failed_file_count = process_files_with_progress(services)
     else:
-        logging.error(f"The input path is not a valid file or directory: {input_path}")
-        return
+        console.print(f"[red]Invalid path: {input_path}[/red]")
+        raise typer.Exit(1)
 
-    logging.info("\n--- Process Summary ---")
-    logging.info("Processing finished.")
-    logging.info(f"Successfully processed/skipped files: {successful_file_count}")
-    logging.info(f"Failed files: {failed_file_count}")
-    logging.info(f"Log files are located in: {LOG_FILE_NAME}")
+    print_summary_table(successful_file_count, failed_file_count)
 
 
 if __name__ == "__main__":
-    main()
+    app()
