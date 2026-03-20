@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import questionary
 import typer
@@ -257,7 +257,8 @@ def update_volume_text(repo: BookRepository, volume_id: int, text: str) -> bool:
 def split_text():
     """
     Interactively select a volume and edit its text content.
-    Opens the text in an external editor and saves changes to the database.
+    Opens the text in an external editor with format instructions,
+    parses structured blocks, and creates chapters in the database.
     """
     console.print(
         Panel.fit(
@@ -267,6 +268,8 @@ def split_text():
     )
 
     repo = BookRepository()
+    chapter_repo = ChapterRepository()
+
     selected_volume = select_volume_interactive(repo)
 
     if not selected_volume:
@@ -276,12 +279,19 @@ def split_text():
         console.print("[red]Error: Selected volume has no text content.[/red]")
         raise typer.Exit(1)
 
+    if not selected_volume.id:
+        console.print("[red]Error: Selected volume has no ID.[/red]")
+        raise typer.Exit(1)
+
     temp_dir = Path(tempfile.mkdtemp(prefix="pdfagent_"))
     temp_file = temp_dir / f"volume_{selected_volume.volume_number}_edit.txt"
 
     try:
+        header = build_template_header()
+        content_with_header = header + selected_volume.full_text
+
         with open(temp_file, "w", encoding="utf-8") as f:
-            f.write(selected_volume.full_text)
+            f.write(content_with_header)
 
         if not open_editor_and_wait(temp_file):
             console.print(
@@ -292,14 +302,38 @@ def split_text():
         with open(temp_file, "r", encoding="utf-8") as f:
             edited_text = f.read()
 
-        if edited_text == selected_volume.full_text:
+        content_without_header = strip_header(edited_text)
+
+        if content_without_header == selected_volume.full_text:
             console.print("[yellow]No changes detected. Database not updated.[/yellow]")
             return
 
-        if update_volume_text(repo, selected_volume.id, edited_text):
+        try:
+            blocks = parse_blocks(content_without_header)
+        except BlockParseError as e:
+            console.print(f"[red]Error parsing blocks:[/red]")
+            console.print(f"[red] {e}[/red]")
+            console.print("[yellow]Please fix the format and try again.[/yellow]")
+            raise typer.Exit(1)
+
+        if not blocks:
             console.print(
-                f"[green]Successfully updated text for Volume {selected_volume.volume_number}[/green]"
+                "[yellow]No blocks found. Only updating volume text.[/yellow]"
             )
+            if update_volume_text(repo, selected_volume.id, content_without_header):
+                console.print(
+                    f"[green]Successfully updated text for Volume {selected_volume.volume_number}[/green]"
+                )
+            return
+
+        if update_volume_text(repo, selected_volume.id, content_without_header):
+            chapters_created = validate_and_create_chapters(
+                selected_volume.id, blocks, chapter_repo
+            )
+            console.print(
+                f"[green]Successfully updated Volume {selected_volume.volume_number}[/green]"
+            )
+            console.print(f"[green]Created {chapters_created} chapter(s)[/green]")
         else:
             console.print("[red]Failed to update volume text.[/red]")
             raise typer.Exit(1)
