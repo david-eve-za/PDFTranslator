@@ -120,6 +120,26 @@ def parse_blocks(text: str) -> List[ParsedBlock]:
     return blocks
 
 
+def strip_header(text: str) -> str:
+    """
+    Strips the instruction header from the edited text.
+    Returns the text without the header section.
+    """
+    lines = text.split("\n")
+    content_start = 0
+    for i, line in enumerate(lines):
+        if line.strip() and not line.strip().startswith("#"):
+            content_start = i
+            break
+        if "============================================================" in line:
+            if i + 1 < len(lines):
+                content_start = i + 1
+                while content_start < len(lines) and lines[content_start].strip() == "":
+                    content_start += 1
+            break
+    return "\n".join(lines[content_start:])
+
+
 def select_volume_interactive(repo: BookRepository) -> Optional[Volume]:
     """
     Interactive selection of a volume from the database.
