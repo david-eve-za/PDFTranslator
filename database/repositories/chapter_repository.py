@@ -1,7 +1,7 @@
 from typing import Optional, List
-from psycopg_pool import ConnectionPool
 import numpy as np
 
+from database.connection import DatabasePool
 from database.repositories.base import BaseRepository
 from database.models import Chapter
 from database.services.vector_store import VectorStoreService
@@ -9,37 +9,9 @@ from langchain_core.documents import Document
 
 
 class ChapterRepository(BaseRepository[Chapter]):
-    def __init__(
-        self,
-        host: str,
-        port: int,
-        database: str,
-        user: str,
-        password: str,
-        min_size: int = 2,
-        max_size: int = 10,
-    ):
-        self._conninfo = (
-            f"dbname={database} "
-            f"user={user} "
-            f"password='{password}' "
-            f"host={host} "
-            f"port={port}"
-        )
-        self._pool: Optional[ConnectionPool] = None
-        self._min_size = min_size
-        self._max_size = max_size
+    def __init__(self, pool: Optional[DatabasePool] = None):
+        self._pool = pool or DatabasePool.get_instance()
         self._vector_service = VectorStoreService()
-
-    def _get_pool(self) -> ConnectionPool:
-        if self._pool is None:
-            self._pool = ConnectionPool(
-                conninfo=self._conninfo,
-                min_size=self._min_size,
-                max_size=self._max_size,
-                open=True,
-            )
-        return self._pool
 
     def _row_to_chapter(self, row: tuple) -> Chapter:
         return Chapter(
@@ -53,7 +25,7 @@ class ChapterRepository(BaseRepository[Chapter]):
         )
 
     def get_by_id(self, id: int) -> Optional[Chapter]:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -71,7 +43,7 @@ class ChapterRepository(BaseRepository[Chapter]):
                 return self._row_to_chapter(row)
 
     def get_all(self) -> List[Chapter]:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -86,7 +58,7 @@ class ChapterRepository(BaseRepository[Chapter]):
                 return [self._row_to_chapter(row) for row in rows]
 
     def create(self, entity: Chapter) -> Chapter:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -110,7 +82,7 @@ class ChapterRepository(BaseRepository[Chapter]):
                 return self._row_to_chapter(row)
 
     def update(self, entity: Chapter) -> Chapter:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -138,14 +110,14 @@ class ChapterRepository(BaseRepository[Chapter]):
                 return self._row_to_chapter(row)
 
     def delete(self, id: int) -> bool:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM chapters WHERE id = %s", (id,))
                 return cur.rowcount > 0
 
     def get_by_volume(self, volume_id: int) -> List[Chapter]:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -164,7 +136,7 @@ class ChapterRepository(BaseRepository[Chapter]):
     def search_content(
         self, volume_id: int, query: str, limit: int = 10
     ) -> List[Chapter]:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -189,7 +161,7 @@ class ChapterRepository(BaseRepository[Chapter]):
         limit: int = 10,
         threshold: float = 0.8,
     ) -> List[Chapter]:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 if volume_id is not None:
@@ -228,17 +200,6 @@ class ChapterRepository(BaseRepository[Chapter]):
     def search_with_rerank(
         self, query: str, volume_id: int, top_n: int = 5
     ) -> List[Chapter]:
-        """
-        Busca capítulos con reranking semántico.
-
-        Args:
-            query: Consulta de búsqueda
-            volume_id: ID del volumen
-            top_n: Número máximo de resultados
-
-        Returns:
-            Lista de capítulos rerankeados por relevancia
-        """
         chapters = self.get_by_volume(volume_id)
         if not chapters:
             return []
