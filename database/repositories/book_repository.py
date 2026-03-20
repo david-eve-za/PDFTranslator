@@ -200,3 +200,28 @@ class BookRepository(BaseRepository[Work]):
             query_embedding, title_embeddings, top_k
         )
         return [works[i] for i in indices]
+
+    def find_all(self) -> List[Work]:
+        """Returns all works in the database."""
+        pool = self._pool.get_sync_pool()
+        with pool.connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT id, title, title_translated, source_lang, target_lang, author FROM works"
+                )
+                rows = cur.fetchall()
+                return [self._row_to_work(row) for row in rows]
+
+    def get_volume_by_id(self, volume_id: int) -> Optional[Volume]:
+        """Returns a volume by its ID."""
+        pool = self._pool.get_sync_pool()
+        with pool.connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT id, work_id, volume_number, title, full_text, translated_text FROM volumes WHERE id = %s",
+                    (volume_id,),
+                )
+                row = cur.fetchone()
+                if not row:
+                    return None
+                return self._row_to_volume(row)
