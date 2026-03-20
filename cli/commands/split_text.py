@@ -34,6 +34,34 @@ class BlockParseError(Exception):
         super().__init__(f"Line {line_number}: {message}")
 
 
+def build_template_header() -> str:
+    """
+    Generates the instruction header to be prepended to the volume text.
+    This header explains the block format to the user.
+    """
+    return """# ============================================================
+# INSTRUCCIONES DE FORMATO - NO MODIFIQUE ESTA SECCIÓN
+# ============================================================
+# Use los siguientes marcadores para dividir el texto:
+#
+# [===Type="Prologue"===]
+# Texto del prólogo...
+# [===End Block===]
+#
+# [===Type="Chapter" Title="Nombre opcional"===]
+# Texto del capítulo...
+# [===End Block===]
+#
+# [===Type="Epilogue"===]
+# Texto del epílogo...
+# [===End Block===]
+#
+# Tipos válidos: Prologue, Chapter, Epilogue
+# El atributo Title es opcional
+# ============================================================
+"""
+
+
 def select_volume_interactive(repo: BookRepository) -> Optional[Volume]:
     """
     Interactive selection of a volume from the database.
