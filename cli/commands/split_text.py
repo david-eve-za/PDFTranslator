@@ -73,3 +73,21 @@ def open_editor_and_wait(file_path: Path) -> bool:
     except KeyboardInterrupt:
         console.print("\n[yellow]Operation cancelled by user.[/yellow]")
         return False
+
+
+def update_volume_text(repo: BookRepository, volume_id: int, text: str) -> bool:
+    """
+    Updates the full_text of a volume in the database.
+    Returns True on success, False on failure.
+    """
+    try:
+        volume = repo.get_volume_by_id(volume_id)
+        if not volume:
+            logger.error(f"Volume with ID {volume_id} not found")
+            return False
+        volume.full_text = text
+        repo.update(volume)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to update volume: {e}")
+        return False
