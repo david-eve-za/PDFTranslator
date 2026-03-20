@@ -4,47 +4,80 @@ from database.connection import DatabasePool
 
 
 def test_database_pool_initialization():
-    pool = DatabasePool("postgresql://localhost/test", min_size=2, max_size=10)
-    assert pool._dsn == "postgresql://localhost/test"
+    pool = DatabasePool(
+        host="localhost",
+        port=5432,
+        database="testdb",
+        user="testuser",
+        password="testpass",
+        min_size=2,
+        max_size=10,
+    )
+    assert "dbname=testdb" in pool._conninfo
+    assert "user=testuser" in pool._conninfo
+    assert "host=localhost" in pool._conninfo
     assert pool._min_size == 2
     assert pool._max_size == 10
 
 
-def test_database_pool_build_dsn():
-    pool = DatabasePool.build_dsn(
+def test_database_pool_build_conninfo():
+    conninfo = DatabasePool.build_conninfo(
         host="localhost",
         port=5432,
         database="testdb",
         user="testuser",
         password="testpass",
     )
-    assert pool == "postgresql://testuser:testpass@localhost:5432/testdb"
+    assert "dbname=testdb" in conninfo
+    assert "user=testuser" in conninfo
+    assert "password='testpass'" in conninfo
+    assert "host=localhost" in conninfo
+    assert "port=5432" in conninfo
 
 
-def test_database_pool_build_dsn_no_password():
-    pool = DatabasePool.build_dsn(
+def test_database_pool_build_conninfo_no_password():
+    conninfo = DatabasePool.build_conninfo(
         host="localhost", port=5432, database="testdb", user="testuser", password=""
     )
-    assert pool == "postgresql://testuser@localhost:5432/testdb"
+    assert "dbname=testdb" in conninfo
+    assert "user=testuser" in conninfo
+    assert "password=''" in conninfo
+    assert "host=localhost" in conninfo
 
 
 @patch("database.connection.ConnectionPool")
-def test_get_sync_pool_creates_pool(mock_pool_class):
+@patch("database.connection.DatabaseInitializer")
+def test_get_sync_pool_creates_pool(mock_initializer_class, mock_pool_class):
     mock_pool = MagicMock()
     mock_pool_class.return_value = mock_pool
-    pool_manager = DatabasePool("postgresql://localhost/test")
+    pool_manager = DatabasePool(
+        host="localhost",
+        port=5432,
+        database="testdb",
+        user="testuser",
+        password="testpass",
+    )
     result = pool_manager.get_sync_pool()
     mock_pool_class.assert_called_once()
     assert result == mock_pool
 
 
 @patch("database.connection.AsyncConnectionPool")
+@patch("database.connection.DatabaseInitializer")
 @pytest.mark.asyncio
-async def test_get_async_pool_creates_pool(mock_pool_class):
+async def test_get_async_pool_creates_pool(mock_initializer_class, mock_pool_class):
     mock_pool = MagicMock()
     mock_pool.open = AsyncMock()
     mock_pool_class.return_value = mock_pool
-    pool_manager = DatabasePool("postgresql://localhost/test")
+    mock_initializer = mock_initializer_class.return_value
+    mock_initializer.ensure_tables_exist_async = AsyncMock()
+    pool_manager = DatabasePool(
+        host="localhost",
+        port=5432,
+        database="testdb",
+        user="testuser",
+        password="testpass",
+    )
     result = await pool_manager.get_async_pool()
     mock_pool_class.assert_called_once()
     assert result == mock_pool
