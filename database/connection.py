@@ -1,5 +1,6 @@
 from typing import Optional
 from psycopg_pool import ConnectionPool, AsyncConnectionPool
+from database.initializer import DatabaseInitializer
 
 
 class DatabasePool:
@@ -46,6 +47,7 @@ class DatabasePool:
                 max_size=self._max_size,
                 open=True,
             )
+            DatabaseInitializer().ensure_tables_exist(self._sync_pool)
         return self._sync_pool
 
     async def get_async_pool(self) -> AsyncConnectionPool:
@@ -56,6 +58,7 @@ class DatabasePool:
                 max_size=self._max_size,
             )
             await self._async_pool.open()
+            await DatabaseInitializer().ensure_tables_exist_async(self._async_pool)
         return self._async_pool
 
     async def close(self) -> None:
