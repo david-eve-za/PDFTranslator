@@ -12,8 +12,9 @@ import typer
 from rich.panel import Panel
 
 from cli.app import app, console
-from database.models import Work, Volume
+from database.models import Chapter, Work, Volume
 from database.repositories.book_repository import BookRepository
+from database.repositories.chapter_repository import ChapterRepository
 
 logger = logging.getLogger(__name__)
 
@@ -136,8 +137,43 @@ def strip_header(text: str) -> str:
                 content_start = i + 1
                 while content_start < len(lines) and lines[content_start].strip() == "":
                     content_start += 1
-            break
+                break
     return "\n".join(lines[content_start:])
+
+
+def validate_and_create_chapters(
+    volume_id: int, blocks: list[ParsedBlock], chapter_repo: ChapterRepository
+) -> int:
+    """
+    Deletes existing chapters for the volume and creates new ones from parsed blocks.
+    Returns the number of chapters created.
+    """
+    existing_chapters = chapter_repo.get_by_volume(volume_id)
+    for chapter in existing_chapters:
+        if chapter.id:
+            chapter_repo.delete(chapter.id)
+
+    chapter_number = 1
+    created_count = 0
+    for block in blocks:
+        if block.block_type == "Chapter":
+            num = chapter_number
+            chapter_number += 1
+        else:
+            num = None
+
+        chapter = Chapter(
+            id=None,
+            volume_id=volume_id,
+            chapter_number=num,
+            title=block.title,
+            original_text=block.content,
+            translated_text=None,
+        )
+        chapter_repo.create(chapter)
+        created_count += 1
+
+    return created_count
 
 
 def select_volume_interactive(repo: BookRepository) -> Optional[Volume]:
