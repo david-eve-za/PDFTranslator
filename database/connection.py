@@ -46,13 +46,7 @@ class DatabasePool:
             min_size = min_size or config.db_min_pool_size
             max_size = max_size or config.db_max_pool_size
 
-        self._conninfo = (
-            f"dbname={database} "
-            f"user={user} "
-            f"password='{password}' "
-            f"host={host} "
-            f"port={port}"
-        )
+        self._conninfo = self.build_conninfo(host, port, database, user, password)
         self._min_size = min_size
         self._max_size = max_size
 
@@ -60,10 +54,11 @@ class DatabasePool:
     def build_conninfo(
         host: str, port: int, database: str, user: str, password: str
     ) -> str:
+        password_escaped = password.replace("\\", "\\\\").replace("'", "\\'")
         return (
             f"dbname={database} "
             f"user={user} "
-            f"password='{password}' "
+            f"password='{password_escaped}' "
             f"host={host} "
             f"port={port}"
         )
