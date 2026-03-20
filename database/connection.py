@@ -7,6 +7,7 @@ class DatabasePool:
     _instance: Optional["DatabasePool"] = None
     _sync_pool: Optional[ConnectionPool] = None
     _async_pool: Optional[AsyncConnectionPool] = None
+    _tables_initialized: bool = False
 
     @classmethod
     def get_instance(cls, **kwargs) -> "DatabasePool":
@@ -17,6 +18,7 @@ class DatabasePool:
     @classmethod
     def reset_instance(cls) -> None:
         cls._instance = None
+        cls._tables_initialized = False
 
     def __init__(
         self,
@@ -69,9 +71,12 @@ class DatabasePool:
                 conninfo=self._conninfo,
                 min_size=self._min_size,
                 max_size=self._max_size,
-                open=True,
+                open=False,
             )
+            self._sync_pool.open(wait=True)
+        if not DatabasePool._tables_initialized:
             DatabaseInitializer().ensure_tables_exist(self._sync_pool)
+            DatabasePool._tables_initialized = True
         return self._sync_pool
 
     async def get_async_pool(self) -> AsyncConnectionPool:
@@ -82,7 +87,9 @@ class DatabasePool:
                 max_size=self._max_size,
             )
             await self._async_pool.open()
+        if not DatabasePool._tables_initialized:
             await DatabaseInitializer().ensure_tables_exist_async(self._async_pool)
+            DatabasePool._tables_initialized = True
         return self._async_pool
 
     async def close(self) -> None:

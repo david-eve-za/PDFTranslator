@@ -84,9 +84,9 @@ class GlobalConfig(metaclass=_Singleton):
         self.db_max_pool_size: int = 10
 
         # NVIDIA NIM settings for embeddings and reranking
-        self.nvidia_nim_api_key: str = ""
+        self.nvidia_nim_api_key: str = os.getenv("NVIDIA_API_KEY")
         self.nvidia_embed_model: str = "nvidia/llama-3.2-nv-embedqa-1b-v2"
-        self.nvidia_rerank_model: str = "nvidia/llama-3.2-nv-rerankqa-1b-v2"
+        self.nvidia_rerank_model: str = "nv-rerank-qa-mistral-4b:1"
         self.nvidia_embed_batch_size: int = 32
         self.nvidia_rerank_top_n: int = 10
 

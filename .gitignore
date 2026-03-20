@@ -141,3 +141,7 @@ PDFAgent.log
 # Chainlit
 .chainlit/
 .worktrees/
+reviewer
+mistral-large-3-675b-instruct-2512
+llama-3.3-70b-instruct
+docs

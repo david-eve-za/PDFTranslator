@@ -43,10 +43,10 @@ class BookRepository(BaseRepository[Work]):
                     """,
                     (id,),
                 )
-        row = cur.fetchone()
-        if row is None:
-            return None
-        return self._row_to_work(row)
+                row = cur.fetchone()
+                if row is None:
+                    return None
+                return self._row_to_work(row)
 
     def get_all(self) -> List[Work]:
         pool = self._pool.get_sync_pool()
@@ -59,8 +59,8 @@ class BookRepository(BaseRepository[Work]):
                     ORDER BY id
                     """
                 )
-        rows = cur.fetchall()
-        return [self._row_to_work(row) for row in rows]
+                rows = cur.fetchall()
+                return [self._row_to_work(row) for row in rows]
 
     def create(self, entity: Work) -> Work:
         pool = self._pool.get_sync_pool()
@@ -80,8 +80,8 @@ class BookRepository(BaseRepository[Work]):
                         entity.author,
                     ),
                 )
-        row = cur.fetchone()
-        return self._row_to_work(row)
+                row = cur.fetchone()
+                return self._row_to_work(row)
 
     def update(self, entity: Work) -> Optional[Work]:
         pool = self._pool.get_sync_pool()
@@ -103,10 +103,10 @@ class BookRepository(BaseRepository[Work]):
                         entity.id,
                     ),
                 )
-        row = cur.fetchone()
-        if row is None:
-            return None
-        return self._row_to_work(row)
+                row = cur.fetchone()
+                if row is None:
+                    return None
+                return self._row_to_work(row)
 
     def delete(self, id: int) -> bool:
         pool = self._pool.get_sync_pool()
@@ -128,8 +128,8 @@ class BookRepository(BaseRepository[Work]):
                     """,
                     (work_id,),
                 )
-        rows = cur.fetchall()
-        return [self._row_to_volume(row) for row in rows]
+                rows = cur.fetchall()
+                return [self._row_to_volume(row) for row in rows]
 
     def add_volume(self, volume: Volume) -> Volume:
         pool = self._pool.get_sync_pool()
@@ -149,8 +149,8 @@ class BookRepository(BaseRepository[Work]):
                         volume.translated_text,
                     ),
                 )
-        row = cur.fetchone()
-        return self._row_to_volume(row)
+                row = cur.fetchone()
+                return self._row_to_volume(row)
 
     def find_by_title(self, title: str, fuzzy: bool = False) -> List[Work]:
         pool = self._pool.get_sync_pool()
@@ -176,8 +176,8 @@ class BookRepository(BaseRepository[Work]):
                         """,
                         (title,),
                     )
-        rows = cur.fetchall()
-        return [self._row_to_work(row) for row in rows]
+                rows = cur.fetchall()
+                return [self._row_to_work(row) for row in rows]
 
     def find_similar_works(self, query: str, top_k: int = 5) -> List[Work]:
         """
