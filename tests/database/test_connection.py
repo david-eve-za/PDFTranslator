@@ -169,3 +169,73 @@ class TestDatabaseInitializerIntegration:
             mock_initializer.ensure_tables_exist_async.reset_mock()
             await pool_manager.get_async_pool()
             mock_initializer.ensure_tables_exist_async.assert_not_awaited()
+
+
+class TestDatabasePoolSingleton:
+    def test_get_instance_returns_same_instance_on_multiple_calls(self):
+        DatabasePool.reset_instance()
+        instance1 = DatabasePool.get_instance(
+            host="localhost",
+            port=5432,
+            database="testdb",
+            user="testuser",
+            password="testpass",
+        )
+        instance2 = DatabasePool.get_instance(
+            host="localhost",
+            port=5432,
+            database="testdb",
+            user="testuser",
+            password="testpass",
+        )
+        assert instance1 is instance2
+        DatabasePool.reset_instance()
+
+    def test_get_instance_uses_global_config_when_no_params_provided(self):
+        DatabasePool.reset_instance()
+        instance = DatabasePool.get_instance()
+        assert instance._min_size == 2
+        assert instance._max_size == 10
+        assert "dbname=book_translator" in instance._conninfo
+        assert "user=translator_user" in instance._conninfo
+        assert "host=localhost" in instance._conninfo
+        assert "port=5432" in instance._conninfo
+        DatabasePool.reset_instance()
+
+    def test_get_instance_accepts_custom_config_parameters(self):
+        DatabasePool.reset_instance()
+        instance = DatabasePool.get_instance(
+            host="customhost",
+            port=5433,
+            database="customdb",
+            user="customuser",
+            password="custompass",
+            min_size=5,
+            max_size=20,
+        )
+        assert "dbname=customdb" in instance._conninfo
+        assert "user=customuser" in instance._conninfo
+        assert "host=customhost" in instance._conninfo
+        assert "port=5433" in instance._conninfo
+        assert instance._min_size == 5
+        assert instance._max_size == 20
+        DatabasePool.reset_instance()
+
+    def test_reset_instance_clears_the_singleton(self):
+        instance1 = DatabasePool.get_instance(
+            host="localhost",
+            port=5432,
+            database="testdb",
+            user="testuser",
+            password="testpass",
+        )
+        DatabasePool.reset_instance()
+        instance2 = DatabasePool.get_instance(
+            host="different",
+            port=5432,
+            database="testdb",
+            user="testuser",
+            password="testpass",
+        )
+        assert instance1 is not instance2
+        DatabasePool.reset_instance()

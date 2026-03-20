@@ -4,19 +4,48 @@ from database.initializer import DatabaseInitializer
 
 
 class DatabasePool:
+    _instance: Optional["DatabasePool"] = None
     _sync_pool: Optional[ConnectionPool] = None
     _async_pool: Optional[AsyncConnectionPool] = None
 
+    @classmethod
+    def get_instance(cls, **kwargs) -> "DatabasePool":
+        if cls._instance is None:
+            cls._instance = cls(**kwargs)
+        return cls._instance
+
+    @classmethod
+    def reset_instance(cls) -> None:
+        cls._instance = None
+
     def __init__(
         self,
-        host: str,
-        port: int,
-        database: str,
-        user: str,
-        password: str,
-        min_size: int = 2,
-        max_size: int = 10,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
+        database: Optional[str] = None,
+        user: Optional[str] = None,
+        password: Optional[str] = None,
+        min_size: Optional[int] = None,
+        max_size: Optional[int] = None,
     ):
+        if (
+            host is None
+            or port is None
+            or database is None
+            or user is None
+            or password is None
+        ):
+            from GlobalConfig import GlobalConfig
+
+            config = GlobalConfig()
+            host = host or config.db_host
+            port = port or config.db_port
+            database = database or config.db_name
+            user = user or config.db_user
+            password = password or config.db_password
+            min_size = min_size or config.db_min_pool_size
+            max_size = max_size or config.db_max_pool_size
+
         self._conninfo = (
             f"dbname={database} "
             f"user={user} "
