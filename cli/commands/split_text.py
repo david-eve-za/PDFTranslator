@@ -62,6 +62,64 @@ def build_template_header() -> str:
 """
 
 
+def parse_blocks(text: str) -> List[ParsedBlock]:
+    """
+    Parses the text and extracts structured blocks.
+    Raises BlockParseError if the format is invalid.
+    """
+    blocks = []
+    lines = text.split("\n")
+    start_pattern = re.compile(r'\[===Type="(\w+)"(?:\s+Title="([^"]*)")?===\]')
+    end_marker = "[===End Block===]"
+    valid_types = {"Prologue", "Chapter", "Epilogue"}
+
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        match = start_pattern.match(line)
+        if match:
+            start_line = i + 1
+            block_type = match.group(1)
+            title = match.group(2)
+
+            if block_type not in valid_types:
+                raise BlockParseError(
+                    f"Type must be 'Prologue', 'Chapter', or 'Epilogue', got '{block_type}'",
+                    start_line,
+                )
+
+            content_lines = []
+            i += 1
+            found_end = False
+            while i < len(lines):
+                if lines[i].strip() == end_marker:
+                    found_end = True
+                    end_line = i + 1
+                    break
+                content_lines.append(lines[i])
+                i += 1
+
+            if not found_end:
+                raise BlockParseError(
+                    f"Block starting at line {start_line} has no matching [===End Block===]",
+                    start_line,
+                )
+
+            content = "\n".join(content_lines).strip()
+            blocks.append(
+                ParsedBlock(
+                    block_type=block_type,
+                    title=title,
+                    content=content,
+                    start_line=start_line,
+                    end_line=end_line,
+                )
+            )
+        i += 1
+
+    return blocks
+
+
 def select_volume_interactive(repo: BookRepository) -> Optional[Volume]:
     """
     Interactive selection of a volume from the database.
