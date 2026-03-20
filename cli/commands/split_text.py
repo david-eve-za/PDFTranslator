@@ -1,7 +1,9 @@
 import logging
 import os
+import re
 import subprocess
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
@@ -14,6 +16,22 @@ from database.models import Work, Volume
 from database.repositories.book_repository import BookRepository
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ParsedBlock:
+    block_type: str
+    title: Optional[str]
+    content: str
+    start_line: int
+    end_line: int
+
+
+class BlockParseError(Exception):
+    def __init__(self, message: str, line_number: int):
+        self.message = message
+        self.line_number = line_number
+        super().__init__(f"Line {line_number}: {message}")
 
 
 def select_volume_interactive(repo: BookRepository) -> Optional[Volume]:
