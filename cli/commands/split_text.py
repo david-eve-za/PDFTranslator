@@ -52,3 +52,24 @@ def select_volume_interactive(repo: BookRepository) -> Optional[Volume]:
     ).ask()
 
     return selected_volume
+
+
+def open_editor_and_wait(file_path: Path) -> bool:
+    """
+    Opens the file in the default text editor and waits for it to be closed.
+    Returns True if the file was closed successfully, False otherwise.
+    """
+    try:
+        subprocess.run(["open", "-t", str(file_path)], check=True)
+        console.print(f"[cyan]Opened editor for: {file_path.name}[/cyan]")
+        console.print("[dim]Waiting for editor to close...[/dim]")
+        input(
+            "[yellow]Press Enter when you have finished editing and closed the editor...[/yellow]"
+        )
+        return True
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to open editor: {e}")
+        return False
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Operation cancelled by user.[/yellow]")
+        return False
