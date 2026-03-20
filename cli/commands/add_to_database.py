@@ -18,7 +18,6 @@ from rich.progress import (
 from cli.app import app, console, VALID_EXTENSIONS
 from database.models import Work, Volume
 from database.repositories.book_repository import BookRepository
-from GlobalConfig import GlobalConfig
 from tools.TextExtractor import TextExtractor
 
 logger = logging.getLogger(__name__)
@@ -53,16 +52,7 @@ def parse_filename(file_path: Path) -> Optional[ParsedFilename]:
 
 
 def get_book_repository() -> BookRepository:
-    config = GlobalConfig()
-    return BookRepository(
-        host=config.db_host,
-        port=config.db_port,
-        database=config.db_name,
-        user=config.db_user,
-        password=config.db_password,
-        min_size=config.db_min_pool_size,
-        max_size=config.db_max_pool_size,
-    )
+    return BookRepository()
 
 
 def find_or_create_work(
