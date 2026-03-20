@@ -7,8 +7,23 @@ from database.services.vector_store import VectorStoreService
 
 
 class BookRepository(BaseRepository[Work]):
-    def __init__(self, dsn: str, min_size: int = 2, max_size: int = 10):
-        self._dsn = dsn
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        database: str,
+        user: str,
+        password: str,
+        min_size: int = 2,
+        max_size: int = 10,
+    ):
+        self._conninfo = (
+            f"dbname={database} "
+            f"user={user} "
+            f"password='{password}' "
+            f"host={host} "
+            f"port={port}"
+        )
         self._pool: Optional[ConnectionPool] = None
         self._min_size = min_size
         self._max_size = max_size
@@ -17,7 +32,7 @@ class BookRepository(BaseRepository[Work]):
     def _get_pool(self) -> ConnectionPool:
         if self._pool is None:
             self._pool = ConnectionPool(
-                conninfo=self._dsn,
+                conninfo=self._conninfo,
                 min_size=self._min_size,
                 max_size=self._max_size,
                 open=True,

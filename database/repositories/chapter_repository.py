@@ -9,8 +9,23 @@ from langchain_core.documents import Document
 
 
 class ChapterRepository(BaseRepository[Chapter]):
-    def __init__(self, dsn: str, min_size: int = 2, max_size: int = 10):
-        self._dsn = dsn
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        database: str,
+        user: str,
+        password: str,
+        min_size: int = 2,
+        max_size: int = 10,
+    ):
+        self._conninfo = (
+            f"dbname={database} "
+            f"user={user} "
+            f"password='{password}' "
+            f"host={host} "
+            f"port={port}"
+        )
         self._pool: Optional[ConnectionPool] = None
         self._min_size = min_size
         self._max_size = max_size
@@ -19,7 +34,7 @@ class ChapterRepository(BaseRepository[Chapter]):
     def _get_pool(self) -> ConnectionPool:
         if self._pool is None:
             self._pool = ConnectionPool(
-                conninfo=self._dsn,
+                conninfo=self._conninfo,
                 min_size=self._min_size,
                 max_size=self._max_size,
                 open=True,
@@ -44,7 +59,7 @@ class ChapterRepository(BaseRepository[Chapter]):
                 cur.execute(
                     """
                     SELECT id, volume_id, chapter_number, title, original_text,
-                           translated_text, embedding
+                    translated_text, embedding
                     FROM chapters
                     WHERE id = %s
                     """,
@@ -62,7 +77,7 @@ class ChapterRepository(BaseRepository[Chapter]):
                 cur.execute(
                     """
                     SELECT id, volume_id, chapter_number, title, original_text,
-                           translated_text, embedding
+                    translated_text, embedding
                     FROM chapters
                     ORDER BY volume_id, chapter_number
                     """
@@ -77,10 +92,10 @@ class ChapterRepository(BaseRepository[Chapter]):
                 cur.execute(
                     """
                     INSERT INTO chapters (volume_id, chapter_number, title,
-                                         original_text, translated_text, embedding)
+                    original_text, translated_text, embedding)
                     VALUES (%s, %s, %s, %s, %s, %s)
                     RETURNING id, volume_id, chapter_number, title, original_text,
-                              translated_text, embedding
+                    translated_text, embedding
                     """,
                     (
                         entity.volume_id,
@@ -102,10 +117,10 @@ class ChapterRepository(BaseRepository[Chapter]):
                     """
                     UPDATE chapters
                     SET volume_id = %s, chapter_number = %s, title = %s,
-                        original_text = %s, translated_text = %s, embedding = %s
+                    original_text = %s, translated_text = %s, embedding = %s
                     WHERE id = %s
                     RETURNING id, volume_id, chapter_number, title, original_text,
-                              translated_text, embedding
+                    translated_text, embedding
                     """,
                     (
                         entity.volume_id,
@@ -136,7 +151,7 @@ class ChapterRepository(BaseRepository[Chapter]):
                 cur.execute(
                     """
                     SELECT id, volume_id, chapter_number, title, original_text,
-                           translated_text, embedding
+                    translated_text, embedding
                     FROM chapters
                     WHERE volume_id = %s
                     ORDER BY chapter_number
@@ -155,10 +170,10 @@ class ChapterRepository(BaseRepository[Chapter]):
                 cur.execute(
                     """
                     SELECT id, volume_id, chapter_number, title, original_text,
-                           translated_text, embedding
+                    translated_text, embedding
                     FROM chapters
                     WHERE volume_id = %s
-                      AND (original_text % %s OR title % %s)
+                    AND (original_text % %s OR title % %s)
                     ORDER BY GREATEST(similarity(original_text, %s), similarity(title, %s)) DESC
                     LIMIT %s
                     """,
@@ -181,8 +196,8 @@ class ChapterRepository(BaseRepository[Chapter]):
                     cur.execute(
                         """
                         SELECT id, volume_id, chapter_number, title, original_text,
-                               translated_text, embedding,
-                               1 - (embedding <=> %s) as similarity
+                        translated_text, embedding,
+                        1 - (embedding <=> %s) as similarity
                         FROM chapters
                         WHERE volume_id = %s AND embedding IS NOT NULL
                         ORDER BY embedding <=> %s
@@ -194,8 +209,8 @@ class ChapterRepository(BaseRepository[Chapter]):
                     cur.execute(
                         """
                         SELECT id, volume_id, chapter_number, title, original_text,
-                               translated_text, embedding,
-                               1 - (embedding <=> %s) as similarity
+                        translated_text, embedding,
+                        1 - (embedding <=> %s) as similarity
                         FROM chapters
                         WHERE embedding IS NOT NULL
                         ORDER BY embedding <=> %s
@@ -203,12 +218,12 @@ class ChapterRepository(BaseRepository[Chapter]):
                         """,
                         (embedding.tolist(), embedding.tolist(), limit),
                     )
-        rows = cur.fetchall()
-        results = []
-        for row in rows:
-            if row[7] >= threshold:
-                results.append(self._row_to_chapter(row[:7]))
-        return results
+                rows = cur.fetchall()
+                results = []
+                for row in rows:
+                    if row[7] >= threshold:
+                        results.append(self._row_to_chapter(row[:7]))
+                return results
 
     def search_with_rerank(
         self, query: str, volume_id: int, top_n: int = 5

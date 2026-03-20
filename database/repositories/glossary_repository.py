@@ -9,8 +9,23 @@ from langchain_core.documents import Document
 
 
 class GlossaryRepository(BaseRepository[GlossaryEntry]):
-    def __init__(self, dsn: str, min_size: int = 2, max_size: int = 10):
-        self._dsn = dsn
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        database: str,
+        user: str,
+        password: str,
+        min_size: int = 2,
+        max_size: int = 10,
+    ):
+        self._conninfo = (
+            f"dbname={database} "
+            f"user={user} "
+            f"password='{password}' "
+            f"host={host} "
+            f"port={port}"
+        )
         self._pool: Optional[ConnectionPool] = None
         self._min_size = min_size
         self._max_size = max_size
@@ -19,7 +34,7 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
     def _get_pool(self) -> ConnectionPool:
         if self._pool is None:
             self._pool = ConnectionPool(
-                conninfo=self._dsn,
+                conninfo=self._conninfo,
                 min_size=self._min_size,
                 max_size=self._max_size,
                 open=True,
@@ -122,7 +137,7 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                     """
                     UPDATE glossary_entries
                     SET work_id = %s, term = %s, translation = %s, notes = %s,
-                        is_proper_noun = %s, embedding = %s
+                    is_proper_noun = %s, embedding = %s
                     WHERE id = %s
                     RETURNING id, work_id, term, translation, notes, is_proper_noun, embedding
                     """,
@@ -229,7 +244,7 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                     cur.execute(
                         """
                         SELECT id, work_id, term, translation, notes, is_proper_noun, embedding,
-                               1 - (embedding <=> %s) as similarity
+                        1 - (embedding <=> %s) as similarity
                         FROM glossary_entries
                         WHERE work_id = %s AND embedding IS NOT NULL
                         ORDER BY embedding <=> %s
@@ -241,7 +256,7 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                     cur.execute(
                         """
                         SELECT id, work_id, term, translation, notes, is_proper_noun, embedding,
-                               1 - (embedding <=> %s) as similarity
+                        1 - (embedding <=> %s) as similarity
                         FROM glossary_entries
                         WHERE embedding IS NOT NULL
                         ORDER BY embedding <=> %s

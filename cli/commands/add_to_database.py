@@ -23,7 +23,7 @@ from tools.TextExtractor import TextExtractor
 
 logger = logging.getLogger(__name__)
 
-FILENAME_PATTERN = re.compile(r"^(.+?)\s*-\s*Volumen\s+(\d+)$", re.IGNORECASE)
+FILENAME_PATTERN = re.compile(r"^(.+?)\s*-\s*Volume\s+(\d+)$", re.IGNORECASE)
 
 
 @dataclass
@@ -54,12 +54,14 @@ def parse_filename(file_path: Path) -> Optional[ParsedFilename]:
 
 def get_book_repository() -> BookRepository:
     config = GlobalConfig()
-    dsn = (
-        f"postgresql://{config.db_user}:{config.db_password}"
-        f"@{config.db_host}:{config.db_port}/{config.db_name}"
-    )
     return BookRepository(
-        dsn=dsn, min_size=config.db_min_pool_size, max_size=config.db_max_pool_size
+        host=config.db_host,
+        port=config.db_port,
+        database=config.db_name,
+        user=config.db_user,
+        password=config.db_password,
+        min_size=config.db_min_pool_size,
+        max_size=config.db_max_pool_size,
     )
 
 
