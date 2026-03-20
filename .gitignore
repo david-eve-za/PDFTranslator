@@ -140,3 +140,4 @@ PDFAgent.log
 
 # Chainlit
 .chainlit/
+.worktrees/
