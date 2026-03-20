@@ -18,6 +18,7 @@ from database.connection import DatabasePool
 from database.repositories.book_repository import BookRepository
 from database.repositories.chapter_repository import ChapterRepository
 from database.repositories.glossary_repository import GlossaryRepository
+from database.initializer import DatabaseInitializer
 
 __all__ = [
     "Work",
@@ -35,4 +36,5 @@ __all__ = [
     "BookRepository",
     "ChapterRepository",
     "GlossaryRepository",
+    "DatabaseInitializer",
 ]
