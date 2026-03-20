@@ -91,3 +91,67 @@ def update_volume_text(repo: BookRepository, volume_id: int, text: str) -> bool:
     except Exception as e:
         logger.error(f"Failed to update volume: {e}")
         return False
+
+
+@app.command()
+def split_text():
+    """
+    Interactively select a volume and edit its text content.
+    Opens the text in an external editor and saves changes to the database.
+    """
+    console.print(
+        Panel.fit(
+            "[bold blue]PDFAgent[/bold blue] - Split Text Editor",
+            subtitle="Edit volume text content",
+        )
+    )
+
+    repo = BookRepository()
+    selected_volume = select_volume_interactive(repo)
+
+    if not selected_volume:
+        return
+
+    if not selected_volume.full_text:
+        console.print("[red]Error: Selected volume has no text content.[/red]")
+        raise typer.Exit(1)
+
+    temp_dir = Path(tempfile.mkdtemp(prefix="pdfagent_"))
+    temp_file = temp_dir / f"volume_{selected_volume.volume_number}_edit.txt"
+
+    try:
+        with open(temp_file, "w", encoding="utf-8") as f:
+            f.write(selected_volume.full_text)
+
+        if not open_editor_and_wait(temp_file):
+            console.print(
+                "[yellow]Editor was not closed properly. Changes not saved.[/yellow]"
+            )
+            return
+
+        with open(temp_file, "r", encoding="utf-8") as f:
+            edited_text = f.read()
+
+        if edited_text == selected_volume.full_text:
+            console.print("[yellow]No changes detected. Database not updated.[/yellow]")
+            return
+
+        if update_volume_text(repo, selected_volume.id, edited_text):
+            console.print(
+                f"[green]Successfully updated text for Volume {selected_volume.volume_number}[/green]"
+            )
+        else:
+            console.print("[red]Failed to update volume text.[/red]")
+            raise typer.Exit(1)
+
+    except Exception as e:
+        logger.error(f"Error during editing: {e}")
+        console.print(f"[red]An error occurred: {e}[/red]")
+        raise typer.Exit(1)
+
+    finally:
+        if temp_file.exists():
+            temp_file.unlink()
+        if temp_dir.exists():
+            temp_dir.rmdir()
+        console.print("[dim]Temporary files cleaned up.[/dim]")
