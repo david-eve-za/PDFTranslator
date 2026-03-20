@@ -1,7 +1,7 @@
 from typing import Optional, List
-from psycopg_pool import ConnectionPool
 import numpy as np
 
+from database.connection import DatabasePool
 from database.repositories.base import BaseRepository
 from database.models import GlossaryEntry, TermContext, ContextExample
 from database.services.vector_store import VectorStoreService
@@ -9,37 +9,9 @@ from langchain_core.documents import Document
 
 
 class GlossaryRepository(BaseRepository[GlossaryEntry]):
-    def __init__(
-        self,
-        host: str,
-        port: int,
-        database: str,
-        user: str,
-        password: str,
-        min_size: int = 2,
-        max_size: int = 10,
-    ):
-        self._conninfo = (
-            f"dbname={database} "
-            f"user={user} "
-            f"password='{password}' "
-            f"host={host} "
-            f"port={port}"
-        )
-        self._pool: Optional[ConnectionPool] = None
-        self._min_size = min_size
-        self._max_size = max_size
+    def __init__(self, pool: Optional[DatabasePool] = None):
+        self._pool = pool or DatabasePool.get_instance()
         self._vector_service = VectorStoreService()
-
-    def _get_pool(self) -> ConnectionPool:
-        if self._pool is None:
-            self._pool = ConnectionPool(
-                conninfo=self._conninfo,
-                min_size=self._min_size,
-                max_size=self._max_size,
-                open=True,
-            )
-        return self._pool
 
     def _row_to_glossary_entry(self, row: tuple) -> GlossaryEntry:
         return GlossaryEntry(
@@ -73,7 +45,7 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
         )
 
     def get_by_id(self, id: int) -> Optional[GlossaryEntry]:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -92,7 +64,7 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                 return entry
 
     def get_all(self) -> List[GlossaryEntry]:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -106,7 +78,7 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                 return [self._row_to_glossary_entry(row) for row in rows]
 
     def create(self, entity: GlossaryEntry) -> GlossaryEntry:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -130,7 +102,7 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                 return self._row_to_glossary_entry(row)
 
     def update(self, entity: GlossaryEntry) -> GlossaryEntry:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -159,14 +131,14 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                 return self._row_to_glossary_entry(row)
 
     def delete(self, id: int) -> bool:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM glossary_entries WHERE id = %s", (id,))
                 return cur.rowcount > 0
 
     def get_by_work(self, work_id: int) -> List[GlossaryEntry]:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -184,7 +156,7 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
     def find_by_term(
         self, term: str, work_id: Optional[int] = None, fuzzy: bool = False
     ) -> List[GlossaryEntry]:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 if fuzzy:
@@ -237,7 +209,7 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
         limit: int = 10,
         threshold: float = 0.8,
     ) -> List[GlossaryEntry]:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 if work_id is not None:
@@ -272,7 +244,7 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                 return results
 
     def add_context(self, term_id: int, context: TermContext) -> TermContext:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -292,7 +264,7 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                 return self._row_to_term_context(row)
 
     def get_contexts(self, term_id: int) -> List[TermContext]:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -311,7 +283,7 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                 return contexts
 
     def update_context(self, context: TermContext) -> TermContext:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -334,14 +306,14 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                 return self._row_to_term_context(row)
 
     def delete_context(self, context_id: int) -> bool:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM term_contexts WHERE id = %s", (context_id,))
                 return cur.rowcount > 0
 
     def add_example(self, context_id: int, example: ContextExample) -> ContextExample:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -361,7 +333,7 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                 return self._row_to_context_example(row)
 
     def get_examples(self, context_id: int) -> List[ContextExample]:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -377,7 +349,7 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                 return [self._row_to_context_example(row) for row in rows]
 
     def update_example(self, example: ContextExample) -> ContextExample:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -400,7 +372,7 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                 return self._row_to_context_example(row)
 
     def delete_example(self, example_id: int) -> bool:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM context_examples WHERE id = %s", (example_id,))
