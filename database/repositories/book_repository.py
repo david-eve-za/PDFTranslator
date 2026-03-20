@@ -1,46 +1,18 @@
 from typing import Optional, List
-from psycopg_pool import ConnectionPool
 
+from database.connection import DatabasePool
 from database.repositories.base import BaseRepository
 from database.models import Work, Volume
 from database.services.vector_store import VectorStoreService
 
 
 class BookRepository(BaseRepository[Work]):
-    def __init__(
-        self,
-        host: str,
-        port: int,
-        database: str,
-        user: str,
-        password: str,
-        min_size: int = 2,
-        max_size: int = 10,
-    ):
-        self._conninfo = (
-            f"dbname={database} "
-            f"user={user} "
-            f"password='{password}' "
-            f"host={host} "
-            f"port={port}"
-        )
-        self._pool: Optional[ConnectionPool] = None
-        self._min_size = min_size
-        self._max_size = max_size
+    def __init__(self, pool: Optional[DatabasePool] = None):
+        self._pool = pool or DatabasePool.get_instance()
         self._vector_service = VectorStoreService()
 
-    def _get_pool(self) -> ConnectionPool:
-        if self._pool is None:
-            self._pool = ConnectionPool(
-                conninfo=self._conninfo,
-                min_size=self._min_size,
-                max_size=self._max_size,
-                open=True,
-            )
-        return self._pool
-
     def get_by_id(self, id: int) -> Optional[Work]:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -64,7 +36,7 @@ class BookRepository(BaseRepository[Work]):
                 )
 
     def get_all(self) -> List[Work]:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -88,7 +60,7 @@ class BookRepository(BaseRepository[Work]):
                 ]
 
     def create(self, entity: Work) -> Work:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -116,7 +88,7 @@ class BookRepository(BaseRepository[Work]):
                 )
 
     def update(self, entity: Work) -> Work:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -148,14 +120,14 @@ class BookRepository(BaseRepository[Work]):
                 )
 
     def delete(self, id: int) -> bool:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM works WHERE id = %s", (id,))
                 return cur.rowcount > 0
 
     def get_volumes(self, work_id: int) -> List[Volume]:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -181,7 +153,7 @@ class BookRepository(BaseRepository[Work]):
                 ]
 
     def add_volume(self, volume: Volume) -> Volume:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -209,7 +181,7 @@ class BookRepository(BaseRepository[Work]):
                 )
 
     def find_by_title(self, title: str, fuzzy: bool = False) -> List[Work]:
-        pool = self._get_pool()
+        pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 if fuzzy:
