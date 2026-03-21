@@ -18,6 +18,7 @@ from rich.progress import (
 from cli.app import app, console, VALID_EXTENSIONS
 from database.models import Work, Volume
 from database.repositories.book_repository import BookRepository
+from database.repositories.volume_repository import VolumeRepository
 from tools.TextExtractor import TextExtractor
 
 logger = logging.getLogger(__name__)
@@ -51,10 +52,6 @@ def parse_filename(file_path: Path) -> Optional[ParsedFilename]:
     return ParsedFilename(title=title, volume_number=volume_number)
 
 
-def get_book_repository() -> BookRepository:
-    return BookRepository()
-
-
 def find_or_create_work(
     repo: BookRepository, parsed: ParsedFilename
 ) -> Tuple[Work, bool]:
@@ -74,7 +71,8 @@ def find_or_create_work(
 
 def process_single_file(
     file_path: Path,
-    repo: BookRepository,
+    work_repo: BookRepository,
+    volume_repo: VolumeRepository,
     extractor: TextExtractor,
 ) -> ProcessingResult:
     parsed = parse_filename(file_path)
@@ -86,9 +84,9 @@ def process_single_file(
         )
 
     try:
-        work, work_created = find_or_create_work(repo, parsed)
+        work, work_created = find_or_create_work(work_repo, parsed)
 
-        existing_volumes = repo.get_volumes(work.id)
+        existing_volumes = volume_repo.get_by_work_id(work.id)
         volume_numbers = [v.volume_number for v in existing_volumes]
 
         if parsed.volume_number in volume_numbers:
@@ -118,7 +116,7 @@ def process_single_file(
             full_text=text,
             translated_text=None,
         )
-        repo.add_volume(volume)
+        volume_repo.create(volume)
 
         return ProcessingResult(
             filename=file_path.name,
@@ -139,7 +137,8 @@ def process_single_file(
 
 def process_files(files: List[Path]) -> List[ProcessingResult]:
     results: List[ProcessingResult] = []
-    repo = get_book_repository()
+    work_repo = BookRepository()
+    volume_repo = VolumeRepository()
     extractor = TextExtractor()
 
     with Progress(
@@ -153,7 +152,7 @@ def process_files(files: List[Path]) -> List[ProcessingResult]:
 
         for file_path in files:
             progress.update(task, description=f"[cyan]Procesando: {file_path.name}")
-            result = process_single_file(file_path, repo, extractor)
+            result = process_single_file(file_path, work_repo, volume_repo, extractor)
             results.append(result)
             progress.advance(task)
 
