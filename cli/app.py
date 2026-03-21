@@ -64,4 +64,10 @@ def validate_output_format(value: str) -> str:
     return value.lower()
 
 
-from cli.commands import process, add_to_database, split_text, reset_database
+from cli.commands import (
+    process,
+    add_to_database,
+    split_text,
+    reset_database,
+    build_glossary,
+)
