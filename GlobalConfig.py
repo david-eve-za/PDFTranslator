@@ -29,6 +29,7 @@ class GlobalConfig(metaclass=_Singleton):
         self.output_format: str = "m4a"
         self.gen_video: bool = False
         self.agent: str = "nvidia"  # Main agent selector ('gemini', 'ollama')
+        self.develop_mode: bool = False
 
         # Tool settings
         self.translation_prompt_path: str = "tools/translation_prompt.txt"
@@ -102,6 +103,7 @@ class GlobalConfig(metaclass=_Singleton):
             "output_format": str,
             "gen_video": bool,
             "agent": str,
+            "develop_mode": bool,
             "translation_prompt_path": str,
             "voice": str,
             "gemini_model_names": list,
