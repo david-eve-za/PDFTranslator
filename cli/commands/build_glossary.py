@@ -41,9 +41,9 @@ def _get_volumes_to_process(work_id: int, volume_number: Optional[int]) -> list:
     """Get volumes to process based on filters."""
     volume_repo = VolumeRepository()
     if volume_number:
-        volume = volume_repo.get_by_work_and_number(work_id, volume_number)
+        volume = volume_repo.find_by_volume_number(work_id, volume_number)
         return [volume] if volume else []
-    return volume_repo.get_by_work(work_id)
+    return volume_repo.get_by_work_id(work_id)
 
 
 def _print_summary_table(extracted: int, new: int, skipped: int, dry_run: bool):
