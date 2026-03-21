@@ -15,6 +15,7 @@ from cli.app import app, console
 from database.models import Chapter, Work, Volume
 from database.repositories.book_repository import BookRepository
 from database.repositories.chapter_repository import ChapterRepository
+from database.repositories.volume_repository import VolumeRepository
 
 logger = logging.getLogger(__name__)
 
@@ -176,12 +177,14 @@ def validate_and_create_chapters(
     return created_count
 
 
-def select_volume_interactive(repo: BookRepository) -> Optional[Volume]:
+def select_volume_interactive(
+    work_repo: BookRepository, volume_repo: VolumeRepository
+) -> Optional[Volume]:
     """
     Interactive selection of a volume from the database.
     Returns the selected Volume or None if cancelled.
     """
-    works = repo.find_all()
+    works = work_repo.find_all()
     if not works:
         console.print("[yellow]No works found in database.[/yellow]")
         return None
@@ -196,7 +199,7 @@ def select_volume_interactive(repo: BookRepository) -> Optional[Volume]:
     if not selected_work:
         return None
 
-    volumes = repo.get_volumes(selected_work.id)
+    volumes = volume_repo.get_by_work_id(selected_work.id)
     if not volumes:
         console.print(f"[yellow]No volumes found for '{selected_work.title}'.[/yellow]")
         return None
@@ -235,19 +238,15 @@ def open_editor_and_wait(file_path: Path) -> bool:
         return False
 
 
-def update_volume_text(repo: BookRepository, volume_id: int, text: str) -> bool:
+def update_volume_text(
+    volume_repo: VolumeRepository, volume_id: int, text: str
+) -> bool:
     """
     Updates the full_text of a volume in the database.
     Returns True on success, False on failure.
     """
     try:
-        volume = repo.get_volume_by_id(volume_id)
-        if not volume:
-            logger.error(f"Volume with ID {volume_id} not found")
-            return False
-        volume.full_text = text
-        repo.update(volume)
-        return True
+        return volume_repo.update_full_text(volume_id, text)
     except Exception as e:
         logger.error(f"Failed to update volume: {e}")
         return False
@@ -267,10 +266,11 @@ def split_text():
         )
     )
 
-    repo = BookRepository()
+    work_repo = BookRepository()
+    volume_repo = VolumeRepository()
     chapter_repo = ChapterRepository()
 
-    selected_volume = select_volume_interactive(repo)
+    selected_volume = select_volume_interactive(work_repo, volume_repo)
 
     if not selected_volume:
         return
@@ -320,13 +320,15 @@ def split_text():
             console.print(
                 "[yellow]No blocks found. Only updating volume text.[/yellow]"
             )
-            if update_volume_text(repo, selected_volume.id, content_without_header):
+            if update_volume_text(
+                volume_repo, selected_volume.id, content_without_header
+            ):
                 console.print(
                     f"[green]Successfully updated text for Volume {selected_volume.volume_number}[/green]"
                 )
             return
 
-        if update_volume_text(repo, selected_volume.id, content_without_header):
+        if update_volume_text(volume_repo, selected_volume.id, content_without_header):
             chapters_created = validate_and_create_chapters(
                 selected_volume.id, blocks, chapter_repo
             )
