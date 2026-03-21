@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, List
+from typing import Optional, List, Dict
 import numpy as np
 
 
@@ -64,3 +64,53 @@ class GlossaryEntry:
     notes: Optional[str] = None
     contexts: List[TermContext] = field(default_factory=list)
     embedding: Optional[np.ndarray] = None
+    entity_type: str = "other"
+    do_not_translate: bool = False
+    is_verified: bool = False
+    confidence: float = 0.0
+    source_language: str = "en"
+    target_language: str = "es"
+
+
+@dataclass
+class EntityBlacklist:
+    id: Optional[int]
+    term: str
+    reason: Optional[str] = None
+
+
+@dataclass
+class FantasyTerm:
+    id: Optional[int]
+    term: str
+    entity_type: str
+    do_not_translate: bool = False
+    context_hint: Optional[str] = None
+
+
+@dataclass
+class EntityCandidate:
+    text: str
+    entity_type: str
+    frequency: int = 1
+    contexts: List[str] = field(default_factory=list)
+    confidence: float = 0.0
+    source_language: str = "en"
+
+    def add_context(self, context: str):
+        if context not in self.contexts:
+            self.contexts.append(context[:300])
+
+    def best_context(self) -> str:
+        return self.contexts[0] if self.contexts else ""
+
+    def to_embed_text(self) -> str:
+        return f"{self.text} {self.entity_type} {self.best_context()}"
+
+
+@dataclass
+class BuildResult:
+    extracted: int
+    new: int
+    skipped: int
+    entities_by_type: Dict[str, int] = field(default_factory=dict)
