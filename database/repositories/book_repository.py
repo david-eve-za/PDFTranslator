@@ -2,7 +2,7 @@ from typing import Optional, List
 
 from database.connection import DatabasePool
 from database.repositories.base import BaseRepository
-from database.models import Work, Volume
+from database.models import Work
 from database.services.vector_store import VectorStoreService
 
 
@@ -15,16 +15,6 @@ class BookRepository(BaseRepository[Work]):
             source_lang=row[3],
             target_lang=row[4],
             author=row[5],
-        )
-
-    def _row_to_volume(self, row: tuple) -> Volume:
-        return Volume(
-            id=row[0],
-            work_id=row[1],
-            volume_number=row[2],
-            title=row[3],
-            full_text=row[4],
-            translated_text=row[5],
         )
 
     def __init__(self, pool: Optional[DatabasePool] = None):
@@ -115,43 +105,6 @@ class BookRepository(BaseRepository[Work]):
                 cur.execute("DELETE FROM works WHERE id = %s", (id,))
                 return cur.rowcount > 0
 
-    def get_volumes(self, work_id: int) -> List[Volume]:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    SELECT id, work_id, volume_number, title, full_text, translated_text
-                    FROM volumes
-                    WHERE work_id = %s
-                    ORDER BY volume_number
-                    """,
-                    (work_id,),
-                )
-                rows = cur.fetchall()
-                return [self._row_to_volume(row) for row in rows]
-
-    def add_volume(self, volume: Volume) -> Volume:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO volumes (work_id, volume_number, title, full_text, translated_text)
-                    VALUES (%s, %s, %s, %s, %s)
-                    RETURNING id, work_id, volume_number, title, full_text, translated_text
-                    """,
-                    (
-                        volume.work_id,
-                        volume.volume_number,
-                        volume.title,
-                        volume.full_text,
-                        volume.translated_text,
-                    ),
-                )
-                row = cur.fetchone()
-                return self._row_to_volume(row)
-
     def find_by_title(self, title: str, fuzzy: bool = False) -> List[Work]:
         pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
@@ -211,17 +164,3 @@ class BookRepository(BaseRepository[Work]):
                 )
                 rows = cur.fetchall()
                 return [self._row_to_work(row) for row in rows]
-
-    def get_volume_by_id(self, volume_id: int) -> Optional[Volume]:
-        """Returns a volume by its ID."""
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT id, work_id, volume_number, title, full_text, translated_text FROM volumes WHERE id = %s",
-                    (volume_id,),
-                )
-                row = cur.fetchone()
-                if not row:
-                    return None
-                return self._row_to_volume(row)
