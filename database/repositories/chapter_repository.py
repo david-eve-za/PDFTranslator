@@ -51,7 +51,7 @@ class ChapterRepository(BaseRepository[Chapter]):
                     SELECT id, volume_id, chapter_number, title, original_text,
                     translated_text, embedding
                     FROM chapters
-                    ORDER BY volume_id, chapter_number
+                    ORDER BY volume_id, chapter_number NULLS FIRST
                     """
                 )
                 rows = cur.fetchall()
@@ -126,7 +126,7 @@ class ChapterRepository(BaseRepository[Chapter]):
                     translated_text, embedding
                     FROM chapters
                     WHERE volume_id = %s
-                    ORDER BY chapter_number
+                    ORDER BY chapter_number NULLS FIRST
                     """,
                     (volume_id,),
                 )

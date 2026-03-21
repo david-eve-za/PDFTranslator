@@ -28,7 +28,7 @@ class Volume:
 class Chapter:
     id: Optional[int]
     volume_id: int
-    chapter_number: int
+    chapter_number: Optional[int]
     title: Optional[str]
     original_text: Optional[str] = None
     translated_text: Optional[str] = None
