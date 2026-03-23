@@ -70,4 +70,5 @@ from cli.commands import (
     split_text,
     reset_database,
     build_glossary,
+    translate_chapter,
 )
