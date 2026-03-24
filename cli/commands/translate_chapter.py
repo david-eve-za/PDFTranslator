@@ -40,6 +40,53 @@ SCOPE_ALL_VOLUME = "All Volume"
 SCOPE_SINGLE_CHAPTER = "Single Chapter"
 
 
+def _get_chapter_sort_key(chapter: Chapter) -> tuple:
+    """
+    Get a sort key for chapter ordering.
+
+    Order: Prologue first, then numbered chapters, then Epilogue.
+
+    Returns:
+        Tuple for sorting: (order_type, number)
+        - order_type: 0 for Prologue, 1 for numbered chapters, 2 for Epilogue
+        - number: chapter number or position within type
+    """
+    if chapter.chapter_number is None:
+        # Determine if it's a prologue or epilogue based on title
+        title_lower = (chapter.title or "").lower()
+        if "prologue" in title_lower:
+            return (0, 0)  # Prologue - first
+        elif "epilogue" in title_lower:
+            return (2, 0)  # Epilogue - last
+        else:
+            return (1, 0)  # Unknown unnumbered - middle
+    else:
+        return (
+            1,
+            chapter.chapter_number,
+        )  # Numbered chapters - middle, sorted by number
+
+
+def _format_chapter_display(chapter: Chapter) -> str:
+    """
+    Format a chapter for display, handling prologues and epilogues.
+
+    - Prologue/Epilogue: Show type as title (chapter_number is None)
+    - Regular chapters: Show "Chapter {number}" with optional title
+
+    Returns:
+        Formatted string for display
+    """
+    if chapter.chapter_number is None:
+        # This is a prologue or epilogue - use title as the type
+        chapter_type = chapter.title or "Unknown"
+        return f"{chapter_type}"
+    else:
+        # Regular numbered chapter
+        title_part = f" - {chapter.title}" if chapter.title else ""
+        return f"Chapter {chapter.chapter_number}{title_part}"
+
+
 def _select_work_interactive(work_repo: BookRepository) -> Optional[Work]:
     """Interactive selection of a work from the database."""
     works = work_repo.find_all()
@@ -103,12 +150,10 @@ def _display_work_structure(
         )
 
         # Show chapter status for this volume
-        for ch in sorted(chapters, key=lambda c: c.chapter_number or 0)[
-            :5
-        ]:  # Show first 5
+        for ch in sorted(chapters, key=_get_chapter_sort_key)[:5]:
             ch_status = "[green]✓[/green]" if ch.translated_text else "[dim]○[/dim]"
-            ch_title = f" - {ch.title}" if ch.title else ""
-            console.print(f"    {ch_status} Chapter {ch.chapter_number}{ch_title}")
+            ch_display = _format_chapter_display(ch)
+            console.print(f"    {ch_status} {ch_display}")
 
         if len(chapters) > 5:
             console.print(f"    [dim]... and {len(chapters) - 5} more chapters[/dim]")
@@ -244,9 +289,7 @@ def _select_chapter_interactive(
         return None
 
     chapter_choices = []
-    for ch in sorted(
-        chapters, key=lambda c: c.chapter_number if c.chapter_number else 0
-    ):
+    for ch in sorted(chapters, key=_get_chapter_sort_key):
         status = ""
         if show_status:
             if ch.translated_text:
@@ -254,8 +297,8 @@ def _select_chapter_interactive(
             else:
                 status = " [dim](○ pending)[/dim]"
 
-        title_part = f" - {ch.title}" if ch.title else ""
-        display = f"Chapter {ch.chapter_number}{title_part}{status}"
+        ch_display = _format_chapter_display(ch)
+        display = f"{ch_display}{status}"
         chapter_choices.append(questionary.Choice(title=display, value=ch))
 
     selected_chapter: Optional[Chapter] = questionary.select(
@@ -800,16 +843,15 @@ def _translate_volume(
         TaskProgressColumn(),
         console=console,
     ) as progress:
-        for chapter in sorted(chapters, key=lambda c: c.chapter_number or 0):
-            task_id = progress.add_task(
-                f"[cyan]Chapter {chapter.chapter_number}", total=None
-            )
+        for chapter in sorted(chapters, key=_get_chapter_sort_key):
+            ch_display = _format_chapter_display(chapter)
+            task_id = progress.add_task(f"[cyan]{ch_display}", total=None)
 
             # Skip already translated chapters if requested
             if skip_translated and chapter.translated_text:
                 progress.update(
                     task_id,
-                    description=f"[dim]Chapter {chapter.chapter_number} (already translated, skipping)[/dim]",
+                    description=f"[dim]{ch_display} (already translated, skipping)[/dim]",
                 )
                 skipped += 1
                 progress.advance(task_id)
