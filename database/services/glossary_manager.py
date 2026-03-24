@@ -134,7 +134,7 @@ Terms: {json.dumps(terms)}
 Response format: {{"original_term": "translation"}}"""
 
         try:
-            response = self._llm_client.call_model(prompt)
+            response = self._llm_client.call_model(prompt).replace("```json","").replace("```","")
             if response:
                 return json.loads(response)
         except json.JSONDecodeError as e:

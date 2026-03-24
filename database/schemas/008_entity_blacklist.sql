@@ -1,5 +1,5 @@
 -- database/schemas/008_entity_blacklist.sql
--- Tabla para términos que nunca deben tratarse como entidades
+-- Table for terms that should never be treated as entities
 
 CREATE TABLE IF NOT EXISTS entity_blacklist (
     id SERIAL PRIMARY KEY,
@@ -8,9 +8,9 @@ CREATE TABLE IF NOT EXISTS entity_blacklist (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Valores iniciales: stopwords en inglés y español, metadatos
+-- Initial values: English and Spanish stopwords, metadata
 INSERT INTO entity_blacklist (term, reason) VALUES
--- Stopwords inglés
+-- English stopwords
 ('the', 'stopword'),
 ('and', 'stopword'),
 ('or', 'stopword'),
@@ -31,7 +31,7 @@ INSERT INTO entity_blacklist (term, reason) VALUES
 ('had', 'stopword'),
 ('do', 'stopword'),
 ('did', 'stopword'),
--- Verbos comunes de diálogo
+-- Common dialogue verbs
 ('said', 'stopword'),
 ('asked', 'stopword'),
 ('replied', 'stopword'),
@@ -39,14 +39,14 @@ INSERT INTO entity_blacklist (term, reason) VALUES
 ('felt', 'stopword'),
 ('knew', 'stopword'),
 ('saw', 'stopword'),
--- Metadatos de documento
+-- Document metadata
 ('chapter', 'metadata'),
 ('volume', 'metadata'),
 ('part', 'metadata'),
 ('book', 'metadata'),
 ('story', 'metadata'),
 ('novel', 'metadata'),
--- Stopwords español
+-- Spanish stopwords
 ('el', 'stopword'),
 ('la', 'stopword'),
 ('los', 'stopword'),
@@ -56,7 +56,7 @@ INSERT INTO entity_blacklist (term, reason) VALUES
 ('de', 'stopword'),
 ('del', 'stopword'),
 ('al', 'stopword'),
--- Pronombres
+-- Pronouns
 ('he', 'stopword'),
 ('she', 'stopword'),
 ('it', 'stopword'),

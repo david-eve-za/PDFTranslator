@@ -18,6 +18,7 @@ from typing import Dict, List, Optional, Set
 
 import nltk
 from nltk import word_tokenize, pos_tag, ne_chunk, sent_tokenize
+from nltk.corpus import words as nltk_words
 from nltk.tree import Tree
 
 from database.models import EntityCandidate
@@ -42,6 +43,11 @@ for pkg in NLTK_PACKAGES:
     except Exception:
         pass
 
+try:
+    ENGLISH_WORDS: Set[str] = set(w.lower() for w in nltk_words.words())
+except Exception:
+    ENGLISH_WORDS = set()
+
 ENTITY_TYPES = {
     "PERSON": "character",
     "GPE": "place",
@@ -56,8 +62,8 @@ SKILL_PATTERN = re.compile(
     r"|《([^》]{2,60})》"
     r"|\[([^\]]{2,60})\]"
     r"|<([^>]{2,60})>"
-    r'|"([A-Z][A-Za-z\s\'-]{2,50})"'
-    r"|\'([A-Z][A-Za-z\s\'-]{2,50})\'"
+    r'|"([A-Z][A-Za-z\s\'\-]{2,50})"'
+    r"|'([A-Z][A-Za-z\s\'\-]{2,50})'"
     r")"
 )
 
@@ -67,12 +73,14 @@ TITLE_PATTERN = re.compile(
     r"Prince|Princess|King|Queen|Emperor|Empress|"
     r"Elder|Sect\s*Master|Grand\s*Master|Overlord|"
     r"Demon\s*King|Hero|Sage|Archmage"
-    r")\s+([A-Z][A-Za-z\s\'-]{1,50})",
+    r")\s+([A-Z][A-Za-z\s\'\-]{1,50})",
     re.IGNORECASE,
 )
 
 
 class EntityExtractor:
+    _english_words: Set[str] = ENGLISH_WORDS
+
     def __init__(
         self,
         pool: Optional[DatabasePool] = None,
@@ -82,14 +90,20 @@ class EntityExtractor:
         self._blacklist_repo = EntityBlacklistRepository(pool)
         self._fantasy_repo = FantasyTermRepository(pool)
         self.min_frequency = min_frequency
-        self._blacklist: Optional[Set[str]] = None
-        self._fantasy_terms: Optional[Dict[str, any]] = None
+        self._blacklist: Set[str] = set()
+        self._fantasy_terms: Dict[str, any] = {}
 
     def _ensure_loaded(self):
-        if self._blacklist is None:
+        if not self._blacklist:
             self._blacklist = self._blacklist_repo.get_all_terms()
-        if self._fantasy_terms is None:
+        if not self._fantasy_terms:
             self._fantasy_terms = self._fantasy_repo.get_all_terms()
+
+    def _is_common_english_word(self, name: str) -> bool:
+        words = name.split()
+        if len(words) != 1:
+            return False
+        return name.lower() in self._english_words
 
     def extract(self, text: str, source_language: str = "en") -> List[EntityCandidate]:
         self._ensure_loaded()
@@ -153,9 +167,7 @@ class EntityExtractor:
             key=lambda e: (priority_order.get(e.entity_type, 9), -e.frequency)
         )
 
-        logger.info(
-            f"Extraídas {len(filtered)} entidades del texto ({len(text)} chars)"
-        )
+        logger.info(f"Extracted {len(filtered)} entities from text ({len(text)} chars)")
         return filtered
 
     def _extract_nltk(self, text: str) -> List[EntityCandidate]:
@@ -176,6 +188,9 @@ class EntityExtractor:
                         if len(name) < 2 or name.lower() in self._blacklist:
                             continue
 
+                        if self._is_common_english_word(name):
+                            continue
+
                         etype = ENTITY_TYPES.get(label, "other")
                         key = name.lower()
                         idx = sent.find(name)
@@ -193,7 +208,7 @@ class EntityExtractor:
                                 source_language="en",
                             )
             except Exception as e:
-                logger.debug(f"Error NLTK NER en oración: {e}")
+                logger.debug(f"Error NLTK NER in sentence: {e}")
                 continue
 
         return list(candidates.values())
@@ -258,6 +273,7 @@ class EntityExtractor:
                 and word.lower() not in self._blacklist
                 and not word.isnumeric()
                 and len(word) >= 2
+                and not self._is_common_english_word(word)
             ):
                 key = word.lower()
                 if key not in candidates:
