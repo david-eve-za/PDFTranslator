@@ -24,6 +24,7 @@ from rich.progress import (
 from rich.table import Table
 
 from cli.app import app, console, setup_logging
+from cli.services.glossary_post_processor import GlossaryPostProcessor
 from database.models import Work, Volume, Chapter, GlossaryEntry
 from database.repositories.book_repository import BookRepository
 from database.repositories.chapter_repository import ChapterRepository
@@ -455,178 +456,49 @@ def _build_enhanced_prompt(
 
 class GlossaryAwareTranslator(Translator):
     """
-    Extended Translator that incorporates glossary terms into translation prompts.
+    Translator with glossary consistency through post-processing.
 
-    Uses a specialized prompt template when glossary entries are available,
-    falling back to the standard prompt for works without glossary.
+    Instead of injecting glossary terms into the translation prompt,
+    this translator applies glossary validation and correction after
+    translation, ensuring 100% consistency of terms.
 
-    Important: This translator accounts for prompt overhead when splitting text,
-    ensuring that the total token count (prompt + glossary + text) stays within
-    the model's context limit.
+    Benefits:
+    - Larger chunks (no glossary overhead in prompt)
+    - Guaranteed consistency through post-processing
+    - Fewer API calls for same text
     """
-
-    # Path to the glossary-optimized prompt template
-    GLOSSARY_PROMPT_PATH = "tools/translation_prompt_glossary.txt"
-
-    # Safety margin for token calculation (accounts for variations in tokenization)
-    TOKEN_SAFETY_MARGIN = 100
-
-    # Target output tokens (reserve space for the translation output)
-    # This should be roughly equal to input size for translation tasks
-    OUTPUT_TOKEN_RESERVE_RATIO = 1.2  # Output can be slightly longer than input
-
-    # Minimum chunk size to avoid tiny chunks
-    MIN_CHUNK_SIZE = 300
-
-    # Maximum glossary entries to include (to control token usage)
-    DEFAULT_MAX_GLOSSARY_ENTRIES = 50
 
     def __init__(
         self,
         glossary_entries: List[GlossaryEntry],
         progress=None,
-        max_glossary_entries: int = None,
+        max_glossary_entries: int = None,  # Deprecated - kept for compatibility
     ):
         """
         Initialize with glossary entries for context-aware translation.
 
         Args:
-            glossary_entries: List of glossary terms to use for translation guidance
+            glossary_entries: List of glossary terms for post-processing
             progress: Optional progress tracker
-            max_glossary_entries: Maximum glossary entries to include (default: 50)
+            max_glossary_entries: Deprecated - no longer used
         """
         super().__init__(progress=progress)
         self.glossary_entries = glossary_entries
-        self._use_glossary_prompt = len(glossary_entries) > 0
-        self._max_glossary_entries = (
-            max_glossary_entries or self.DEFAULT_MAX_GLOSSARY_ENTRIES
-        )
-
-        # Pre-calculate glossary section for token counting
-        self._glossary_section_cache = None
-        self._prompt_overhead_cache = None
-
-    def _calculate_prompt_overhead(self, source_lang: str, target_lang: str) -> int:
-        """
-        Calculate the token overhead from prompt template and glossary.
-
-        This must be called before splitting text to ensure proper chunk sizing.
-
-        Returns:
-            Number of tokens used by prompt + glossary (without text).
-        """
-        if self._prompt_overhead_cache is not None:
-            return self._prompt_overhead_cache
-
-        # Get the base prompt template
-        prompt_template = self._get_raw_prompt_template()
-
-        # Build glossary section with entry limit
-        glossary_section = _build_glossary_section(
-            self.glossary_entries,
-            source_lang,
-            target_lang,
-            max_entries=self._max_glossary_entries,
-        )
-
-        # Create a sample prompt with empty text to measure overhead
-        sample_prompt = _build_enhanced_prompt(
-            base_prompt=prompt_template,
-            text_chunk="",  # Empty text to measure just the overhead
-            source_lang=source_lang,
-            target_lang=target_lang,
-            glossary_section=glossary_section,
-        )
-
-        # Count tokens
-        overhead = self.llm_client.count_tokens(sample_prompt)
-        overhead += self.TOKEN_SAFETY_MARGIN
-
-        logger.info(
-            f"Calculated prompt overhead: {overhead} tokens (including {self.TOKEN_SAFETY_MARGIN} safety margin)"
-        )
-
-        self._prompt_overhead_cache = overhead
-        self._glossary_section_cache = glossary_section
-
-        return overhead
-
-    def _get_raw_prompt_template(self) -> str:
-        """Get the raw prompt template without formatting."""
-        if self._use_glossary_prompt:
-            glossary_prompt_path = Path(self.GLOSSARY_PROMPT_PATH)
-            if glossary_prompt_path.exists():
-                with open(glossary_prompt_path, "r", encoding="utf-8") as f:
-                    return f.read()
-
-        with open(self.config.translation_prompt_path, "r", encoding="utf-8") as f:
-            return f.read()
-
-    def _get_effective_chunk_size(self, source_lang: str, target_lang: str) -> int:
-        """
-        Calculate the effective chunk size accounting for prompt overhead.
-
-        Returns:
-            Maximum number of tokens for text content per chunk.
-        """
-        # Get the model's context size from config
-        context_size = self.config.nvidia_max_output_tokens
-
-        # Calculate overhead (prompt template + glossary)
-        overhead = self._calculate_prompt_overhead(source_lang, target_lang)
-
-        # Calculate available space after overhead
-        available_after_overhead = context_size - overhead
-
-        # Reserve space for output (translations can be slightly longer)
-        # Use dynamic output reserve based on available space
-        output_reserve = int(
-            available_after_overhead
-            * self.OUTPUT_TOKEN_RESERVE_RATIO
-            / (1 + self.OUTPUT_TOKEN_RESERVE_RATIO)
-        )
-
-        # Final chunk size for input text
-        effective_chunk_size = available_after_overhead - output_reserve
-
-        # Ensure minimum chunk size
-        if effective_chunk_size < self.MIN_CHUNK_SIZE:
-            logger.warning(
-                f"Calculated chunk size ({effective_chunk_size}) is too small. "
-                f"Using minimum of {self.MIN_CHUNK_SIZE} tokens. "
-                f"Consider increasing nvidia_max_output_tokens in config."
-            )
-            effective_chunk_size = self.MIN_CHUNK_SIZE
-
-        logger.info(
-            f"Chunk sizing: context={context_size}, overhead={overhead}, "
-            f"output_reserve={output_reserve}, effective_chunk={effective_chunk_size}"
-        )
-
-        return effective_chunk_size
+        self._post_processor = None  # Lazy initialization
 
     def _get_translation_prompt_template(
         self, source_lang: str, target_lang: str
     ) -> str:
         """
-        Get the appropriate prompt template based on glossary availability.
+        Get the standard translation prompt template.
+
+        Note: Glossary is no longer included in prompt.
+        Use GlossaryPostProcessor for term consistency.
 
         Returns:
-            The glossary-optimized prompt if entries exist, otherwise the standard prompt.
+            The translation prompt template.
         """
-        if self._use_glossary_prompt:
-            # Try to load the glossary-optimized prompt
-            glossary_prompt_path = Path(self.GLOSSARY_PROMPT_PATH)
-            if glossary_prompt_path.exists():
-                with open(glossary_prompt_path, "r", encoding="utf-8") as f:
-                    return f.read()
-            else:
-                logger.warning(
-                    f"Glossary prompt not found at {self.GLOSSARY_PROMPT_PATH}, "
-                    "falling back to standard prompt"
-                )
-
-        # Fall back to standard prompt
+        # Always use standard prompt - glossary handled by post-processor
         with open(self.config.translation_prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
@@ -634,11 +506,9 @@ class GlossaryAwareTranslator(Translator):
         self, text: str, source_lang: str, target_lang: str
     ) -> List[str]:
         """
-        Split text into chunks that account for prompt overhead.
+        Split text into chunks for translation.
 
-        This is the preferred method for splitting text before translation,
-        as it ensures the total prompt (template + glossary + text) fits
-        within the model's context limit.
+        Simplified version - no longer accounts for glossary overhead.
 
         Args:
             text: The text to split
@@ -646,61 +516,67 @@ class GlossaryAwareTranslator(Translator):
             target_lang: Target language code
 
         Returns:
-            List of text chunks sized appropriately for translation
+            List of text chunks sized for translation
         """
-        effective_chunk_size = self._get_effective_chunk_size(source_lang, target_lang)
+        # Use a sensible chunk size based on output limit
+        # Input can be larger than output for translation tasks
+        chunk_size = self.config.nvidia_max_output_tokens * 3
 
-        logger.info(f"Splitting text into chunks of max {effective_chunk_size} tokens")
+        logger.info(f"Splitting text into chunks of max {chunk_size} tokens")
 
-        # Use the LLM client's tokenizer with our calculated size
         from langchain_text_splitters import NLTKTextSplitter
 
         text_splitter = NLTKTextSplitter(
-            chunk_size=effective_chunk_size,
+            chunk_size=chunk_size,
             language="english",
             length_function=self.llm_client.count_tokens,
         )
 
         chunks = text_splitter.split_text(text)
-
-        # Log chunk sizes for debugging
-        for i, chunk in enumerate(chunks):
-            chunk_tokens = self.llm_client.count_tokens(chunk)
-            total_tokens = self._prompt_overhead_cache + chunk_tokens
-            logger.debug(
-                f"Chunk {i + 1}: {chunk_tokens} tokens (total with prompt: {total_tokens})"
-            )
+        logger.info(f"Text split into {len(chunks)} chunks")
 
         return chunks
 
     def translate_text(self, full_text: str, source_lang: str, target_lang: str) -> str:
         """
-        Translate text with proper chunk sizing that accounts for prompt overhead.
+        Translate text with post-processing for glossary consistency.
 
-        Overrides parent method to use overhead-aware chunking.
+        Args:
+            full_text: Text to translate
+            source_lang: Source language code
+            target_lang: Target language code
+
+        Returns:
+            Translated text with glossary terms consistently applied
         """
-        # Use our custom splitting method
-        original_chunks = self.split_text_with_overhead(
-            full_text, source_lang, target_lang
-        )
+        # 1. Split text into chunks
+        chunks = self.split_text_with_overhead(full_text, source_lang, target_lang)
 
-        logger.info(
-            f" - Original text split into {len(original_chunks)} chunks for translation."
-        )
+        logger.info(f"Text split into {len(chunks)} chunks for translation.")
 
-        if not original_chunks:
-            logger.warning(
-                " - Warning: The original text resulted in 0 chunks. Check input."
-            )
+        if not chunks:
+            logger.warning("No chunks to translate.")
             return ""
 
-        translated_text_parts = self._translate_chunks(
-            original_chunks, source_lang, target_lang
-        )
+        # 2. Translate all chunks (without glossary in prompt)
+        translated_parts = self._translate_chunks(chunks, source_lang, target_lang)
 
         logger.info("Translation of all chunks completed.")
-        full_translated_text = "\n\n".join(translated_text_parts)
+
+        # 3. Combine translated parts
+        full_translated_text = "\n\n".join(translated_parts)
         full_translated_text = re.sub(r"\n{3,}", "\n\n", full_translated_text).strip()
+
+        # 4. Apply glossary post-processing
+        if self.glossary_entries:
+            logger.info(
+                f"Applying glossary post-processing ({len(self.glossary_entries)} entries)"
+            )
+            self._post_processor = GlossaryPostProcessor(
+                self.glossary_entries, target_lang
+            )
+            full_translated_text = self._post_processor.process(full_translated_text)
+            logger.info("Glossary post-processing completed")
 
         return full_translated_text
 
@@ -708,30 +584,27 @@ class GlossaryAwareTranslator(Translator):
         self, chunk: str, chunk_index: int, base_prompt_template: str
     ) -> str:
         """
-        Translate a single chunk with glossary context.
+        Translate a single chunk (no glossary in prompt).
 
-        Overrides parent to inject glossary terms.
+        Args:
+            chunk: Text chunk to translate
+            chunk_index: Index of the chunk (for logging)
+            base_prompt_template: Prompt template to use
+
+        Returns:
+            Translated chunk or error marker
         """
-        glossary_section = _build_glossary_section(
-            self.glossary_entries,
-            self._current_source_lang,
-            self._current_target_lang,
-            max_entries=self._max_glossary_entries,
-        )
-
-        enhanced_prompt = _build_enhanced_prompt(
-            base_prompt=base_prompt_template,
+        prompt = base_prompt_template.format(
             text_chunk=chunk,
             source_lang=self._current_source_lang,
             target_lang=self._current_target_lang,
-            glossary_section=glossary_section,
         )
 
-        prompt_tokens = self.llm_client.count_tokens(enhanced_prompt)
+        prompt_tokens = self.llm_client.count_tokens(prompt)
         logger.debug(f"Chunk {chunk_index + 1}: Prompt total = {prompt_tokens} tokens")
 
         try:
-            translated_chunk = self.llm_client.call_model(enhanced_prompt)
+            translated_chunk = self.llm_client.call_model(prompt)
             return translated_chunk if translated_chunk is not None else ""
         except Exception as e:
             logger.error(f"Error during LLM call for chunk {chunk_index + 1}: {e}")
