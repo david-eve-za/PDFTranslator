@@ -128,3 +128,65 @@ class TestGlossaryPostProcessor:
         result = processor.process(text)
 
         assert result.count("dragón") == 3
+
+
+class TestGlossaryPostProcessorIntegration:
+    """Integration tests for GlossaryPostProcessor with realistic scenarios."""
+
+    def test_full_translation_with_glossary(self):
+        """Test complete translation flow with glossary post-processing."""
+        # Simular un capítulo traducido con inconsistencias
+        entries = [
+            create_entry("dragon", "dragón"),
+            create_entry("magic", "magia"),
+            create_entry("sword", "espada"),
+            create_entry("ki", do_not_translate=True),
+        ]
+
+        processor = GlossaryPostProcessor(entries, "es-MX")
+
+        # Texto con mezcla de traducciones correctas e incorrectas
+        text = """
+El dragón usó su magia para crear una espada de luz.
+The dragon flew over the mountains.
+El guerrero canalizó su ki y desenvainó su sword.
+Los dragones antiguos poseían great magic.
+"""
+
+        result = processor.process(text)
+
+        # Verificar que todos los términos están consistentemente traducidos
+        assert "dragón" in result or "dragones" in result
+        # Verificar que "dragon" (palabra base en inglés) no está presente como standalone
+        # Nota: "dragones" contiene "dragon" como substring, pero eso es correcto en español
+        import re
+
+        assert not re.search(r"\bdragon\b", result, re.IGNORECASE)
+        assert "magia" in result
+        assert not re.search(r"\bmagic\b", result, re.IGNORECASE)
+        assert "espada" in result
+        assert not re.search(r"\bsword\b", result, re.IGNORECASE)
+        assert "ki" in result  # DO NOT TRANSLATE
+
+    def test_performance_with_large_text(self):
+        """Test performance with a larger text."""
+        entries = [
+            create_entry("dragon", "dragón"),
+            create_entry("knight", "caballero"),
+        ]
+
+        processor = GlossaryPostProcessor(entries, "es-MX")
+
+        # Generar texto largo
+        text = "The dragon and the knight fought. " * 1000
+
+        import time
+
+        start = time.time()
+        result = processor.process(text)
+        elapsed = time.time() - start
+
+        # Debe procesar en tiempo razonable (< 5 segundos para texto grande)
+        assert elapsed < 5.0
+        assert result.count("dragón") == 1000
+        assert result.count("caballero") == 1000
