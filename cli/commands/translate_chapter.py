@@ -570,7 +570,7 @@ class GlossaryAwareTranslator(Translator):
             Maximum number of tokens for text content per chunk.
         """
         # Get the model's context size from config
-        context_size = self.config.nvidia_context_size
+        context_size = self.config.nvidia_max_output_tokens
 
         # Calculate overhead (prompt template + glossary)
         overhead = self._calculate_prompt_overhead(source_lang, target_lang)
@@ -594,7 +594,7 @@ class GlossaryAwareTranslator(Translator):
             logger.warning(
                 f"Calculated chunk size ({effective_chunk_size}) is too small. "
                 f"Using minimum of {self.MIN_CHUNK_SIZE} tokens. "
-                f"Consider increasing nvidia_context_size in config."
+                f"Consider increasing nvidia_max_output_tokens in config."
             )
             effective_chunk_size = self.MIN_CHUNK_SIZE
 
@@ -657,7 +657,6 @@ class GlossaryAwareTranslator(Translator):
 
         text_splitter = NLTKTextSplitter(
             chunk_size=effective_chunk_size,
-            chunk_overlap=100,  # Add some overlap for context continuity
             language="english",
             length_function=self.llm_client.count_tokens,
         )
@@ -706,12 +705,7 @@ class GlossaryAwareTranslator(Translator):
         return full_translated_text
 
     def _translate_single_chunk(
-        self,
-        chunk: str,
-        chunk_index: int,
-        base_prompt_template: str,
-        source_lang: str,
-        target_lang: str,
+        self, chunk: str, chunk_index: int, base_prompt_template: str
     ) -> str:
         """
         Translate a single chunk with glossary context.
@@ -720,20 +714,19 @@ class GlossaryAwareTranslator(Translator):
         """
         glossary_section = _build_glossary_section(
             self.glossary_entries,
-            source_lang,
-            target_lang,
+            self._current_source_lang,
+            self._current_target_lang,
             max_entries=self._max_glossary_entries,
         )
 
         enhanced_prompt = _build_enhanced_prompt(
             base_prompt=base_prompt_template,
             text_chunk=chunk,
-            source_lang=source_lang,
-            target_lang=target_lang,
+            source_lang=self._current_source_lang,
+            target_lang=self._current_target_lang,
             glossary_section=glossary_section,
         )
 
-        # Log token counts for debugging
         prompt_tokens = self.llm_client.count_tokens(enhanced_prompt)
         logger.debug(f"Chunk {chunk_index + 1}: Prompt total = {prompt_tokens} tokens")
 
@@ -748,6 +741,9 @@ class GlossaryAwareTranslator(Translator):
         self, chunks: list[str], source_lang: str, target_lang: str
     ) -> list[str]:
         """Translate all chunks with progress tracking."""
+        self._current_source_lang = source_lang
+        self._current_target_lang = target_lang
+
         translated_chunks = []
         prompt_template = self._get_translation_prompt_template(
             source_lang, target_lang
@@ -759,9 +755,7 @@ class GlossaryAwareTranslator(Translator):
             iterator = enumerate(chunks)
 
         for i, chunk in iterator:
-            translated_chunk = self._translate_single_chunk(
-                chunk, i, prompt_template, source_lang, target_lang
-            )
+            translated_chunk = self._translate_single_chunk(chunk, i, prompt_template)
             translated_chunks.append(translated_chunk)
 
         return translated_chunks

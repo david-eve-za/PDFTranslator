@@ -41,7 +41,8 @@ def test_nvidia_ai_split_into_limit():
     assert len(chunks) > 0
     for chunk in chunks:
         tokens = nvidia.count_tokens(chunk)
-        assert tokens <= nvidia.config.nvidia_context_size
+        # Chunks are based on max_output_tokens * 3, not context_size
+        assert tokens <= nvidia.config.nvidia_max_output_tokens * 3
 
 
 @pytest.mark.skipif(
