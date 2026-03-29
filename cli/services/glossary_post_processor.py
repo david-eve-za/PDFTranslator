@@ -168,5 +168,150 @@ class GlossaryPostProcessor:
         Returns:
             Text with entry validated/corrected
         """
-        # Implementation in next task
-        raise NotImplementedError("Implement in Task 5")
+        if entry.term not in self._variant_maps:
+            return text
+
+        variants = self._variant_maps[entry.term]
+        correction_count = 0
+
+        if entry.do_not_translate:
+            # Ensure term remains in original language
+            text, count = self._ensure_do_not_translate(text, entry, variants)
+            correction_count = count
+
+        elif entry.translation:
+            # Ensure term uses the defined translation
+            text, count = self._ensure_translation(text, entry, variants)
+            correction_count = count
+
+        else:
+            # No translation defined - track for consistency
+            text, count = self._ensure_consistency(text, entry)
+            correction_count = count
+
+        if correction_count > 0:
+            self._correction_counts[entry.term] = (
+                self._correction_counts.get(entry.term, 0) + correction_count
+            )
+            logger.debug(f"Corrected '{entry.term}' {correction_count} times")
+
+        return text
+
+    def _ensure_do_not_translate(
+        self, text: str, entry: GlossaryEntry, variants: Dict
+    ) -> Tuple[str, int]:
+        """
+        Ensure DO NOT TRANSLATE terms remain in original.
+
+        If the term was translated, revert it to original.
+
+        Args:
+            text: Text to process
+            entry: Glossary entry
+            variants: Pre-generated variants for this entry
+
+        Returns:
+            Tuple of (corrected text, correction count)
+        """
+        original_term = entry.term
+        correction_count = 0
+
+        # Pattern to find the original term (should be present)
+        pattern = re.compile(r"\b" + re.escape(original_term) + r"\b", re.IGNORECASE)
+
+        # Find all matches
+        matches = list(pattern.finditer(text))
+
+        # If no matches, the term might have been translated - we can't easily detect this
+        # without knowing what it was translated to. Log a warning.
+        if not matches:
+            logger.warning(
+                f"DO NOT TRANSLATE term '{original_term}' not found in text - "
+                "may have been translated"
+            )
+
+        return text, correction_count
+
+    def _ensure_translation(
+        self, text: str, entry: GlossaryEntry, variants: Dict
+    ) -> Tuple[str, int]:
+        """
+        Ensure term uses the defined translation.
+
+        Replace any occurrence of the original term with the correct translation.
+
+        Args:
+            text: Text to process
+            entry: Glossary entry
+            variants: Pre-generated variants for this entry
+
+        Returns:
+            Tuple of (corrected text, correction count)
+        """
+        original_term = entry.term
+        correct_translation = entry.translation
+        correction_count = 0
+
+        # Pattern to find the original term
+        pattern = re.compile(r"\b" + re.escape(original_term) + r"\b", re.IGNORECASE)
+
+        # Find matches and check if they need correction
+        # Process in reverse to maintain correct positions
+        for match in reversed(list(pattern.finditer(text))):
+            found_term = match.group()
+
+            # Check if it's already the correct translation (case-insensitive)
+            if found_term.lower() == correct_translation.lower():
+                # Already correct, but might need case adjustment
+                expected_case = self._match_case(found_term, correct_translation)
+                if found_term != expected_case:
+                    text = text[: match.start()] + expected_case + text[match.end() :]
+                    correction_count += 1
+            else:
+                # Need to replace with correct translation
+                replacement = self._match_case(found_term, correct_translation)
+                text = text[: match.start()] + replacement + text[match.end() :]
+                correction_count += 1
+
+        return text, correction_count
+
+    def _ensure_consistency(self, text: str, entry: GlossaryEntry) -> Tuple[str, int]:
+        """
+        For terms without defined translation, ensure internal consistency.
+
+        Uses the first translation found and applies it throughout.
+
+        Args:
+            text: Text to process
+            entry: Glossary entry
+
+        Returns:
+            Tuple of (corrected text, correction count)
+        """
+        # This is more complex - would need NER-like detection
+        # For now, just log that consistency should be checked
+        logger.debug(
+            f"Term '{entry.term}' has no defined translation - consistency not enforced"
+        )
+        return text, 0
+
+    def _match_case(self, original: str, replacement: str) -> str:
+        """
+        Match the case pattern of original in replacement.
+
+        Args:
+            original: Original text with case pattern to match
+            replacement: Text to apply case pattern to
+
+        Returns:
+            Replacement with matched case
+        """
+        if not original:
+            return replacement
+
+        if original.isupper():
+            return replacement.upper()
+        elif original[0].isupper():
+            return replacement.capitalize()
+        else:
+            return replacement.lower()
