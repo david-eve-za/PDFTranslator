@@ -14,8 +14,6 @@ class BaseLLM(ABC):
     Subclasses must implement all abstract methods.
     """
 
-    __slots__ = ()
-
     def __init__(self, settings: Settings):
         """
         Initialize the LLM with settings.
