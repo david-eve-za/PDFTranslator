@@ -1,38 +1,23 @@
+"""
+DEPRECATED: Use models.work instead.
+This module is kept for backward compatibility.
+
+The following classes are now in models.work:
+- Work
+- Volume
+- Chapter
+- GlossaryEntry
+
+Other classes remain here until migrated.
+"""
+
+# Backward compatibility imports
+from models.work import Work, Volume, Chapter, GlossaryEntry
+
+# Classes that remain in this module (not yet migrated)
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict
 import numpy as np
-
-
-@dataclass
-class Work:
-    id: Optional[int]
-    title: str
-    title_translated: Optional[str]
-    source_lang: str = "en"
-    target_lang: str = "es"
-    author: Optional[str] = None
-
-
-@dataclass
-class Volume:
-    id: Optional[int]
-    work_id: int
-    volume_number: int
-    title: Optional[str]
-    full_text: Optional[str] = None
-    translated_text: Optional[str] = None
-    embedding: Optional[np.ndarray] = None
-
-
-@dataclass
-class Chapter:
-    id: Optional[int]
-    volume_id: int
-    chapter_number: Optional[int]
-    title: Optional[str]
-    original_text: Optional[str] = None
-    translated_text: Optional[str] = None
-    embedding: Optional[np.ndarray] = None
 
 
 @dataclass
@@ -52,24 +37,6 @@ class TermContext:
     translation: str
     example_usage: Optional[str] = None
     examples: List[ContextExample] = field(default_factory=list)
-
-
-@dataclass
-class GlossaryEntry:
-    id: Optional[int]
-    work_id: int
-    term: str
-    translation: Optional[str]
-    is_proper_noun: bool = False
-    notes: Optional[str] = None
-    contexts: List[TermContext] = field(default_factory=list)
-    embedding: Optional[np.ndarray] = None
-    entity_type: str = "other"
-    do_not_translate: bool = False
-    is_verified: bool = False
-    confidence: float = 0.0
-    source_language: str = "en"
-    target_language: str = "es"
 
 
 @dataclass
@@ -114,3 +81,19 @@ class BuildResult:
     new: int
     skipped: int
     entities_by_type: Dict[str, int] = field(default_factory=dict)
+
+
+__all__ = [
+    # From models.work (backward compatibility)
+    "Work",
+    "Volume",
+    "Chapter",
+    "GlossaryEntry",
+    # From this module
+    "ContextExample",
+    "TermContext",
+    "EntityBlacklist",
+    "FantasyTerm",
+    "EntityCandidate",
+    "BuildResult",
+]
