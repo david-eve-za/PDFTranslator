@@ -694,7 +694,6 @@ def translate_chapter(
     )
     if not selected_scope:
         raise typer.Exit(0)
-        raise typer.Exit(0)
 
     # Get work_id for glossary
     work_id = selected_work.id

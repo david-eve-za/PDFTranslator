@@ -1,6 +1,15 @@
 import logging
+import shutil
+import subprocess
+import tempfile
+from pathlib import Path
 from urllib.error import HTTPError, URLError
 
+import nltk
+from langchain_text_splitters import NLTKTextSplitter
+from tqdm import tqdm
+
+from GlobalConfig import GlobalConfig
 from tools.OverlapCleaner import clean_overlap
 
 # Configure logging for this module
@@ -20,58 +29,10 @@ def _ensure_nltk_punkt():
     if _NLTK_PUNKT_DOWNLOADED:
         return
     try:
-        nltk.data.find("tokenizers/punkt")
-        logger.debug("NLTK 'punkt' tokenizer found.")
-        _NLTK_PUNKT_DOWNLOADED = True
-    except (nltk.downloader.DownloadError, LookupError):
-        logger.info("NLTK 'punkt' tokenizer not found. Downloading...")
-        try:
-            nltk.download("punkt", quiet=True)
-            logger.info("NLTK 'punkt' tokenizer downloaded successfully.")
-            _NLTK_PUNKT_DOWNLOADED = True
-        except Exception as e:
-            logger.error(
-                f"Failed to download NLTK 'punkt' tokenizer: {e}", exc_info=True
-            )
-            # NLTK 'punkt' is essential for text splitting.
-            # Raising an error to prevent further issues.
-            raise RuntimeError(
-                "NLTK 'punkt' tokenizer is required but could not be downloaded. "
-                "Please check your internet connection or NLTK setup."
-            ) from e
-
-
-import logging
-import subprocess
-import tempfile
-from pathlib import Path
-
-import nltk
-from langchain_text_splitters import NLTKTextSplitter
-from tqdm import tqdm
-
-from GlobalConfig import GlobalConfig
-
-# Configure logging for this module
-logger = logging.getLogger(__name__)
-
-# Module-level flag and helper function to ensure NLTK 'punkt' is downloaded only once
-_NLTK_PUNKT_DOWNLOADED = False
-
-
-def _ensure_nltk_punkt():
-    try:
         from nltk.downloader import DownloadError
     except ImportError:
         DownloadError = (HTTPError, URLError, ValueError)
-    """
-    Ensures that the NLTK 'punkt' tokenizer data is available.
-    Downloads it if not found. This function is designed to run once.
-    Raises RuntimeError if download fails, as 'punkt' is critical.
-    """
-    global _NLTK_PUNKT_DOWNLOADED
-    if _NLTK_PUNKT_DOWNLOADED:
-        return
+
     try:
         nltk.data.find("tokenizers/punkt")
         logger.debug("NLTK 'punkt' tokenizer found.")
@@ -90,9 +51,6 @@ def _ensure_nltk_punkt():
                 "NLTK 'punkt' tokenizer is required but could not be downloaded. "
                 "Please check your internet connection or NLTK setup."
             ) from e
-
-
-import shutil
 
 
 class AudioGenerator:
