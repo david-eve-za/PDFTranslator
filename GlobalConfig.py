@@ -8,28 +8,36 @@ This wrapper provides the same interface as the original GlobalConfig
 but delegates to the new Pydantic Settings system.
 """
 
+import logging
+import os
+import threading
 import warnings
 from typing import Type, Dict, Any, Optional, List
 
 from config.settings import Settings
 from config.llm import LLMProvider, BCP47Language
 
-# Suppress deprecation warning for now during transition
-# warnings.warn(
-#     "GlobalConfig is deprecated. Use config.settings.Settings instead.",
-#     DeprecationWarning,
-#     stacklevel=2
-# )
+# Configure logging for this module
+logger = logging.getLogger(__name__)
+
+# Enable deprecation warning
+warnings.warn(
+    "GlobalConfig is deprecated. Use config.settings.Settings instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 class _Singleton(type):
-    """A metaclass that creates a Singleton base class when called."""
+    """A thread-safe metaclass that creates a Singleton base class when called."""
 
     _instances: Dict[Type, object] = {}
+    _lock: threading.Lock = threading.Lock()
 
     def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(_Singleton, cls).__call__(*args, **kwargs)
+        with cls._lock:
+            if cls not in cls._instances:
+                cls._instances[cls] = super(_Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
 
 
@@ -148,17 +156,8 @@ class GlobalConfig(metaclass=_Singleton):
 
     @property
     def agent(self) -> str:
-        """Current LLM agent/provider."""
+        """Current LLM agent/provider (read-only)."""
         return self._settings.llm.agent.value
-
-    @agent.setter
-    def agent(self, value: str) -> None:
-        """Set the LLM agent (creates new Settings with updated agent)."""
-        # This is a legacy setter - modifying settings requires reset
-        Settings.reset()
-        # Note: This is a workaround for backward compatibility
-        # Proper way would be to use environment variables
-        self._settings = Settings.get()
 
     # =========================================================================
     # Gemini Settings
@@ -417,8 +416,6 @@ class GlobalConfig(metaclass=_Singleton):
     @property
     def nvidia_nim_api_key(self) -> Optional[str]:
         """NVIDIA NIM API key (legacy property)."""
-        import os
-
         return self._legacy_nvidia_nim_api_key or os.getenv("NVIDIA_API_KEY")
 
     @nvidia_nim_api_key.setter
@@ -576,7 +573,7 @@ class GlobalConfig(metaclass=_Singleton):
             with open(path_to_save, "w", encoding="utf-8") as f:
                 json.dump(config_data, f, indent=4)
         except IOError as e:
-            print(f"Error saving configuration to {path_to_save}: {e}")
+            logger.error("Error saving configuration to %s: %s", path_to_save, e)
 
     def _validate(self, data: Dict[str, Any]) -> None:
         """Validate configuration data (legacy method)."""
