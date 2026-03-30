@@ -1,7 +1,6 @@
 """Base LLM implementation with common functionality."""
 
 from abc import ABC, abstractmethod
-from typing import List
 
 from config.settings import Settings
 from config.llm import BCP47Language
@@ -14,6 +13,8 @@ class BaseLLM(ABC):
     Provides common initialization and enforces the LLM interface.
     Subclasses must implement all abstract methods.
     """
+
+    __slots__ = ()
 
     def __init__(self, settings: Settings):
         """
@@ -42,6 +43,6 @@ class BaseLLM(ABC):
     @abstractmethod
     def split_into_limit(
         self, text: str, language: BCP47Language = BCP47Language.ENGLISH
-    ) -> List[str]:
+    ) -> list[str]:
         """Split text into chunks that fit within token limits."""
         pass

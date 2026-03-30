@@ -1,6 +1,7 @@
 """Factory for creating LLM clients."""
 
 import logging
+import threading
 from typing import Type
 
 from config.settings import Settings
@@ -33,16 +34,18 @@ class LLMFactory:
         """
         self._settings = settings
         self._instances: dict[LLMProvider, LLMClient] = {}
+        self._lock = threading.Lock()
 
     def create(self, provider: LLMProvider | None = None) -> LLMClient:
         """
         Create or retrieve an LLM client instance.
 
         Uses singleton pattern per provider - creates once, reuses after.
+        Thread-safe with double-check locking.
 
         Args:
             provider: Specific provider to use. If None, uses the
-                provider configured in settings.llm.agent.
+            provider configured in settings.llm.agent.
 
         Returns:
             LLM client instance.
@@ -52,16 +55,17 @@ class LLMFactory:
         """
         provider = provider or self._settings.llm.agent
 
-        # Return existing instance if available (singleton per provider)
+        # Fast path - already created
         if provider in self._instances:
             logger.debug(f"Reusing existing {provider.value} client instance")
             return self._instances[provider]
 
-        # Create new instance
-        logger.info(f"Creating new {provider.value} client instance")
-        client = self._create_client(provider)
-        self._instances[provider] = client
-        return client
+        # Thread-safe creation with double-check locking
+        with self._lock:
+            if provider not in self._instances:
+                logger.info(f"Creating new {provider.value} client instance")
+                self._instances[provider] = self._create_client(provider)
+            return self._instances[provider]
 
     def _create_client(self, provider: LLMProvider) -> LLMClient:
         """
