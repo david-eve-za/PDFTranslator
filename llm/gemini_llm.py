@@ -14,7 +14,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_text_splitters import NLTKTextSplitter
 
 from GlobalConfig import GlobalConfig
-from llm.base_llm import BaseLLM
+from llm.base_llm import BaseLLM, BCP47Language
 
 
 # --- Custom Exceptions ---
@@ -138,11 +138,13 @@ class GeminiLLM(BaseLLM):
     def count_tokens(self, text: str) -> int:
         return len(self.tokenizer.encode(text, out_type=int))
 
-    def split_into_limit(self, text: str) -> list[str]:
+    def split_into_limit(
+        self, text: str, language: BCP47Language = BCP47Language.ENGLISH
+    ) -> list[str]:
         text_spliter = NLTKTextSplitter(
             chunk_size=self._limit_tokens(),
             chunk_overlap=0,
-            language="english",
+            language=language.value,
             length_function=self.count_tokens,
         )
         return text_spliter.split_text(text)

@@ -8,7 +8,7 @@ from langchain_text_splitters import NLTKTextSplitter
 from transformers import AutoTokenizer
 
 from GlobalConfig import GlobalConfig
-from llm.base_llm import BaseLLM
+from llm.base_llm import BaseLLM, BCP47Language
 
 
 class NvidiaLLM(BaseLLM):
@@ -51,27 +51,25 @@ class NvidiaLLM(BaseLLM):
         token_ids = self._tokenizer.encode(text, add_special_tokens=False)
         return len(token_ids)
 
-    def split_into_limit(self, text: str, chunk_size: int = None) -> List[str]:
+    def split_into_limit(
+        self, text: str, language: BCP47Language = BCP47Language.ENGLISH
+    ) -> List[str]:
         """
         Split text into chunks for translation.
 
         Args:
             text: Text to split
-            chunk_size: Optional chunk size. If not provided, uses a sensible default
-                        based on max_output_tokens (input can be larger than output).
+            language: BCP 47 language code for splitting (default: english)
 
         Returns:
             List of text chunks sized for translation.
         """
-        if chunk_size is None:
-            # Default: allow input to be ~3x the output limit since translation
-            # is typically 1:1 or slightly longer in target language
-            chunk_size = self.config.nvidia_max_output_tokens * 3
+        chunk_size = self.config.nvidia_max_output_tokens * 3
 
         text_splitter = NLTKTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=0,
-            language="english",
+            language=language.value,
             length_function=self.count_tokens,
         )
         return text_splitter.split_text(text)

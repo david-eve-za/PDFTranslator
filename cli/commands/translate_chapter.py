@@ -29,6 +29,7 @@ from database.repositories.book_repository import BookRepository
 from database.repositories.chapter_repository import ChapterRepository
 from database.repositories.volume_repository import VolumeRepository
 from database.repositories.glossary_repository import GlossaryRepository
+from llm.base_llm import BCP47Language
 from tools.Translator import Translator
 from GlobalConfig import GlobalConfig
 
@@ -327,7 +328,6 @@ class GlossaryAwareTranslator(Translator):
         self,
         glossary_entries: List[GlossaryEntry],
         progress=None,
-        max_glossary_entries: int = None,  # Deprecated - kept for compatibility
     ):
         """
         Initialize with glossary entries for context-aware translation.
@@ -335,11 +335,10 @@ class GlossaryAwareTranslator(Translator):
         Args:
             glossary_entries: List of glossary terms for post-processing
             progress: Optional progress tracker
-            max_glossary_entries: Deprecated - no longer used
         """
         super().__init__(progress=progress)
         self.glossary_entries = glossary_entries
-        self._post_processor = None  # Lazy initialization
+        self._post_processor = None
 
     def _get_translation_prompt_template(
         self, source_lang: str, target_lang: str
@@ -353,44 +352,26 @@ class GlossaryAwareTranslator(Translator):
         Returns:
             The translation prompt template.
         """
-        # Always use standard prompt - glossary handled by post-processor
         with open(self.config.translation_prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
-    def split_text_with_overhead(
-        self, text: str, source_lang: str, target_lang: str
-    ) -> List[str]:
-        """
-        Split text into chunks for translation.
-
-        Simplified version - no longer accounts for glossary overhead.
-
-        Args:
-            text: The text to split
-            source_lang: Source language code
-            target_lang: Target language code
-
-        Returns:
-            List of text chunks sized for translation
-        """
-        # Use a sensible chunk size based on output limit
-        # Input can be larger than output for translation tasks
-        chunk_size = self.config.nvidia_max_output_tokens * 3
-
-        logger.info(f"Splitting text into chunks of max {chunk_size} tokens")
-
-        from langchain_text_splitters import NLTKTextSplitter
-
-        text_splitter = NLTKTextSplitter(
-            chunk_size=chunk_size,
-            language="english",
-            length_function=self.llm_client.count_tokens,
-        )
-
-        chunks = text_splitter.split_text(text)
-        logger.info(f"Text split into {len(chunks)} chunks")
-
-        return chunks
+    def _get_language_for_split(self, source_lang: str) -> BCP47Language:
+        """Map source language to BCP47Language enum."""
+        lang_map = {
+            "en": BCP47Language.ENGLISH,
+            "es": BCP47Language.SPANISH,
+            "zh": BCP47Language.CHINESE,
+            "ja": BCP47Language.JAPANESE,
+            "ko": BCP47Language.KOREAN,
+            "fr": BCP47Language.FRENCH,
+            "de": BCP47Language.GERMAN,
+            "it": BCP47Language.ITALIAN,
+            "pt": BCP47Language.PORTUGUESE,
+            "ru": BCP47Language.RUSSIAN,
+            "ar": BCP47Language.ARABIC,
+            "hi": BCP47Language.HINDI,
+        }
+        return lang_map.get(source_lang.lower(), BCP47Language.ENGLISH)
 
     def translate_text(self, full_text: str, source_lang: str, target_lang: str) -> str:
         """
@@ -404,8 +385,8 @@ class GlossaryAwareTranslator(Translator):
         Returns:
             Translated text with glossary terms consistently applied
         """
-        # 1. Split text into chunks
-        chunks = self.split_text_with_overhead(full_text, source_lang, target_lang)
+        split_lang = self._get_language_for_split(source_lang)
+        chunks = self.llm_client.split_into_limit(full_text, language=split_lang)
 
         logger.info(f"Text split into {len(chunks)} chunks for translation.")
 
@@ -413,16 +394,13 @@ class GlossaryAwareTranslator(Translator):
             logger.warning("No chunks to translate.")
             return ""
 
-        # 2. Translate all chunks (without glossary in prompt)
         translated_parts = self._translate_chunks(chunks, source_lang, target_lang)
 
         logger.info("Translation of all chunks completed.")
 
-        # 3. Combine translated parts
         full_translated_text = "\n\n".join(translated_parts)
         full_translated_text = re.sub(r"\n{3,}", "\n\n", full_translated_text).strip()
 
-        # 4. Apply glossary post-processing
         if self.glossary_entries:
             logger.info(
                 f"Applying glossary post-processing ({len(self.glossary_entries)} entries)"
@@ -678,9 +656,6 @@ def translate_chapter(
         "--skip-translated/--no-skip-translated",
         help="Skip already translated chapters (use --no-skip-translated to retranslate)",
     ),
-    max_glossary_entries: int = typer.Option(
-        50, "--max-glossary", "-g", help="Maximum glossary entries to include in prompt"
-    ),
 ):
     """
     Translate book chapters with glossary-aware context.
@@ -747,10 +722,7 @@ def translate_chapter(
         f"[dim]Translating from {effective_source} to {effective_target}[/dim]"
     )
 
-    # Create translator with glossary
-    translator = GlossaryAwareTranslator(
-        glossary_entries=glossary_entries, max_glossary_entries=max_glossary_entries
-    )
+    translator = GlossaryAwareTranslator(glossary_entries=glossary_entries)
 
     total_success = 0
     total_failure = 0

@@ -6,7 +6,7 @@ from langchain_text_splitters import NLTKTextSplitter
 from transformers import AutoTokenizer
 
 from GlobalConfig import GlobalConfig
-from llm.base_llm import BaseLLM
+from llm.base_llm import BaseLLM, BCP47Language
 
 
 class OllamaLLM(BaseLLM):
@@ -40,11 +40,13 @@ class OllamaLLM(BaseLLM):
         token_ids = self._tokenizer.encode(text, add_special_tokens=False)
         return len(token_ids)
 
-    def split_into_limit(self, text: str) -> List[str]:
+    def split_into_limit(
+        self, text: str, language: BCP47Language = BCP47Language.ENGLISH
+    ) -> List[str]:
         text_spliter = NLTKTextSplitter(
             chunk_size=self.config.ollama_context_size,
             chunk_overlap=0,
-            language="english",
+            language=language.value,
             length_function=self.count_tokens,
         )
         return text_spliter.split_text(text)
