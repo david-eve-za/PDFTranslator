@@ -58,14 +58,14 @@ def test_get_by_work(mock_pool, mock_connection):
         return_value=mock_connection[0]
     )
     mock_connection[1].fetchall.return_value = [
-        (1, 1, "staff", "personal", None, False, None, None),
+        (1, 1, "staff", "personal", None, None),
     ]
 
     repo = GlossaryRepository(pool=mock_pool)
     result = repo.get_by_work(1)
 
     assert len(result) == 1
-    assert result[0].term == "staff"
+    assert result[0].source_term == "staff"
 
 
 def test_find_by_term_fuzzy(mock_pool, mock_connection):
@@ -73,14 +73,14 @@ def test_find_by_term_fuzzy(mock_pool, mock_connection):
         return_value=mock_connection[0]
     )
     mock_connection[1].fetchall.return_value = [
-        (1, 1, "Tempest", None, None, True, None, None),
+        (1, 1, "Tempest", None, None, None),
     ]
 
     repo = GlossaryRepository(pool=mock_pool)
     result = repo.find_by_term("Tempst", fuzzy=True)
 
     assert len(result) == 1
-    assert result[0].term == "Tempest"
+    assert result[0].source_term == "Tempest"
 
 
 def test_create_entry(mock_pool, mock_connection):
@@ -93,17 +93,17 @@ def test_create_entry(mock_pool, mock_connection):
         "dragon",
         "dragón",
         None,
-        False,
-        None,
         None,
     )
 
     repo = GlossaryRepository(pool=mock_pool)
-    entry = GlossaryEntry(id=None, work_id=1, term="dragon", translation="dragón")
+    entry = GlossaryEntry(
+        id=None, work_id=1, source_term="dragon", target_term="dragón"
+    )
     result = repo.create(entry)
 
     assert result.id == 1
-    assert result.term == "dragon"
+    assert result.source_term == "dragon"
 
 
 def test_add_context(mock_pool, mock_connection):
@@ -161,8 +161,8 @@ def test_search_terms_with_rerank(mock_vector_service, mock_pool, mock_connectio
         return_value=mock_connection[0]
     )
     mock_connection[1].fetchall.return_value = [
-        (1, 1, "staff", "personal", None, False, None, None),
-        (2, 1, "dragon", "dragón", None, False, None, None),
+        (1, 1, "staff", "personal", None, None),
+        (2, 1, "dragon", "dragón", None, None),
     ]
 
     from langchain_core.documents import Document

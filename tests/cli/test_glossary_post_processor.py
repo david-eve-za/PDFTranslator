@@ -11,22 +11,13 @@ def create_entry(
     entity_type: str = "other",
 ) -> GlossaryEntry:
     """Helper to create GlossaryEntry for testing."""
-    # GlossaryEntry is a dataclass with required id, work_id, term, translation
+    # GlossaryEntry is a dataclass with simplified fields after refactoring
     return GlossaryEntry(
         id=None,
         work_id=1,  # Dummy work_id for testing
-        term=term,
-        translation=translation,
-        is_proper_noun=False,
-        notes=None,
-        contexts=[],
-        embedding=None,
-        entity_type=entity_type,
-        do_not_translate=do_not_translate,
-        is_verified=True,
-        confidence=1.0,
-        source_language="en",
-        target_language="es",
+        source_term=term,
+        target_term=translation,
+        notes="DO_NOT_TRANSLATE" if do_not_translate else None,
     )
 
 

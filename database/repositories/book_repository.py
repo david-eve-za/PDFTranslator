@@ -11,10 +11,8 @@ class BookRepository(BaseRepository[Work]):
         return Work(
             id=row[0],
             title=row[1],
-            title_translated=row[2],
-            source_lang=row[3],
-            target_lang=row[4],
-            author=row[5],
+            source_lang=row[2],
+            target_lang=row[3],
         )
 
     def __init__(self, pool: Optional[DatabasePool] = None):
@@ -27,7 +25,7 @@ class BookRepository(BaseRepository[Work]):
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT id, title, title_translated, source_lang, target_lang, author
+                    SELECT id, title, source_lang, target_lang
                     FROM works
                     WHERE id = %s
                     """,
@@ -44,7 +42,7 @@ class BookRepository(BaseRepository[Work]):
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT id, title, title_translated, source_lang, target_lang, author
+                    SELECT id, title, source_lang, target_lang
                     FROM works
                     ORDER BY id
                     """
@@ -58,16 +56,14 @@ class BookRepository(BaseRepository[Work]):
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    INSERT INTO works (title, title_translated, source_lang, target_lang, author)
-                    VALUES (%s, %s, %s, %s, %s)
-                    RETURNING id, title, title_translated, source_lang, target_lang, author
+                    INSERT INTO works (title, source_lang, target_lang)
+                    VALUES (%s, %s, %s)
+                    RETURNING id, title, source_lang, target_lang
                     """,
                     (
                         entity.title,
-                        entity.title_translated,
                         entity.source_lang,
                         entity.target_lang,
-                        entity.author,
                     ),
                 )
                 row = cur.fetchone()
@@ -80,16 +76,14 @@ class BookRepository(BaseRepository[Work]):
                 cur.execute(
                     """
                     UPDATE works
-                    SET title = %s, title_translated = %s, source_lang = %s, target_lang = %s, author = %s
+                    SET title = %s, source_lang = %s, target_lang = %s
                     WHERE id = %s
-                    RETURNING id, title, title_translated, source_lang, target_lang, author
+                    RETURNING id, title, source_lang, target_lang
                     """,
                     (
                         entity.title,
-                        entity.title_translated,
                         entity.source_lang,
                         entity.target_lang,
-                        entity.author,
                         entity.id,
                     ),
                 )
@@ -112,7 +106,7 @@ class BookRepository(BaseRepository[Work]):
                 if fuzzy:
                     cur.execute(
                         """
-                        SELECT id, title, title_translated, source_lang, target_lang, author
+                        SELECT id, title, source_lang, target_lang
                         FROM works
                         WHERE title % %s
                         ORDER BY similarity(title, %s) DESC
@@ -122,7 +116,7 @@ class BookRepository(BaseRepository[Work]):
                 else:
                     cur.execute(
                         """
-                        SELECT id, title, title_translated, source_lang, target_lang, author
+                        SELECT id, title, source_lang, target_lang
                         FROM works
                         WHERE title = %s
                         ORDER BY id
@@ -159,8 +153,6 @@ class BookRepository(BaseRepository[Work]):
         pool = self._pool.get_sync_pool()
         with pool.connection() as conn:
             with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT id, title, title_translated, source_lang, target_lang, author FROM works"
-                )
+                cur.execute("SELECT id, title, source_lang, target_lang FROM works")
                 rows = cur.fetchall()
                 return [self._row_to_work(row) for row in rows]

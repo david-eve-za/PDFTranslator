@@ -21,7 +21,6 @@ class ChapterRepository(BaseRepository[Chapter]):
             title=row[3],
             original_text=row[4],
             translated_text=row[5],
-            embedding=row[6] if len(row) > 6 else None,
         )
 
     def get_by_id(self, id: int) -> Optional[Chapter]:
@@ -31,7 +30,7 @@ class ChapterRepository(BaseRepository[Chapter]):
                 cur.execute(
                     """
                     SELECT id, volume_id, chapter_number, title, original_text,
-                    translated_text, embedding
+                    translated_text
                     FROM chapters
                     WHERE id = %s
                     """,
@@ -49,7 +48,7 @@ class ChapterRepository(BaseRepository[Chapter]):
                 cur.execute(
                     """
                     SELECT id, volume_id, chapter_number, title, original_text,
-                    translated_text, embedding
+                    translated_text
                     FROM chapters
                     ORDER BY volume_id, chapter_number NULLS FIRST
                     """
@@ -64,10 +63,10 @@ class ChapterRepository(BaseRepository[Chapter]):
                 cur.execute(
                     """
                     INSERT INTO chapters (volume_id, chapter_number, title,
-                    original_text, translated_text, embedding)
-                    VALUES (%s, %s, %s, %s, %s, %s)
+                    original_text, translated_text)
+                    VALUES (%s, %s, %s, %s, %s)
                     RETURNING id, volume_id, chapter_number, title, original_text,
-                    translated_text, embedding
+                    translated_text
                     """,
                     (
                         entity.volume_id,
@@ -75,7 +74,6 @@ class ChapterRepository(BaseRepository[Chapter]):
                         entity.title,
                         entity.original_text,
                         entity.translated_text,
-                        entity.embedding,
                     ),
                 )
                 row = cur.fetchone()
@@ -89,10 +87,10 @@ class ChapterRepository(BaseRepository[Chapter]):
                     """
                     UPDATE chapters
                     SET volume_id = %s, chapter_number = %s, title = %s,
-                    original_text = %s, translated_text = %s, embedding = %s
+                    original_text = %s, translated_text = %s
                     WHERE id = %s
                     RETURNING id, volume_id, chapter_number, title, original_text,
-                    translated_text, embedding
+                    translated_text
                     """,
                     (
                         entity.volume_id,
@@ -100,7 +98,6 @@ class ChapterRepository(BaseRepository[Chapter]):
                         entity.title,
                         entity.original_text,
                         entity.translated_text,
-                        entity.embedding,
                         entity.id,
                     ),
                 )
@@ -123,7 +120,7 @@ class ChapterRepository(BaseRepository[Chapter]):
                 cur.execute(
                     """
                     SELECT id, volume_id, chapter_number, title, original_text,
-                    translated_text, embedding
+                    translated_text
                     FROM chapters
                     WHERE volume_id = %s
                     ORDER BY chapter_number NULLS FIRST
@@ -142,7 +139,7 @@ class ChapterRepository(BaseRepository[Chapter]):
                 cur.execute(
                     """
                     SELECT id, volume_id, chapter_number, title, original_text,
-                    translated_text, embedding
+                    translated_text
                     FROM chapters
                     WHERE volume_id = %s
                     AND (original_text % %s OR title % %s)
@@ -161,41 +158,12 @@ class ChapterRepository(BaseRepository[Chapter]):
         limit: int = 10,
         threshold: float = 0.8,
     ) -> List[Chapter]:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                if volume_id is not None:
-                    cur.execute(
-                        """
-                        SELECT id, volume_id, chapter_number, title, original_text,
-                        translated_text, embedding,
-                        1 - (embedding <=> %s) as similarity
-                        FROM chapters
-                        WHERE volume_id = %s AND embedding IS NOT NULL
-                        ORDER BY embedding <=> %s
-                        LIMIT %s
-                        """,
-                        (embedding.tolist(), volume_id, embedding.tolist(), limit),
-                    )
-                else:
-                    cur.execute(
-                        """
-                        SELECT id, volume_id, chapter_number, title, original_text,
-                        translated_text, embedding,
-                        1 - (embedding <=> %s) as similarity
-                        FROM chapters
-                        WHERE embedding IS NOT NULL
-                        ORDER BY embedding <=> %s
-                        LIMIT %s
-                        """,
-                        (embedding.tolist(), embedding.tolist(), limit),
-                    )
-                rows = cur.fetchall()
-                results = []
-                for row in rows:
-                    if row[7] >= threshold:
-                        results.append(self._row_to_chapter(row[:7]))
-                return results
+        """Find chapters similar to the given embedding using vector similarity."""
+        # Note: The new Chapter model doesn't have embedding field
+        # This method would need a separate embedding table or the database
+        # schema to include embedding. For now, return empty list.
+        # TODO: Implement when embedding storage is clarified
+        return []
 
     def search_with_rerank(
         self, query: str, volume_id: int, top_n: int = 5

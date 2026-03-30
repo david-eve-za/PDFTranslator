@@ -12,20 +12,19 @@ from database.models import (
 
 
 def test_work_creation():
-    work = Work(id=1, title="Test Novel", title_translated="Novela de Prueba")
+    work = Work(id=1, title="Test Novel", source_lang="en", target_lang="es")
     assert work.id == 1
     assert work.title == "Test Novel"
-    assert work.title_translated == "Novela de Prueba"
     assert work.source_lang == "en"
     assert work.target_lang == "es"
 
 
 def test_work_defaults():
-    work = Work(id=None, title="Test", title_translated=None)
+    work = Work(id=None, title="Test")
     assert work.id is None
-    assert work.source_lang == "en"
-    assert work.target_lang == "es"
-    assert work.author is None
+    assert work.title == "Test"
+    assert work.source_lang is None
+    assert work.target_lang is None
 
 
 def test_volume_creation():
@@ -33,15 +32,14 @@ def test_volume_creation():
     assert volume.id == 1
     assert volume.work_id == 1
     assert volume.volume_number == 1
-    assert volume.full_text is None
+    assert volume.title == "Vol 1"
 
 
 def test_volume_with_embedding():
-    embedding = np.array([0.1, 0.2, 0.3])
-    volume = Volume(
-        id=1, work_id=1, volume_number=1, title="Vol 1", embedding=embedding
-    )
-    assert np.array_equal(volume.embedding, embedding)
+    """Volume no longer has embedding field - test that it works without it."""
+    volume = Volume(id=1, work_id=1, volume_number=1, title="Vol 1")
+    assert volume.id == 1
+    assert volume.title == "Vol 1"
 
 
 def test_chapter_creation():
@@ -52,18 +50,18 @@ def test_chapter_creation():
 
 
 def test_glossary_entry_creation():
-    entry = GlossaryEntry(id=1, work_id=1, term="staff", translation="personal")
+    entry = GlossaryEntry(id=1, work_id=1, source_term="staff", target_term="personal")
     assert entry.id == 1
-    assert entry.term == "staff"
-    assert entry.is_proper_noun is False
-    assert entry.contexts == []
+    assert entry.source_term == "staff"
+    assert entry.target_term == "personal"
 
 
 def test_glossary_entry_proper_noun():
+    """GlossaryEntry no longer has is_proper_noun - test notes instead."""
     entry = GlossaryEntry(
-        id=1, work_id=1, term="Tempest", translation=None, is_proper_noun=True
+        id=1, work_id=1, source_term="Tempest", target_term=None, notes="Proper noun"
     )
-    assert entry.is_proper_noun is True
+    assert entry.notes == "Proper noun"
 
 
 def test_term_context_creation():
