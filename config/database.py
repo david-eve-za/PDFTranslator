@@ -23,3 +23,7 @@ class DatabaseSettings(BaseModel):
     def async_connection_string(self) -> str:
         """Build async PostgreSQL connection string."""
         return f"postgresql+asyncpg://{self.user}:{self.password}@{self.host}:{self.port}/{self.name}"
+
+    def __repr__(self) -> str:
+        """Safe representation that masks password."""
+        return f"DatabaseSettings(host='{self.host}', port={self.port}, name='{self.name}', user='{self.user}', password='***')"

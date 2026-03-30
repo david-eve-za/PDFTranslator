@@ -66,7 +66,8 @@ class OllamaConfig(BaseModel):
     top_p: float = Field(default=0.9, ge=0.0, le=1.0)
     context_size: int = Field(default=4096, gt=0)
     validate_model: bool = Field(default=True)
-    local_tokenizer_name: str = Field(default="meta-llama/Llama-3.1-8B")
+    # Matches llama3.2 (different from llama3.1)
+    local_tokenizer_name: str = Field(default="meta-llama/Llama-3.2-1B")
     local_tokenizer_dir: str = Field(default=".tokenizers/ollama")
     model_id: str = Field(default="meta-llama/Llama-3.1-8B-Instruct")
 
@@ -79,7 +80,9 @@ class LLMSettings(BaseModel):
     nvidia: NvidiaConfig = Field(default_factory=NvidiaConfig)
     ollama: OllamaConfig = Field(default_factory=OllamaConfig)
 
-    def get_config_for_provider(self, provider: LLMProvider) -> BaseModel:
+    def get_config_for_provider(
+        self, provider: LLMProvider
+    ) -> GeminiConfig | NvidiaConfig | OllamaConfig:
         """Get configuration for a specific provider."""
         configs = {
             LLMProvider.GEMINI: self.gemini,
