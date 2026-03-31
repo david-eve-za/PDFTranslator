@@ -6,7 +6,7 @@ Prologue, Chapter 1..N, Epilogue y descarta todo el resto
 (páginas de derechos, índices, agradecimientos, etc.)
 
 Dependencias:
-    pip install pymupdf python-docx
+    pip install pymupdf python-docx nltk
 
 Uso:
     python document_chapter_splitter.py mi_novela.pdf
@@ -15,12 +15,54 @@ Uso:
 
 import argparse
 import json
+import logging
 import re
 from pathlib import Path
 
 from config.settings import Settings
 from infrastructure.llm.nvidia import NvidiaLLM
 from llm.base_llm import BaseLLM
+
+logger = logging.getLogger(__name__)
+
+# ─── NLTK DATA VALIDATION ──────────────────────────────────────────────────────
+
+_NLTK_DATA_DOWNLOADED = False
+
+
+def ensure_nltk_data():
+    """
+    Ensures that required NLTK data packages are downloaded.
+
+    Downloads 'punkt' and 'punkt_tab' if not found.
+    These are required for NLTKTextSplitter to work correctly.
+    """
+    global _NLTK_DATA_DOWNLOADED
+    if _NLTK_DATA_DOWNLOADED:
+        return
+
+    import nltk
+
+    required_packages = ["punkt", "punkt_tab"]
+
+    for package in required_packages:
+        try:
+            nltk.data.find(f"tokenizers/{package}")
+            logger.debug(f"NLTK '{package}' found.")
+        except LookupError:
+            logger.info(f"NLTK '{package}' not found. Downloading...")
+            try:
+                nltk.download(package, quiet=True)
+                logger.info(f"NLTK '{package}' downloaded successfully.")
+            except Exception as e:
+                logger.error(f"Failed to download NLTK '{package}': {e}")
+                raise RuntimeError(
+                    f"Failed to download required NLTK data package '{package}'. "
+                    f"Please install it manually: python -m nltk.downloader {package}"
+                ) from e
+
+    _NLTK_DATA_DOWNLOADED = True
+
 
 # ─── CONFIGURACIÓN ─────────────────────────────────────────────────────────────
 
@@ -243,6 +285,9 @@ def split_document(filepath: str, output_dir: str = "./output") -> None:
     Pipeline completo: extrae → divide en chunks → analiza con LLM →
     fusiona secciones → exporta archivos.
     """
+    # Ensure NLTK data is available before processing
+    ensure_nltk_data()
+
     settings = Settings.get()
     client = NvidiaLLM(settings)
 
