@@ -1,38 +1,30 @@
 """
 document_chapter_splitter.py
-=============================
+
 Divide un documento (PDF, DOCX, TXT, MD) en secciones estructuradas:
-  Prologue, Chapter 1..N, Epilogue
-y descarta todo el resto (páginas de derechos, índices, agradecimientos, etc.)
+Prologue, Chapter 1..N, Epilogue y descarta todo el resto
+(páginas de derechos, índices, agradecimientos, etc.)
 
 Dependencias:
-  pip install anthropic pymupdf python-docx tiktoken
+    pip install pymupdf python-docx
 
 Uso:
-  python document_chapter_splitter.py mi_novela.pdf
-  python document_chapter_splitter.py mi_novela.docx --output ./salida
+    python document_chapter_splitter.py mi_novela.pdf
+    python document_chapter_splitter.py mi_novela.docx --output ./salida
 """
 
-import os
-import re
-import json
 import argparse
+import json
+import re
 from pathlib import Path
 
-# import anthropic
-# import tiktoken
-
-from config import BCP47Language
 from config.settings import Settings
 from infrastructure.llm.nvidia import NvidiaLLM
 from llm.base_llm import BaseLLM
 
 # ─── CONFIGURACIÓN ─────────────────────────────────────────────────────────────
 
-MODEL = "claude-opus-4-5"  # Modelo a usar
 MAX_CHUNK_TOKENS = 6_000  # Tokens por chunk enviado al LLM
-MAX_TOKENS_OUT = 4_096  # Límite de respuesta del LLM
-# ENCODING         = tiktoken.get_encoding("cl100k_base")
 
 # ─── ETAPA 1: EXTRACCIÓN DE TEXTO ──────────────────────────────────────────────
 
@@ -49,7 +41,6 @@ def extract_text(filepath: str) -> str:
         import fitz  # PyMuPDF
 
         doc = fitz.open(filepath)
-        # Extraemos cada página con un separador explícito de página
         pages = [page.get_text("text") for page in doc]
         return "\n\n[PAGE_BREAK]\n\n".join(pages)
 
@@ -67,7 +58,7 @@ def extract_text(filepath: str) -> str:
         raise ValueError(f"Formato no soportado: {ext}")
 
 
-# ─── ETAPA 3: ANÁLISIS CON LLM ─────────────────────────────────────────────────
+# ─── ETAPA 2: ANÁLISIS CON LLM ─────────────────────────────────────────────────
 
 SYSTEM_PROMPT = """
 Eres un analizador de documentos narrativos (novelas, libros).
@@ -92,7 +83,7 @@ Ejemplo de respuesta válida:
    "start_marker": "Hace mucho tiempo, en una tierra lejana...",
    "end_marker": "...y así comenzó todo."},
   {"type": "chapter", "title": "El comienzo", "number": 1,
-   "start_marker": "Capítulo 1\nEl sol se alzaba sobre las montañas...",
+   "start_marker": "Capítulo 1\\nEl sol se alzaba sobre las montañas...",
    "end_marker": "...cerró los ojos por última vez esa noche."},
   {"type": "other", "title": null, "number": null,
    "start_marker": "Derechos de autor © 2024...",
@@ -113,7 +104,6 @@ def analyze_chunk_with_llm(
     El contexto (chunk_index / total_chunks) ayuda al modelo a entender
     si está viendo el principio, el medio o el final del libro.
     """
-    # Unir SYSTEM_PROMPT con el mensaje del usuario en un solo prompt
     prompt = f"""{SYSTEM_PROMPT}
 
 Analiza este fragmento del documento (parte {chunk_index + 1} de {total_chunks}).
@@ -124,7 +114,6 @@ Identifica todas las secciones narrativas presentes.
 --- FIN DEL FRAGMENTO ---
 """.strip()
 
-    # Llamar al modelo usando el método correcto de BaseLLM
     raw = client.call_model(prompt)
 
     # Limpieza defensiva: a veces el LLM envuelve en ```json ... ```
@@ -133,7 +122,6 @@ Identifica todas las secciones narrativas presentes.
 
     try:
         sections = json.loads(raw)
-        # Nos aseguramos de que sea una lista
         if isinstance(sections, dict):
             sections = [sections]
         return sections
@@ -143,7 +131,7 @@ Identifica todas las secciones narrativas presentes.
         return []
 
 
-# ─── ETAPA 4: PARSEO, VALIDACIÓN Y MERGE ───────────────────────────────────────
+# ─── ETAPA 3: PARSEO, VALIDACIÓN Y MERGE ───────────────────────────────────────
 
 
 def merge_sections(
@@ -159,7 +147,6 @@ def merge_sections(
     - Limpiamos los duplicados.
     - Extraemos el texto real usando los marcadores.
     """
-    # Aplanamos la lista de listas
     flat: list[dict] = []
     for chunk_sections in all_sections:
         flat.extend(chunk_sections)
@@ -199,10 +186,8 @@ def merge_sections(
             end_idx = full_text.find(end_marker)
 
             if start_idx != -1 and end_idx != -1:
-                # Incluimos hasta el final del end_marker
                 section["text"] = full_text[start_idx : end_idx + len(end_marker)]
             elif start_idx != -1:
-                # Solo tenemos el inicio, tomamos hasta el próximo marcador conocido
                 section["text"] = full_text[start_idx : start_idx + 5000] + "..."
             else:
                 section["text"] = "[No se pudo extraer el texto de esta sección]"
@@ -212,7 +197,7 @@ def merge_sections(
     return unique
 
 
-# ─── ETAPA 5: EXPORTACIÓN ──────────────────────────────────────────────────────
+# ─── ETAPA 4: EXPORTACIÓN ──────────────────────────────────────────────────────
 
 
 def export_sections(sections: list[dict], output_dir: str) -> None:
@@ -228,7 +213,6 @@ def export_sections(sections: list[dict], output_dir: str) -> None:
         number = section.get("number")
         title = section.get("title") or ""
 
-        # Nombre de archivo limpio
         if stype == "prologue":
             filename = "00_prologue.txt"
         elif stype == "epilogue":
@@ -242,14 +226,13 @@ def export_sections(sections: list[dict], output_dir: str) -> None:
 
         filepath = out / filename
         filepath.write_text(section.get("text", ""), encoding="utf-8")
-        print(f"  Guardado: {filename}  ({len(section.get('text', ''))} chars)")
+        print(f" Guardado: {filename} ({len(section.get('text', ''))} chars)")
 
-    # Guardamos también un JSON con el mapa de secciones (sin el texto completo)
     summary = [{k: v for k, v in s.items() if k != "text"} for s in sections]
     (out / "_sections_map.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    print(f"\n  Mapa guardado: _sections_map.json")
+    print(f"\n Mapa guardado: _sections_map.json")
 
 
 # ─── ORQUESTADOR PRINCIPAL ─────────────────────────────────────────────────────
@@ -260,7 +243,6 @@ def split_document(filepath: str, output_dir: str = "./output") -> None:
     Pipeline completo: extrae → divide en chunks → analiza con LLM →
     fusiona secciones → exporta archivos.
     """
-    # client = anthropic.Anthropic() # Usa ANTHROPIC_API_KEY del entorno
     settings = Settings.get()
     client = NvidiaLLM(settings)
 
@@ -271,19 +253,18 @@ def split_document(filepath: str, output_dir: str = "./output") -> None:
     # Etapa 1: Extracción
     print("\n[1/5] Extrayendo texto...")
     full_text = extract_text(filepath)
-    print(f"      {len(full_text):,} caracteres extraídos")
+    print(f" {len(full_text):,} caracteres extraídos")
 
     # Etapa 2: Chunking
     print("\n[2/5] Dividiendo en chunks...")
-    # chunks = split_into_chunks(full_text)
     chunks = client.split_into_limit(full_text)
-    print(f"      {len(chunks)} chunks de máx {MAX_CHUNK_TOKENS} tokens")
+    print(f" {len(chunks)} chunks de máx {MAX_CHUNK_TOKENS} tokens")
 
     # Etapa 3: Análisis con LLM (chunk por chunk)
     print("\n[3/5] Analizando con LLM...")
     all_sections = []
     for idx, chunk in enumerate(chunks):
-        print(f"      Chunk {idx + 1}/{len(chunks)}...", end=" ", flush=True)
+        print(f" Chunk {idx + 1}/{len(chunks)}...", end=" ", flush=True)
         sections = analyze_chunk_with_llm(client, chunk, idx, len(chunks))
         all_sections.append(sections)
         found = [s.get("type") for s in sections if s.get("type") != "other"]
@@ -292,9 +273,9 @@ def split_document(filepath: str, output_dir: str = "./output") -> None:
     # Etapa 4: Merge y validación
     print("\n[4/5] Fusionando y validando secciones...")
     final_sections = merge_sections(all_sections, full_text)
-    print(f"      {len(final_sections)} secciones narrativas identificadas:")
+    print(f" {len(final_sections)} secciones narrativas identificadas:")
     for s in final_sections:
-        label = f"  - [{s['type'].upper()}]"
+        label = f" - [{s['type'].upper()}]"
         if s.get("number"):
             label += f" #{s['number']}"
         if s.get("title"):
