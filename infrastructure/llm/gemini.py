@@ -127,7 +127,7 @@ class GeminiLLM(BaseLLM):
         text_splitter = NLTKTextSplitter(
             chunk_size=self._settings.llm.gemini.context_size,
             chunk_overlap=0,
-            language=language.value,
+            language=language.to_nltk_name(),
             length_function=self.count_tokens,
         )
         return text_splitter.split_text(text)

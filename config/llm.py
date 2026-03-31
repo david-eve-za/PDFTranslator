@@ -28,6 +28,32 @@ class BCP47Language(str, Enum):
     ARABIC = "ar"
     HINDI = "hi"
 
+    def to_nltk_name(self) -> str:
+        """
+        Convert BCP 47 code to NLTK language name.
+
+        NLTK requires full language names like 'english', 'spanish', etc.
+        not BCP 47 codes like 'en', 'es'.
+
+        Returns:
+            NLTK-compatible language name string.
+        """
+        nltk_names = {
+            "en": "english",
+            "es": "spanish",
+            "zh": "chinese",
+            "ja": "japanese",
+            "ko": "korean",
+            "fr": "french",
+            "de": "german",
+            "it": "italian",
+            "pt": "portuguese",
+            "ru": "russian",
+            "ar": "arabic",
+            "hi": "hindi",
+        }
+        return nltk_names.get(self.value, "english")
+
 
 class GeminiConfig(BaseModel):
     """Google Gemini configuration."""

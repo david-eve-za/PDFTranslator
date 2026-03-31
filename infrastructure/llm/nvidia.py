@@ -87,12 +87,12 @@ class NvidiaLLM(BaseLLM):
             List of text chunks.
         """
         # Use 3x output tokens as chunk size (input can be larger)
-        chunk_size = self._settings.llm.nvidia.max_output_tokens * 3
+        chunk_size = self._settings.llm.nvidia.max_output_tokens
 
         text_splitter = NLTKTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=0,
-            language=language.value,
+            language=language.to_nltk_name(),
             length_function=self.count_tokens,
         )
 
