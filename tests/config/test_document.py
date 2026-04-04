@@ -29,3 +29,12 @@ def test_docling_config_validates_accelerator_device():
     """Test DoclingConfig validates accelerator_device."""
     with pytest.raises(ValueError):
         DoclingConfig(accelerator_device="invalid")
+
+
+def test_settings_includes_docling_config():
+    """Test Settings includes DoclingConfig."""
+    from config.settings import Settings
+
+    settings = Settings()
+    assert hasattr(settings, "document")
+    assert isinstance(settings.document, DoclingConfig)
