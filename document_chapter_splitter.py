@@ -1,17 +1,32 @@
 """
-document_chapter_splitter.py
+Document Chapter Splitter - LEGACY IMPLEMENTATION.
+
+DEPRECATED: Use document_chapter_splitter_v2.py instead.
+This file is maintained for backward compatibility.
+New features and fixes should go to document_chapter_splitter_v2.py.
+
+Migration guide: docs/docling-integration.md
 
 Divide un documento (PDF, DOCX, TXT, MD) en secciones estructuradas:
 Prologue, Chapter 1..N, Epilogue y descarta todo el resto
 (páginas de derechos, índices, agradecimientos, etc.)
 
 Dependencias:
-    pip install pymupdf python-docx nltk
+pip install pymupdf python-docx nltk
 
 Uso:
-    python document_chapter_splitter.py mi_novela.pdf
-    python document_chapter_splitter.py mi_novela.docx --output ./salida
+python document_chapter_splitter.py mi_novela.pdf
+python document_chapter_splitter.py mi_novela.docx --output ./salida
 """
+
+import warnings
+
+warnings.warn(
+    "document_chapter_splitter.py is deprecated. "
+    "Use document_chapter_splitter_v2.py instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 import argparse
 import json
