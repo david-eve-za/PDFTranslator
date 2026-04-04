@@ -1,0 +1,326 @@
+# AGENTS.md - PDFTranslator Project Guidelines
+
+## Project Overview
+
+PDFTranslator is a Python 3.11 application for translating PDF/EPUB documents using LLM backends (NVIDIA, Gemini, Ollama). It features a CLI interface built with Typer, PostgreSQL database with pgvector for glossary management, and AI-powered translation with glossary-aware post-processing.
+
+## Build/Test/Lint Commands
+
+```bash
+# Run all tests
+pytest
+
+# Run a single test file
+pytest tests/test_nvidia_ai.py
+
+# Run a single test function
+pytest tests/test_nvidia_ai.py::test_nvidia_ai_call_model
+
+# Run tests with coverage
+pytest --cov=. --cov-report=term-missing
+
+# Run tests in a specific directory
+pytest tests/database/
+
+# Run tests matching a pattern
+pytest -k "test_chapter"
+
+# Run tests with verbose output
+pytest -v
+
+# Run tests with print statements visible
+pytest -s
+
+# Lint with ruff (if installed)
+ruff check .
+
+# Format with ruff (if installed)
+ruff format .
+
+# Type check with mypy (if installed)
+mypy .
+```
+
+## Environment Setup
+
+```bash
+# Create conda environment
+conda env create -f environment.yml
+conda activate PDFTranslator
+
+# Or install dependencies with pip
+pip install -r requirements.txt  # If available
+
+# Set required environment variables
+export NVIDIA_API_KEY=nvapi-xxx  # For NVIDIA backend
+export GOOGLE_API_KEY=xxx        # For Gemini backend
+export DB_HOST=localhost
+export DB_PORT=5432
+export DB_NAME=pdftranslator
+export DB_USER=postgres
+export DB_PASSWORD=yourpassword
+```
+
+## Code Style Guidelines
+
+### Imports
+
+```python
+# Standard library first
+import logging
+import re
+from dataclasses import dataclass, field
+from typing import List, Optional, Dict, Any
+
+# Third-party libraries second
+import pytest
+from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings
+from unittest.mock import MagicMock, patch
+
+# Local imports last (absolute imports preferred)
+from config.settings import Settings
+from config.llm import LLMProvider, BCP47Language
+from database.models import Work, Volume, Chapter
+from infrastructure.llm.protocol import LLMClient
+```
+
+### Formatting
+
+- Line length: 88 characters (Black default, Ruff default)
+- Use double quotes for strings
+- Use trailing commas in multi-line collections
+- No comments on code unless absolutely necessary
+- Docstrings: Use triple double quotes with description
+
+### Type Annotations
+
+```python
+# Always use type hints for function arguments and returns
+def translate_text(self, text: str, source_lang: str, target_lang: str) -> str:
+    ...
+
+# Use Optional for nullable types
+def get_by_id(self, id: int) -> Optional[Chapter]:
+    ...
+
+# Use list[str], dict[str, Any] (lowercase) for generic types
+def process_chunks(self, chunks: list[str]) -> dict[str, Any]:
+    ...
+
+# Use Union with | operator (Python 3.10+)
+def get_config(self) -> GeminiConfig | NvidiaConfig | OllamaConfig:
+    ...
+
+# Use Protocol for duck typing
+from typing import Protocol, runtime_checkable
+
+@runtime_checkable
+class LLMClient(Protocol):
+    def call_model(self, prompt: str) -> str: ...
+```
+
+### Naming Conventions
+
+```python
+# Classes: PascalCase
+class ChapterRepository:
+    class GlossaryPostProcessor:
+
+# Functions/Methods: snake_case
+def translate_text(self, text: str) -> str:
+def get_by_volume(self, volume_id: int) -> list[Chapter]:
+
+# Variables: snake_case
+chapter_count = 10
+translated_text = ""
+
+# Constants: UPPER_SNAKE_CASE
+SCOPE_ALL_BOOK = "All Book"
+DEFAULT_OUTPUT_SUBDIR = "audiobooks"
+VALID_EXTENSIONS = {".pdf", ".epub"}
+
+# Private attributes/methods: prefix with underscore
+self._settings = settings
+def _load_prompt_template(self) -> str:
+
+# Protected for internal use: single underscore
+def _get_iterator(self, chunks: list[str]):
+
+# Properties: no parentheses, use @property
+@property
+def success(self) -> bool:
+    return len(self.errors) == 0
+```
+
+### Dataclasses and Models
+
+```python
+# Use dataclasses for simple data containers
+@dataclass
+class TranslationResult:
+    original_chunks: int
+    translated_chunks: int
+    text: str
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def success(self) -> bool:
+        return len(self.errors) == 0
+
+# Use Pydantic for configuration and validation
+class NvidiaConfig(BaseModel):
+    model_name: str = Field(default="mistralai/mistral-large")
+    temperature: float = Field(default=0.2, ge=0.0, le=2.0)
+    max_output_tokens: int = Field(default=4096, gt=0)
+```
+
+### Error Handling
+
+```python
+# Use custom exceptions from database/exceptions.py
+from database.exceptions import (
+    DatabaseError,
+    ConnectionError,
+    QueryError,
+    EntityNotFoundError,
+    DuplicateEntityError,
+)
+
+# Raise specific exceptions
+def get_by_id(self, id: int) -> Chapter:
+    result = self._fetch_one(query, (id,))
+    if result is None:
+        raise EntityNotFoundError(f"Chapter with id {id} not found")
+    return result
+
+# Log errors before raising or returning
+logger.error(f"Error translating chunk {index}: {e}")
+errors.append(f"Chunk {index}: {str(e)}")
+
+# Return error markers for partial failures
+translated_parts.append(self._ERROR_CHUNK_MARKER.format(index=index))
+```
+
+### Testing Patterns
+
+```python
+# Use pytest fixtures for setup
+@pytest.fixture
+def mock_pool():
+    return MagicMock()
+
+@pytest.fixture(autouse=True)
+def reset_database_pool():
+    DatabasePool.reset_instance()
+    yield
+    DatabasePool.reset_instance()
+
+# Use skipif for conditional tests
+@pytest.mark.skipif(
+    os.environ.get("NVIDIA_API_KEY", "").startswith("nvapi-") is False,
+    reason="NVIDIA_API_KEY not set",
+)
+def test_nvidia_ai_call_model():
+    ...
+
+# Mock external dependencies
+def test_translate_chunk(mock_pool, mock_connection):
+    mock_connection[1].fetchall.return_value = [...]
+    repo = ChapterRepository(pool=mock_pool)
+    result = repo.get_by_volume(1)
+    assert len(result) == 2
+```
+
+### Dependency Injection
+
+```python
+# Accept dependencies in constructor
+class TranslatorService:
+    def __init__(
+        self,
+        llm_factory: LLMFactory,
+        settings: Settings | None = None,
+    ):
+        self._llm_factory = llm_factory
+        self._settings = settings or Settings.get()
+
+# Use factory pattern for LLM clients
+class LLMFactory:
+    def create(self) -> LLMClient:
+        if self._settings.agent == LLMProvider.NVIDIA:
+            return NvidiaLLM(self._settings)
+        ...
+```
+
+## Project Structure
+
+```
+PDFTranslator/
+├── cli/                    # CLI commands (Typer)
+│   ├── app.py             # Main app entry point
+│   ├── commands/          # Individual commands
+│   └── services/          # CLI-specific services
+├── config/                 # Configuration (Pydantic Settings)
+│   ├── settings.py        # Main settings singleton
+│   ├── llm.py            # LLM provider configs
+│   ├── database.py       # Database settings
+│   └── paths.py          # Path configurations
+├── database/               # Database layer
+│   ├── models.py          # Data models/dataclasses
+│   ├── repositories/      # Repository pattern
+│   ├── services/          # Database services
+│   ├── connection.py      # Connection pool
+│   └── exceptions.py      # Custom exceptions
+├── infrastructure/         # External integrations
+│   └── llm/               # LLM implementations
+│       ├── base.py        # Abstract base class
+│       ├── protocol.py    # LLMClient protocol
+│       └── factory.py     # LLM factory
+├── services/               # Business logic services
+├── tools/                  # Utility tools
+├── tests/                  # Test suite
+│   ├── database/          # Database tests
+│   └── cli/               # CLI tests
+└── GlobalConfig.py        # DEPRECATED: Use config.settings
+```
+
+## Key Patterns
+
+### Settings Singleton
+
+```python
+# Use Settings.get() for singleton access
+settings = Settings.get()
+
+# Reset in tests
+Settings.reset()
+```
+
+### Repository Pattern
+
+```python
+class ChapterRepository(BaseRepository[Chapter]):
+    def get_by_id(self, id: int) -> Optional[Chapter]:
+        ...
+
+    def get_by_volume(self, volume_id: int) -> list[Chapter]:
+        ...
+```
+
+### Protocol for Duck Typing
+
+```python
+@runtime_checkable
+class LLMClient(Protocol):
+    def call_model(self, prompt: str) -> str: ...
+```
+
+## Important Notes
+
+- `GlobalConfig` is DEPRECATED: Use `config.settings.Settings` instead
+- Database uses psycopg with connection pooling (psycopg_pool)
+- pgvector is used for semantic search/glossary matching
+- All LLM configs use Pydantic with Field validators
+- CLI uses Typer with Rich for beautiful output
+- Use `Settings.reset()` in tests to avoid singleton pollution
