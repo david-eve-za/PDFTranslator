@@ -16,7 +16,7 @@ import re
 from pathlib import Path
 
 from config.settings import Settings
-from config.document import DoclingConfig
+from infrastructure.llm.protocol import LLMClient
 from infrastructure.llm.nvidia import NvidiaLLM
 from infrastructure.document.docling_extractor import DoclingExtractor
 from infrastructure.document.section_grouper import SectionGrouper
@@ -50,7 +50,7 @@ Input: "Índice" → {{"type": "other", "number": null}}
 class SectionClassifier:
     """Classify document sections using LLM."""
 
-    def __init__(self, llm):
+    def __init__(self, llm: LLMClient):
         """
         Initialize classifier.
 
@@ -109,16 +109,29 @@ def classify_section_with_llm(llm, title: str, content_preview: str) -> dict:
         raise ValueError(f"Invalid JSON from LLM: {e}") from e
 
 
-def split_document_v2(filepath: str, output_dir: str = "./output") -> None:
+def split_document_v2(
+    filepath: str,
+    output_dir: str = "./output",
+    llm: LLMClient | None = None,
+) -> None:
     """
     Split document using Docling extraction.
 
     Args:
         filepath: Path to document.
         output_dir: Output directory for sections.
+        llm: LLM client for classification. If None, uses NvidiaLLM.
+
+    Raises:
+        FileNotFoundError: If filepath does not exist.
     """
+    file_path = Path(filepath)
+    if not file_path.exists():
+        raise FileNotFoundError(f"Document not found: {filepath}")
+
     settings = Settings.get()
-    llm = NvidiaLLM(settings)
+    if llm is None:
+        llm = NvidiaLLM(settings)
     extractor = DoclingExtractor(settings.document)
     grouper = SectionGrouper()
     classifier = SectionClassifier(llm)

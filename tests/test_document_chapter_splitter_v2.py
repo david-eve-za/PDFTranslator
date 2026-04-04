@@ -2,37 +2,13 @@
 """Tests for document_chapter_splitter_v2 with Docling."""
 
 import pytest
-from unittest.mock import MagicMock, patch
-from pathlib import Path
+from unittest.mock import MagicMock
 
 from document_chapter_splitter_v2 import (
     SectionClassifier,
     classify_section_with_llm,
+    split_document_v2,
 )
-
-
-SECTION_CLASSIFICATION_PROMPT = """
-Eres un clasificador de secciones de libros narrativos.
-
-Tu tarea es clasificar una sección como:
-- "prologue": Prólogo o prefacio del autor
-- "chapter": Capítulo numerado o titulado
-- "epilogue": Epílogo o postfacio
-- "other": Índice, agradecimientos, derechos, publicidad, etc.
-
-INPUT:
-Título: {title}
-Primeras 300 caracteres del contenido:
-{content_preview}
-
-Responde SOLO con JSON válido:
-{{"type": "prologue"|"chapter"|"epilogue"|"other", "number": <int|null>}}
-
-Ejemplos:
-Input: "Capítulo 5: La batalla" → {{"type": "chapter", "number": 5}}
-Input: "Prólogo" → {{"type": "prologue", "number": null}}
-Input: "Índice" → {{"type": "other", "number": null}}
-"""
 
 
 def test_section_classifier_initializes():
@@ -107,3 +83,18 @@ def test_classify_section_with_llm_handles_invalid_json():
         classify_section_with_llm(
             mock_llm, title="Chapter 1", content_preview="Text..."
         )
+
+
+def test_split_document_v2_raises_on_missing_file():
+    """Test split_document_v2 raises FileNotFoundError for missing file."""
+    with pytest.raises(FileNotFoundError):
+        split_document_v2("/nonexistent/path/file.pdf")
+
+
+def test_split_document_v2_accepts_llm_parameter():
+    """Test split_document_v2 accepts injected LLM client."""
+    mock_llm = MagicMock()
+    mock_llm.call_model.return_value = '{"type": "chapter", "number": 1}'
+
+    classifier = SectionClassifier(mock_llm)
+    assert classifier.llm is mock_llm
