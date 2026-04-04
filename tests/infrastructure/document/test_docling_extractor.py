@@ -29,6 +29,14 @@ def test_docling_extractor_creates_converter():
     assert extractor._converter is not None
 
 
+def test_docling_extractor_raises_filenotfound():
+    """Test extract() raises FileNotFoundError for missing file."""
+    extractor = DoclingExtractor()
+    with pytest.raises(FileNotFoundError) as exc_info:
+        extractor.extract("/nonexistent/path/to/file.pdf")
+    assert "Document not found" in str(exc_info.value)
+
+
 @patch("infrastructure.document.docling_extractor.DocumentConverter")
 @patch("infrastructure.document.docling_extractor.Path")
 def test_docling_extractor_extract_returns_document(mock_path, mock_converter_class):

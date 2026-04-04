@@ -3,9 +3,16 @@
 import logging
 from pathlib import Path
 
-from docling.document_converter import DocumentConverter
+from docling.document_converter import DocumentConverter, PdfFormatOption
 from docling.datamodel.base_models import InputFormat
-from docling.datamodel.pipeline_options import PdfPipelineOptions
+from docling.datamodel.pipeline_options import (
+    PdfPipelineOptions,
+    EasyOcrOptions,
+)
+from docling.datamodel.accelerator_options import (
+    AcceleratorOptions,
+    AcceleratorDevice,
+)
 from docling.datamodel.document import ConversionResult
 from docling_core.types.doc import DoclingDocument
 
@@ -61,15 +68,6 @@ class DoclingExtractor:
         Returns:
             Configured DocumentConverter instance.
         """
-        from docling.datamodel.pipeline_options import (
-            EasyOcrOptions,
-            TableStructureOptions,
-        )
-        from docling.datamodel.accelerator_options import (
-            AcceleratorOptions,
-            AcceleratorDevice,
-        )
-
         # Configure PDF pipeline
         pipeline_options = PdfPipelineOptions()
 
@@ -100,9 +98,7 @@ class DoclingExtractor:
         # Create converter with PDF format options
         converter = DocumentConverter(
             format_options={
-                InputFormat.PDF: PdfPipelineOptions.__bases__[0](
-                    pipeline_options=pipeline_options
-                )
+                InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
             }
         )
 
