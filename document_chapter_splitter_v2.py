@@ -73,7 +73,7 @@ class SectionClassifier:
         return classify_section_with_llm(self.llm, title, content_preview)
 
 
-def classify_section_with_llm(llm, title: str, content_preview: str) -> dict:
+def classify_section_with_llm(llm: LLMClient, title: str, content_preview: str) -> dict:
     """
     Classify a section using LLM.
 
