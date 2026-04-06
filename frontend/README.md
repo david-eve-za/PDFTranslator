@@ -1,73 +1,78 @@
-# React + TypeScript + Vite
+# PDFTranslator Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React-based web UI for PDFTranslator document processing workflow.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 18 + TypeScript (strict mode)
+- Vite (build tool)
+- Zustand (state management)
+- shadcn/ui (component library)
+- Tailwind CSS
+- React Router (routing)
 
-## React Compiler
+## Development
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+# Install dependencies
+npm install
 
-## Expanding the ESLint configuration
+# Start development server
+npm run dev
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+# Build for production
+npm run build
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+# Preview production build
+npm run preview
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Type check
+npx tsc --noEmit
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Environment Variables
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Create `.env` file:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
+VITE_USE_MOCK_DATA=true
+VITE_API_BASE_URL=http://localhost:8000/api
+```
+
+## Project Structure
+
+```
+src/
+├── components/
+│   ├── containers/    # Logic-heavy components
+│   └── ui/            # Presentational components (shadcn/ui)
+├── pages/             # Route pages
+├── stores/            # Zustand state stores
+├── services/          # API abstraction layer
+├── hooks/             # Custom React hooks
+├── types/             # TypeScript types
+└── lib/               # Utilities
+```
+
+## Features
+
+- File upload (drag & drop + manual selection)
+- File type validation (PDF, EPUB, DOC, DOCX)
+- Task status tracking (pending, in-progress, completed, failed)
+- Split Chapters screen
+- Glossary screen with search/filter
+- Translated screen (side-by-side view)
+- Audio screen with player
+
+## Testing
+
+```bash
+# Run tests (TODO: add test setup)
+npm test
+```
+
+## Notes
+
+- Mock data enabled by default (set `VITE_USE_MOCK_DATA=false` to use real API)
+- Backend API must be running on http://localhost:8000
+- TypeScript strict mode enabled
