@@ -22,7 +22,9 @@ def test_section_classifier_initializes():
 def test_classify_section_with_llm_returns_valid_json():
     """Test classify_section_with_llm returns valid JSON."""
     mock_llm = MagicMock()
-    mock_llm.call_model.return_value = '{"type": "chapter", "number": 5}'
+    mock_llm.call_model_with_temperature.return_value = (
+        '{"type": "chapter", "number": 5, "confidence": 0.95}'
+    )
 
     result = classify_section_with_llm(
         mock_llm,
@@ -32,12 +34,15 @@ def test_classify_section_with_llm_returns_valid_json():
 
     assert result["type"] == "chapter"
     assert result["number"] == 5
+    assert result["confidence"] >= 0.9
 
 
 def test_classify_section_with_llm_handles_prologue():
     """Test classify_section_with_llm handles prologue."""
     mock_llm = MagicMock()
-    mock_llm.call_model.return_value = '{"type": "prologue", "number": null}'
+    mock_llm.call_model_with_temperature.return_value = (
+        '{"type": "prologue", "number": null, "confidence": 0.95}'
+    )
 
     result = classify_section_with_llm(
         mock_llm, title="Prólogo", content_preview="Hace mucho tiempo..."
@@ -50,7 +55,9 @@ def test_classify_section_with_llm_handles_prologue():
 def test_classify_section_with_llm_handles_other():
     """Test classify_section_with_llm handles non-narrative sections."""
     mock_llm = MagicMock()
-    mock_llm.call_model.return_value = '{"type": "other", "number": null}'
+    mock_llm.call_model_with_temperature.return_value = (
+        '{"type": "other", "number": null, "confidence": 0.98}'
+    )
 
     result = classify_section_with_llm(
         mock_llm, title="Índice", content_preview="Capítulo 1..........1"
@@ -62,8 +69,8 @@ def test_classify_section_with_llm_handles_other():
 def test_classify_section_with_llm_cleans_json():
     """Test classify_section_with_llm cleans markdown fences."""
     mock_llm = MagicMock()
-    mock_llm.call_model.return_value = """```json
-{"type": "chapter", "number": 1}
+    mock_llm.call_model_with_temperature.return_value = """```json
+{"type": "chapter", "number": 1, "confidence": 0.9}
 ```"""
 
     result = classify_section_with_llm(
@@ -77,12 +84,15 @@ def test_classify_section_with_llm_cleans_json():
 def test_classify_section_with_llm_handles_invalid_json():
     """Test classify_section_with_llm handles invalid JSON."""
     mock_llm = MagicMock()
-    mock_llm.call_model.return_value = "invalid json"
+    mock_llm.call_model_with_temperature.return_value = "invalid json"
 
-    with pytest.raises(ValueError):
-        classify_section_with_llm(
-            mock_llm, title="Chapter 1", content_preview="Text..."
-        )
+    # Should use fallback classification
+    result = classify_section_with_llm(
+        mock_llm, title="Chapter 1", content_preview="Text..."
+    )
+
+    # Fallback should classify as chapter
+    assert result["type"] == "chapter"
 
 
 def test_split_document_v2_raises_on_missing_file():

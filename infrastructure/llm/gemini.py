@@ -112,6 +112,35 @@ class GeminiLLM(BaseLLM):
 
         raise RuntimeError("Failed to get valid response after multiple retries")
 
+    def call_model_with_temperature(self, prompt: str, temperature: float) -> str:
+        """
+        Call Gemini model with a custom temperature override.
+
+        Args:
+            prompt: The prompt to send to the model.
+            temperature: Temperature value (0.0 to 2.0) for response randomness.
+
+        Returns:
+            The model's response as a string.
+        """
+        original_temp = self._llm_client.temperature
+        self._llm_client.temperature = temperature
+        try:
+            response = self._llm_client.invoke(prompt)
+            if response.content:
+                logger.info(
+                    f"Call to '{self.get_current_model_name()}' with temp={temperature} successful. "
+                    f"Usage: {response.usage_metadata}"
+                )
+                return response.content
+            else:
+                logger.warning(
+                    f"Model '{self.get_current_model_name()}' returned empty response with temp={temperature}"
+                )
+                raise RuntimeError("Model returned empty response")
+        finally:
+            self._llm_client.temperature = original_temp
+
     def get_current_model_name(self) -> str:
         """Get the current model name."""
         return self.model_names[self._current_model_index]

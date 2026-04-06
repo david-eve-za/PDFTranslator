@@ -7,7 +7,7 @@ class DoclingConfig(BaseModel):
     """Configuration for Docling document extraction."""
 
     enable_ocr: bool = Field(
-        default=True, description="Enable OCR for scanned PDF documents"
+        default=False, description="Enable OCR for scanned PDF documents"
     )
     ocr_languages: list[str] = Field(
         default=["en", "es"], description="Languages for OCR recognition"
@@ -19,7 +19,7 @@ class DoclingConfig(BaseModel):
         default=False, description="Generate page images during extraction"
     )
     accelerator_device: str = Field(
-        default="auto", description="Hardware accelerator: auto, cpu, cuda, mps"
+        default="mps", description="Hardware accelerator: auto, cpu, cuda, mps"
     )
 
     @field_validator("accelerator_device")

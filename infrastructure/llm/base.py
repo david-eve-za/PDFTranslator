@@ -29,6 +29,11 @@ class BaseLLM(ABC):
         pass
 
     @abstractmethod
+    def call_model_with_temperature(self, prompt: str, temperature: float) -> str:
+        """Call the LLM model with a custom temperature override."""
+        pass
+
+    @abstractmethod
     def get_current_model_name(self) -> str:
         """Get the name of the currently active model."""
         pass

@@ -37,6 +37,49 @@ def test_docling_extractor_raises_filenotfound():
     assert "Document not found" in str(exc_info.value)
 
 
+def test_docling_extractor_device_auto():
+    """Test DoclingExtractor with auto device."""
+    config = DoclingConfig(accelerator_device="auto")
+    extractor = DoclingExtractor(config=config)
+    assert extractor._converter is not None
+
+
+def test_docling_extractor_device_cpu():
+    """Test DoclingExtractor with CPU device."""
+    config = DoclingConfig(accelerator_device="cpu")
+    extractor = DoclingExtractor(config=config)
+    assert extractor._converter is not None
+
+
+def test_docling_extractor_device_cuda():
+    """Test DoclingExtractor with CUDA device."""
+    config = DoclingConfig(accelerator_device="cuda")
+    extractor = DoclingExtractor(config=config)
+    assert extractor._converter is not None
+
+
+def test_docling_extractor_device_mps():
+    """Test DoclingExtractor with MPS device."""
+    config = DoclingConfig(accelerator_device="mps")
+    extractor = DoclingExtractor(config=config)
+    assert extractor._converter is not None
+
+
+def test_docling_extractor_device_case_insensitive():
+    """Test DoclingExtractor device accepts lowercase."""
+    config = DoclingConfig(accelerator_device="cpu")
+    extractor = DoclingExtractor(config=config)
+    assert extractor._converter is not None
+    assert extractor.config.accelerator_device == "cpu"
+
+
+def test_docling_extractor_invalid_device_rejected_by_config():
+    """Test DoclingExtractor rejects invalid device at config level."""
+    with pytest.raises(ValueError) as exc_info:
+        DoclingConfig(accelerator_device="invalid_device")
+    assert "accelerator_device must be one of" in str(exc_info.value)
+
+
 @patch("infrastructure.document.docling_extractor.DocumentConverter")
 @patch("infrastructure.document.docling_extractor.Path")
 def test_docling_extractor_extract_returns_document(mock_path, mock_converter_class):

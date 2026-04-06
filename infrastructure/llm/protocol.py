@@ -29,6 +29,22 @@ class LLMClient(Protocol):
         """
         ...
 
+    def call_model_with_temperature(self, prompt: str, temperature: float) -> str:
+        """
+        Call the LLM model with a custom temperature override.
+
+        Args:
+            prompt: The prompt to send to the model.
+            temperature: Temperature value (0.0 to 2.0) for response randomness.
+
+        Returns:
+            The model's response as a string.
+
+        Raises:
+            LLMError: If the call fails.
+        """
+        ...
+
     def get_current_model_name(self) -> str:
         """
         Get the name of the currently active model.
