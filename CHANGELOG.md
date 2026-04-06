@@ -17,13 +17,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - All source code organized under `src/` directory
   - Clear separation: `src/backend/`, `src/cli/`, `src/core/`, `src/database/`, `src/infrastructure/`, `src/services/`, `src/tools/`
   - `PDFAgent.py` orchestrator for multi-mode execution
-- **PDFAgent.py orchestrator** with 4 execution modes:
+- **PDFAgent.py orchestrator with Typer CLI**:
+  - Converted from argparse to Typer for better UX
+  - Beautiful CLI interface with Rich formatting
+  - Interactive help with examples
+  - 4 commands: `cli`, `backend`, `frontend`, `dev`
   - `python PDFAgent.py cli [command]` - Run CLI commands
-  - `python PDFAgent.py backend` - Start FastAPI backend
+  - `python PDFAgent.py backend` - Start FastAPI backend (with `--reload` option)
   - `python PDFAgent.py frontend` - Start React frontend
   - `python PDFAgent.py dev` - Start both backend + frontend for development
+  - Short flags: `-h` for host, `-p` for port, `-r` for reload
 
 ### Changed
+- **PDFAgent.py converted to Typer**:
+  - Replaced argparse with Typer for modern CLI experience
+  - Added Rich integration for colorful output
+  - Better error handling with proper exit codes
+  - Auto-install npm dependencies if node_modules missing
+  - Added `--reload` flag for backend development mode
+- **Project structure reorganized** from flat directory layout to `src/` layout:
 - **Project structure reorganized** from flat directory layout to `src/` layout:
   - Old: `backend/`, `cli/`, `config/`, `database/`, etc. in root
   - New: `src/backend/`, `src/cli/`, `src/core/config/`, `src/database/`, etc.
