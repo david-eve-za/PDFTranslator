@@ -59,9 +59,12 @@ PDFTranslator/
 
 ## Entry Point - PDFAgent.py
 
-The project uses `PDFAgent.py` as a multi-mode orchestrator:
+The project uses `PDFAgent.py` as a multi-mode orchestrator built with Typer CLI:
 
 ```bash
+# Show help
+python PDFAgent.py --help
+
 # CLI mode - Run CLI commands
 python PDFAgent.py cli translate document.pdf
 python PDFAgent.py cli split document.pdf --output ./output
@@ -69,13 +72,30 @@ python PDFAgent.py cli split document.pdf --output ./output
 # Backend mode - Start FastAPI backend
 python PDFAgent.py backend
 python PDFAgent.py backend --host 0.0.0.0 --port 8000
+python PDFAgent.py backend --reload  # Development mode with auto-reload
 
 # Frontend mode - Start React frontend
 python PDFAgent.py frontend
 
 # Development mode - Start both backend + frontend
 python PDFAgent.py dev
+python PDFAgent.py dev --host localhost --port 8080
 ```
+
+### Available Commands
+
+| Command | Description | Options |
+|---------|-------------|---------|
+| `cli` | Run CLI commands for PDF translation and processing | Pass-through to src.cli.app |
+| `backend` | Start FastAPI backend server | `--host, -h`, `--port, -p`, `--reload, -r` |
+| `frontend` | Start React frontend development server | Auto-installs npm deps if needed |
+| `dev` | Start both backend + frontend for development | `--host, -h`, `--port, -p` |
+
+### Short Flags
+
+- `-h, --host` - Host address to bind (default: 0.0.0.0)
+- `-p, --port` - Port number for server (default: 8000)
+- `-r, --reload` - Enable auto-reload for backend development
 
 ## Build/Test/Lint Commands
 
