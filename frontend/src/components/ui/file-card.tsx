@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { Card } from './card';
 import { TaskBadge } from './task-badge';
 import type { FileItem, TaskStatus } from '../../types';
@@ -6,7 +7,6 @@ interface FileCardProps {
   file: FileItem;
   taskStatus?: TaskStatus;
   isSelected: boolean;
-  onClick: () => void;
   onRetryTask: (taskType: string) => void;
 }
 
@@ -17,7 +17,13 @@ const fileIcons: Record<string, string> = {
   docx: '📝',
 };
 
-export function FileCard({ file, taskStatus, isSelected, onClick, onRetryTask }: FileCardProps) {
+export function FileCard({ file, taskStatus, isSelected, onRetryTask }: FileCardProps) {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate(`/file/${file.id}/chapters`);
+  };
+
   const formatSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -29,7 +35,7 @@ export function FileCard({ file, taskStatus, isSelected, onClick, onRetryTask }:
       className={`p-4 cursor-pointer transition-all ${
         isSelected ? 'border-blue-500 bg-blue-50' : 'hover:shadow-md'
       }`}
-      onClick={onClick}
+      onClick={handleClick}
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center space-x-3">
