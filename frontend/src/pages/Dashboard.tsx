@@ -3,9 +3,10 @@ import { FileDropZone } from '../components/ui/file-drop-zone';
 import { FileCard } from '../components/ui/file-card';
 import { useFileStore } from '../stores/fileStore';
 import { useTaskStore } from '../stores/taskStore';
+import { Spinner } from '../components/ui/spinner';
 
 export function Dashboard() {
-  const { files, selectedFileId, addFiles, selectFile, loadFiles } = useFileStore();
+  const { files, selectedFileId, addFiles, selectFile, loadFiles, isLoading } = useFileStore();
   const { tasks, loadTaskStatus, retryTask } = useTaskStore();
 
   useEffect(() => {
@@ -37,6 +38,14 @@ export function Dashboard() {
       alert('Failed to retry task. Please try again.');
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
