@@ -4,6 +4,79 @@
 
 PDFTranslator is a Python 3.11 application for translating PDF/EPUB documents using LLM backends (NVIDIA, Gemini, Ollama). It features a CLI interface built with Typer, PostgreSQL database with pgvector for glossary management, and AI-powered translation with glossary-aware post-processing.
 
+## Project Structure
+
+```
+PDFTranslator/
+├── src/                      # All source code
+│   ├── backend/              # FastAPI backend
+│   │   ├── api/              # API routes
+│   │   └── main.py           # FastAPI app entry point
+│   ├── cli/                  # CLI interface (Typer)
+│   │   ├── commands/         # CLI commands
+│   │   ├── services/         # CLI-specific services
+│   │   ├── ui/               # CLI UI components
+│   │   ├── app.py            # Typer app
+│   │   └── __main__.py       # python -m src.cli
+│   ├── core/                 # Shared core functionality
+│   │   ├── config/           # Configuration (Pydantic Settings)
+│   │   ├── models/           # Domain models
+│   │   └── exceptions/       # Custom exceptions
+│   ├── database/             # Database layer
+│   │   ├── repositories/     # Repository pattern
+│   │   ├── schemas/          # SQL schemas
+│   │   ├── services/         # Database services
+│   │   ├── connection.py     # Connection pool
+│   │   └── models.py         # Data models
+│   ├── infrastructure/       # External integrations
+│   │   ├── llm/              # LLM implementations (NVIDIA, Gemini, Ollama)
+│   │   └── document/         # Document processing (Docling)
+│   ├── services/             # Business logic services
+│   │   ├── translator.py     # Translation service
+│   │   └── glossary_translator.py
+│   └── tools/                # Utility tools
+│       ├── AudioGenerator.py
+│       ├── Translator.py
+│       └── TextExtractor.py
+├── frontend/                 # React frontend
+│   ├── src/                  # React source
+│   ├── public/               # Static assets
+│   └── package.json
+├── tests/                    # Test suite (mirrors src/)
+│   ├── backend/
+│   ├── cli/
+│   ├── core/
+│   ├── database/
+│   └── infrastructure/
+├── docs/                     # Documentation
+│   └── plans/                # Design documents
+├── PDFAgent.py               # MAIN ENTRY POINT - Multi-mode orchestrator
+├── pyproject.toml            # Project configuration
+├── README.md
+├── CHANGELOG.md
+└── AGENTS.md
+```
+
+## Entry Point - PDFAgent.py
+
+The project uses `PDFAgent.py` as a multi-mode orchestrator:
+
+```bash
+# CLI mode - Run CLI commands
+python PDFAgent.py cli translate document.pdf
+python PDFAgent.py cli split document.pdf --output ./output
+
+# Backend mode - Start FastAPI backend
+python PDFAgent.py backend
+python PDFAgent.py backend --host 0.0.0.0 --port 8000
+
+# Frontend mode - Start React frontend
+python PDFAgent.py frontend
+
+# Development mode - Start both backend + frontend
+python PDFAgent.py dev
+```
+
 ## Build/Test/Lint Commands
 
 ```bash
