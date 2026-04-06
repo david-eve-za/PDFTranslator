@@ -29,6 +29,7 @@ class GlobalConfig(metaclass=_Singleton):
         self.output_format: str = "m4a"
         self.gen_video: bool = False
         self.agent: str = "nvidia"  # Main agent selector ('gemini', 'ollama')
+        self.develop_mode: bool = False
 
         # Tool settings
         self.translation_prompt_path: str = "tools/translation_prompt.txt"
@@ -83,6 +84,10 @@ class GlobalConfig(metaclass=_Singleton):
         self.db_min_pool_size: int = 2
         self.db_max_pool_size: int = 10
 
+        # NER / Entity extraction settings
+        self.ner_min_frequency: int = 2
+        self.ner_confidence_threshold: float = 0.5
+
         # NVIDIA NIM settings for embeddings and reranking
         self.nvidia_nim_api_key: str = os.getenv("NVIDIA_API_KEY")
         self.nvidia_embed_model: str = "nvidia/llama-3.2-nv-embedqa-1b-v2"
@@ -102,6 +107,7 @@ class GlobalConfig(metaclass=_Singleton):
             "output_format": str,
             "gen_video": bool,
             "agent": str,
+            "develop_mode": bool,
             "translation_prompt_path": str,
             "voice": str,
             "gemini_model_names": list,
@@ -141,6 +147,8 @@ class GlobalConfig(metaclass=_Singleton):
             "db_password": str,
             "db_min_pool_size": int,
             "db_max_pool_size": int,
+            "ner_min_frequency": int,
+            "ner_confidence_threshold": float,
             "nvidia_nim_api_key": str,
             "nvidia_embed_model": str,
             "nvidia_rerank_model": str,

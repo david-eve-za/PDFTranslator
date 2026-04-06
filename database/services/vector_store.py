@@ -132,3 +132,23 @@ class VectorStoreService:
         indexed_sims = list(enumerate(similarities))
         indexed_sims.sort(key=lambda x: x[1], reverse=True)
         return [idx for idx, _ in indexed_sims[:top_k]]
+
+    def embed_entities_for_glossary(
+        self,
+        entities: List,
+    ) -> List[tuple]:
+        """
+        Genera embeddings para entidades candidatas.
+        El texto a embeddear combina: término + tipo + contexto
+
+        Args:
+            entities: Lista de EntityCandidate
+
+        Returns:
+            Lista de tuplas (EntityCandidate, embedding)
+        """
+        if not entities:
+            return []
+        texts = [f"{e.text} {e.entity_type} {e.best_context()}" for e in entities]
+        embeddings = self.embedder.embed_documents(texts)
+        return list(zip(entities, embeddings))
