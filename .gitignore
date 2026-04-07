@@ -120,6 +120,12 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Ruff linter
+.ruff_cache/
+
+# Tokenizers cache
+.tokenizers/
+
 # IDE files
 .idea/
 .vscode/
@@ -144,3 +150,10 @@ PDFAgent.log
 reviewer/
 mistral-large-3-675b-instruct-2512/
 llama-3.3-70b-instruct/
+
+# Temporary/test files
+baseline_test_results.txt
+*.tmp
+
+# Output directories (generated content)
+audiobooks/
