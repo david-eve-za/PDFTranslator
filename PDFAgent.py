@@ -26,7 +26,7 @@ from rich.logging import RichHandler
 
 app = typer.Typer(
     name="pdfagent",
-    help="PDFTranslator - Document Translation with AI",
+    help="PDFTranslator - Document Translation with AI\n\nRun 'python PDFAgent.py cli --help' for CLI commands",
     add_completion=False,
 )
 console = Console()
@@ -37,30 +37,6 @@ logging.basicConfig(
     handlers=[RichHandler(rich_tracebacks=True)],
 )
 logger = logging.getLogger(__name__)
-
-
-@app.command()
-def cli(
-    command_args: List[str] = typer.Argument(
-        None, help="CLI command and arguments to pass through"
-    ),
-) -> None:
-    """Run CLI commands for PDF translation and processing.
-
-    Examples:
-        python PDFAgent.py cli translate document.pdf
-        python PDFAgent.py cli split document.pdf --output ./output
-        python PDFAgent.py cli build-glossary document.pdf
-    """
-    try:
-        from src.cli.app import app as cli_app
-
-        logger.info("Starting CLI mode...")
-        cli_app(command_args)
-    except ImportError as e:
-        logger.error(f"Failed to import CLI: {e}")
-        logger.error("Make sure you're running from the project root directory")
-        raise typer.Exit(code=1)
 
 
 @app.command()
@@ -174,4 +150,20 @@ def dev(
 
 
 if __name__ == "__main__":
-    app()
+    # Check if first argument is 'cli' - if so, pass through to CLI app
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == "cli":
+        # Remove 'cli' from args and pass to CLI app
+        cli_args = sys.argv[2:] if len(sys.argv) > 2 else ["--help"]
+        try:
+            from src.cli.app import app as cli_app
+
+            cli_app(cli_args)
+        except ImportError as e:
+            logger.error(f"Failed to import CLI: {e}")
+            logger.error("Make sure you're running from the project root directory")
+            sys.exit(1)
+    else:
+        # Run Typer app for other commands
+        app()
