@@ -16,9 +16,9 @@ def mock_pool():
 def glossary_manager(mock_pool):
     """Create GlossaryManager with mocked dependencies."""
     with (
-        patch("src.database.services.glossary_manager.EntityExtractor"),
-        patch("src.database.services.glossary_manager.GlossaryRepository"),
-        patch("src.database.services.glossary_manager.VectorStoreService"),
+        patch("pdftranslator.database.services.glossary_manager.EntityExtractor"),
+        patch("pdftranslator.database.services.glossary_manager.GlossaryRepository"),
+        patch("pdftranslator.database.services.glossary_manager.VectorStoreService"),
     ):
         manager = GlossaryManager(mock_pool)
         return manager

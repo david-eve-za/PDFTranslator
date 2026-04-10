@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, patch
 from langchain_core.documents import Document
 
 
-@patch("src.database.services.vector_store.NVIDIAEmbeddings")
-@patch("src.database.services.vector_store.Settings")
+@patch("pdftranslator.database.services.vector_store.NVIDIAEmbeddings")
+@patch("pdftranslator.database.services.vector_store.Settings")
 def test_embed_query(mock_settings_class, mock_embeddings_class):
     mock_config = MagicMock()
     mock_config.llm.nvidia.embed_model = "test-model"
@@ -22,8 +22,8 @@ def test_embed_query(mock_settings_class, mock_embeddings_class):
     assert result == [0.1, 0.2, 0.3]
 
 
-@patch("src.database.services.vector_store.NVIDIAEmbeddings")
-@patch("src.database.services.vector_store.Settings")
+@patch("pdftranslator.database.services.vector_store.NVIDIAEmbeddings")
+@patch("pdftranslator.database.services.vector_store.Settings")
 def test_embed_documents(mock_settings_class, mock_embeddings_class):
     mock_config = MagicMock()
     mock_config.llm.nvidia.embed_model = "test-model"
@@ -41,8 +41,8 @@ def test_embed_documents(mock_settings_class, mock_embeddings_class):
     assert result == [[0.1, 0.2], [0.3, 0.4]]
 
 
-@patch("src.database.services.vector_store.NVIDIARerank")
-@patch("src.database.services.vector_store.Settings")
+@patch("pdftranslator.database.services.vector_store.NVIDIARerank")
+@patch("pdftranslator.database.services.vector_store.Settings")
 def test_rerank_documents(mock_settings_class, mock_rerank_class):
     mock_config = MagicMock()
     mock_config.llm.nvidia.rerank_model = "test-model"
@@ -63,7 +63,7 @@ def test_rerank_documents(mock_settings_class, mock_rerank_class):
     assert result[0].page_content == "doc1"
 
 
-@patch("src.database.services.vector_store.Settings")
+@patch("pdftranslator.database.services.vector_store.Settings")
 def test_cosine_similarity(mock_settings_class):
     mock_config = MagicMock()
     mock_config.llm.nvidia_api_key = "test-key"
@@ -80,7 +80,7 @@ def test_cosine_similarity(mock_settings_class):
     assert similarities[2] == pytest.approx(0.707, abs=0.01)
 
 
-@patch("src.database.services.vector_store.Settings")
+@patch("pdftranslator.database.services.vector_store.Settings")
 def test_find_most_similar(mock_settings_class):
     mock_config = MagicMock()
     mock_config.llm.nvidia_api_key = "test-key"
@@ -95,7 +95,7 @@ def test_find_most_similar(mock_settings_class):
     assert indices == [1, 2]
 
 
-@patch("src.database.services.vector_store.Settings")
+@patch("pdftranslator.database.services.vector_store.Settings")
 def test_rerank_empty_documents(mock_settings_class):
     mock_config = MagicMock()
     mock_config.llm.nvidia_api_key = "test-key"
