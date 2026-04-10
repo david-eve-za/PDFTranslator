@@ -1,1 +1,0 @@
-"""PDFTranslator source package."""
