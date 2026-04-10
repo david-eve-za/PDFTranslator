@@ -84,16 +84,18 @@ class DoclingExtractor:
         # Image generation
         pipeline_options.generate_page_images = self.config.generate_page_images
 
-        # Accelerator
-        device_map = {
-            "auto": AcceleratorDevice.AUTO,
-            "cpu": AcceleratorDevice.CPU,
-            "cuda": AcceleratorDevice.CUDA,
-            "mps": AcceleratorDevice.MPS,
-        }
-        pipeline_options.accelerator_options = AcceleratorOptions(
-            device=device_map[self.config.accelerator_device]
-        )
+        # Accelerator - direct enum lookup with fallback
+        try:
+            device = AcceleratorDevice[self.config.accelerator_device.upper()]
+        except KeyError:
+            logger.warning(
+                f"Invalid accelerator device '{self.config.accelerator_device}'. "
+                f"Defaulting to CPU."
+            )
+            device = AcceleratorDevice.CPU
+
+        pipeline_options.accelerator_options = AcceleratorOptions(device=device)
+        logger.info(f"Using accelerator device: {device.name}")
 
         # Create converter with PDF format options
         converter = DocumentConverter(

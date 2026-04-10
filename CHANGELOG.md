@@ -13,38 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implements temperature override with automatic restoration for thread safety
   - Protocol: `infrastructure/llm/protocol.py`
   - Implementations: `infrastructure/llm/{nvidia,gemini,ollama}.py`
-- **New project structure** following Python best practices:
-  - All source code organized under `src/` directory
-  - Clear separation: `src/backend/`, `src/cli/`, `src/core/`, `src/database/`, `src/infrastructure/`, `src/services/`, `src/tools/`
-  - `PDFAgent.py` orchestrator for multi-mode execution
-- **PDFAgent.py orchestrator with Typer CLI**:
-  - Converted from argparse to Typer for better UX
-  - Beautiful CLI interface with Rich formatting
-  - Interactive help with examples
-  - 4 commands: `cli`, `backend`, `frontend`, `dev`
-  - `python PDFAgent.py cli [command]` - Run CLI commands
-  - `python PDFAgent.py backend` - Start FastAPI backend (with `--reload` option)
-  - `python PDFAgent.py frontend` - Start React frontend
-  - `python PDFAgent.py dev` - Start both backend + frontend for development
-  - Short flags: `-h` for host, `-p` for port, `-r` for reload
 
 ### Changed
-- **PDFAgent.py converted to Typer**:
-  - Replaced argparse with Typer for modern CLI experience
-  - Added Rich integration for colorful output
-  - Better error handling with proper exit codes
-  - Auto-install npm dependencies if node_modules missing
-  - Added `--reload` flag for backend development mode
-- **Project structure reorganized** from flat directory layout to `src/` layout:
-- **Project structure reorganized** from flat directory layout to `src/` layout:
-  - Old: `backend/`, `cli/`, `config/`, `database/`, etc. in root
-  - New: `src/backend/`, `src/cli/`, `src/core/config/`, `src/database/`, etc.
-- **Import paths updated** throughout the codebase:
-  - `from config.` → `from src.core.config.`
-  - `from database.` → `from src.database.`
-  - `from infrastructure.` → `from src.infrastructure.`
-  - `from services.` → `from src.services.`
-  - `from tools.` → `from src.tools.`
 - **DoclingConfig defaults optimized for macOS development**:
   - `enable_ocr`: `True` → `False` (disabled by default to improve performance)
   - `accelerator_device`: `"auto"` → `"mps"` (Metal Performance Shaders for Apple Silicon)
@@ -53,14 +23,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Graceful fallback to CPU on invalid device configuration
   - Better error logging for debugging
   - File: `infrastructure/document/docling_extractor.py`
-- **GlobalConfig.py removed** (deprecated):
-  - Use `src.core.config.settings.Settings` instead
-  - All references updated to use new Pydantic Settings
-
-### Removed
-- `GlobalConfig.py` - deprecated singleton configuration
-- `llm/` directory - duplicated infrastructure/llm/
-- Deprecated import patterns and legacy code
 
 ### Fixed
 - **Section classifier now handles LLM failures gracefully**:
@@ -85,28 +47,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Dependencies
 - Added `environment.yml` updates for development environment consistency
 
-## Directory Structure
-
-### New Structure (after refactor)
-```
-PDFTranslator/
-├── src/                      # All source code
-│   ├── backend/              # FastAPI backend
-│   ├── cli/                  # CLI interface (Typer)
-│   ├── core/                 # Shared core (config, models, exceptions)
-│   ├── database/             # Database layer
-│   ├── infrastructure/       # External integrations (LLM, document)
-│   ├── services/             # Business logic
-│   └── tools/                # Utility tools
-├── frontend/                 # React frontend (unchanged)
-├── tests/                    # Test suite (mirrors src/)
-├── docs/                     # Documentation
-├── PDFAgent.py               # Main entry point / orchestrator
-├── CHANGELOG.md
-├── README.md
-└── AGENTS.md
-```
-
 ## Rollback Instructions
 
 If you need to rollback this commit:
@@ -123,13 +63,6 @@ git reset --hard HEAD~1
 
 # Or revert by creating a new commit that undoes changes
 git revert <commit-hash>
-```
-
-For this refactoring, you can also switch back to the previous branch:
-```bash
-git checkout main
-# Or keep the refactor branch for later
-git checkout refactor/src-directory-structure
 ```
 
 ## [0.1.0] - 2025-01-XX

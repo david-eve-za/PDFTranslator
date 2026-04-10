@@ -49,6 +49,29 @@ class OllamaLLM(BaseLLM):
         )
         return response.content
 
+    def call_model_with_temperature(self, prompt: str, temperature: float) -> str:
+        """
+        Call the Ollama model with a custom temperature override.
+
+        Args:
+            prompt: The prompt to send to the model.
+            temperature: Temperature value (0.0 to 2.0) for response randomness.
+
+        Returns:
+            The model's response as a string.
+        """
+        original_temp = self._model.temperature
+        self._model.temperature = temperature
+        try:
+            response = self._model.invoke(prompt)
+            logger.info(
+                f"Call to '{self.get_current_model_name()}' with temp={temperature} successful. "
+                f"Usage: {response.usage_metadata}"
+            )
+            return response.content
+        finally:
+            self._model.temperature = original_temp
+
     def get_current_model_name(self) -> str:
         """Get the current model name."""
         return self._settings.llm.ollama.model_name
