@@ -1,15 +1,19 @@
-"""PDFTranslator - Multi-mode entry point for document translation with AI.
+#!/usr/bin/env python3
+"""
+PDFTranslator - Multi-mode entry point for document translation with AI.
 
-Usage:
-    python PDFAgent.py cli [command]     # Run CLI commands
-    python PDFAgent.py backend           # Start FastAPI backend
-    python PDFAgent.py frontend          # Start React frontend
-    python PDFAgent.py dev               # Start both backend + frontend
+DEPRECATED: This file is kept for backward compatibility.
+For new usage, use one of these methods:
 
-Examples:
-    python PDFAgent.py cli translate document.pdf
-    python PDFAgent.py backend --port 8080
-    python PDFAgent.py dev --host localhost
+    # Recommended: Use the installed command
+    pdftranslator cli translate document.pdf
+    pdftranslator backend --port 8080
+
+    # Alternative: Use Python module
+    python -m pdftranslator cli translate document.pdf
+    python -m pdftranslator backend
+
+This file will delegate to the new pdftranslator package.
 """
 
 import sys
