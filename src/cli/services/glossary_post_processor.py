@@ -74,7 +74,7 @@ class GlossaryPostProcessor:
         Creates lookup tables for efficient matching of term variants.
         """
         for entry in self.entries:
-            self._variant_maps[entry.source_term] = self._generate_variants(entry)
+            self._variant_maps[entry.term] = self._generate_variants(entry)
 
     def _generate_variants(self, entry: GlossaryEntry) -> Dict:
         """
@@ -90,14 +90,14 @@ class GlossaryPostProcessor:
         is_do_not_translate = entry.notes and "DO_NOT_TRANSLATE" in entry.notes
 
         variants = {
-            "term": entry.source_term,
+            "term": entry.term,
             "correct": set(),
             "incorrect_patterns": [],
             "is_do_not_translate": is_do_not_translate,
-            "expected_translation": entry.target_term,
+            "expected_translation": entry.translation,
         }
 
-        term = entry.source_term
+        term = entry.term
 
         if is_do_not_translate:
             # For DO NOT TRANSLATE, correct variants are the original term
@@ -112,9 +112,9 @@ class GlossaryPostProcessor:
                 re.compile(r"\b" + re.escape(term.lower()) + r"\b", re.IGNORECASE)
             )
 
-        elif entry.target_term:
+        elif entry.translation:
             # Has defined translation
-            translation = entry.target_term
+            translation = entry.translation
             variants["correct"].add(translation)
             variants["correct"].add(translation.lower())
             variants["correct"].add(translation.upper())
@@ -171,10 +171,10 @@ class GlossaryPostProcessor:
         Returns:
             Text with entry validated/corrected
         """
-        if entry.source_term not in self._variant_maps:
+        if entry.term not in self._variant_maps:
             return text
 
-        variants = self._variant_maps[entry.source_term]
+        variants = self._variant_maps[entry.term]
         correction_count = 0
 
         is_do_not_translate = entry.notes and "DO_NOT_TRANSLATE" in entry.notes
@@ -184,7 +184,7 @@ class GlossaryPostProcessor:
             text, count = self._ensure_do_not_translate(text, entry, variants)
             correction_count = count
 
-        elif entry.target_term:
+        elif entry.translation:
             # Ensure term uses the defined translation
             text, count = self._ensure_translation(text, entry, variants)
             correction_count = count
@@ -195,10 +195,10 @@ class GlossaryPostProcessor:
             correction_count = count
 
         if correction_count > 0:
-            self._correction_counts[entry.source_term] = (
-                self._correction_counts.get(entry.source_term, 0) + correction_count
+            self._correction_counts[entry.term] = (
+                self._correction_counts.get(entry.term, 0) + correction_count
             )
-            logger.debug(f"Corrected '{entry.source_term}' {correction_count} times")
+            logger.debug(f"Corrected '{entry.term}' {correction_count} times")
 
         return text
 
@@ -218,7 +218,7 @@ class GlossaryPostProcessor:
         Returns:
             Tuple of (corrected text, correction count)
         """
-        original_term = entry.source_term
+        original_term = entry.term
         correction_count = 0
 
         # Pattern to find the original term (should be present)
@@ -253,8 +253,8 @@ class GlossaryPostProcessor:
         Returns:
             Tuple of (corrected text, correction count)
         """
-        original_term = entry.source_term
-        correct_translation = entry.target_term
+        original_term = entry.term
+        correct_translation = entry.translation
         correction_count = 0
 
         # Pattern to find the original term
@@ -296,7 +296,7 @@ class GlossaryPostProcessor:
         # This is more complex - would need NER-like detection
         # For now, just log that consistency should be checked
         logger.debug(
-            f"Term '{entry.source_term}' has no defined translation - consistency not enforced"
+            f"Term '{entry.term}' has no defined translation - consistency not enforced"
         )
         return text, 0
 

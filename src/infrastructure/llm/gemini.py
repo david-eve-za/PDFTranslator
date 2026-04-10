@@ -19,6 +19,9 @@ from src.infrastructure.llm.base import BaseLLM
 
 logger = logging.getLogger(__name__)
 
+# Default timeout for LLM calls (30 minutes in seconds)
+DEFAULT_TIMEOUT = 1800
+
 
 class GeminiLLM(BaseLLM):
     """Google Gemini LLM connector with model rotation support."""
@@ -166,7 +169,7 @@ class GeminiLLM(BaseLLM):
             top_p=config.top_p,
             rate_limiter=rate_limiter,
             verbose=True,
-            request_timeout=config.request_timeout,
+            request_timeout=config.request_timeout or DEFAULT_TIMEOUT,
         )
 
         return llm_client.with_retry(

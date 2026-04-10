@@ -6,7 +6,7 @@ Translate the provided text from **{source_lang}** to **{target_lang}**. The tra
 
 ### Text for Processing ###
 """
-{{text_chunk}}
+{text_chunk}
 """
 
 ### Rigorous Processing Protocol (Execute these steps sequentially and without fail) ###

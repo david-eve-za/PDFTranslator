@@ -11,8 +11,10 @@ class Work:
 
     id: Optional[int] = None
     title: str = ""
+    title_translated: Optional[str] = None
     source_lang: Optional[str] = None
     target_lang: Optional[str] = None
+    author: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -28,8 +30,10 @@ class Volume:
     work_id: Optional[int] = None
     volume_number: int = 0
     title: Optional[str] = None
+    full_text: Optional[str] = None
+    translated_text: Optional[str] = None
+    embedding: Optional[list] = None
     created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
 
     def __repr__(self) -> str:
         return f"Volume(id={self.id}, number={self.volume_number})"
@@ -43,10 +47,12 @@ class Chapter:
     volume_id: Optional[int] = None
     chapter_number: Optional[int] = None
     title: Optional[str] = None
+    start_position: Optional[int] = None
+    end_position: Optional[int] = None
     original_text: Optional[str] = None
     translated_text: Optional[str] = None
+    embedding: Optional[list] = None
     created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
 
     def __repr__(self) -> str:
         if self.chapter_number:
@@ -60,15 +66,36 @@ class GlossaryEntry:
 
     id: Optional[int] = None
     work_id: Optional[int] = None
-    volume_id: Optional[int] = None
-    source_term: str = ""
-    target_term: str = ""
-    context: Optional[str] = None
+    term: str = ""
+    translation: Optional[str] = None
     notes: Optional[str] = None
+    is_proper_noun: bool = False
+    embedding: Optional[list] = None
     created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
 
     def __repr__(self) -> str:
-        return (
-            f"GlossaryEntry(id={self.id}, '{self.source_term}' -> '{self.target_term}')"
-        )
+        return f"GlossaryEntry(id={self.id}, '{self.term}' -> '{self.translation}')"
+
+
+@dataclass
+class TermContext:
+    """Represents a context for a glossary term."""
+
+    id: Optional[int] = None
+    term_id: Optional[int] = None
+    context_hint: str = ""
+    translation: str = ""
+    example_usage: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+
+@dataclass
+class ContextExample:
+    """Represents an example sentence for a term context."""
+
+    id: Optional[int] = None
+    context_id: Optional[int] = None
+    original_sentence: str = ""
+    translated_sentence: str = ""
+    chapter_id: Optional[int] = None
+    created_at: Optional[datetime] = None

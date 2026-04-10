@@ -149,21 +149,12 @@ def dev(
         raise typer.Exit(code=1)
 
 
+try:
+    from src.cli.app import app as cli_app
+
+    app.add_typer(cli_app, name="cli")
+except ImportError as e:
+    logger.warning(f"CLI commands not available: {e}")
+
 if __name__ == "__main__":
-    # Check if first argument is 'cli' - if so, pass through to CLI app
-    import sys
-
-    if len(sys.argv) > 1 and sys.argv[1] == "cli":
-        # Remove 'cli' from args and pass to CLI app
-        cli_args = sys.argv[2:] if len(sys.argv) > 2 else ["--help"]
-        try:
-            from src.cli.app import app as cli_app
-
-            cli_app(cli_args)
-        except ImportError as e:
-            logger.error(f"Failed to import CLI: {e}")
-            logger.error("Make sure you're running from the project root directory")
-            sys.exit(1)
-    else:
-        # Run Typer app for other commands
-        app()
+    app()

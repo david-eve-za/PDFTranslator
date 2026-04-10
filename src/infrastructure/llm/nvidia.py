@@ -14,6 +14,9 @@ from src.infrastructure.llm.base import BaseLLM
 
 logger = logging.getLogger(__name__)
 
+# Default timeout for LLM calls (30 minutes in seconds)
+DEFAULT_TIMEOUT = 1800
+
 
 class NvidiaLLM(BaseLLM):
     """NVIDIA NIM cloud API connector using langchain-nvidia-ai-endpoints."""
@@ -43,13 +46,14 @@ class NvidiaLLM(BaseLLM):
             max_bucket_size=rpm,
         )
 
-        # Create model
+        # Create model with timeout
         self._model = ChatNVIDIA(
             model=config.model_name,
             temperature=config.temperature,
             top_p=config.top_p,
             max_tokens=config.max_output_tokens,
             rate_limiter=rate_limiter,
+            request_timeout=config.request_timeout or DEFAULT_TIMEOUT,
             verbose=True,
         )
 

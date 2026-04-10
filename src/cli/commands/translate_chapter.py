@@ -352,7 +352,9 @@ class GlossaryAwareTranslator(Translator):
         Returns:
             The translation prompt template.
         """
-        with open(self.config.translation_prompt_path, "r", encoding="utf-8") as f:
+        with open(
+            self._settings.paths.translation_prompt_path, "r", encoding="utf-8"
+        ) as f:
             return f.read()
 
     def _get_language_for_split(self, source_lang: str) -> BCP47Language:

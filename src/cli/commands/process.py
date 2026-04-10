@@ -31,12 +31,15 @@ from src.tools.TextExtractor import TextExtractor
 from src.tools.Translator import Translator
 
 
-def translate_text(translator: Translator, text: str, file_path: Path) -> Optional[str]:
-    config = GlobalConfig()
+def translate_text(
+    translator: Translator,
+    text: str,
+    file_path: Path,
+    source_lang: str,
+    target_lang: str,
+) -> Optional[str]:
     logging.info(f" - Translating text for: {os.path.basename(file_path)}")
-    translated_text = translator.translate_text(
-        text, config.source_lang, config.target_lang
-    )
+    translated_text = translator.translate_text(text, source_lang, target_lang)
     if not translated_text or not translated_text.strip():
         logging.warning(
             f" - Translation failed or resulted in empty text for {os.path.basename(file_path)}. Skipping file."
@@ -71,7 +74,6 @@ def generate_video(
     audio_path: Path,
     file_path: Path,
 ) -> bool:
-    config = GlobalConfig()
     if not images_list:
         logging.info(" - No images found, skipping video generation.")
         return True
@@ -94,8 +96,9 @@ def generate_video(
         return False
 
 
-def prepare_output_paths(file_path: Path) -> Optional[Tuple[Path, Path]]:
-    config = GlobalConfig()
+def prepare_output_paths(
+    file_path: Path, target_lang: str, output_format: str
+) -> Optional[Tuple[Path, Path]]:
     try:
         file_parent_dir = file_path.parent.resolve()
         dynamic_output_dir = file_parent_dir / DEFAULT_OUTPUT_SUBDIR
@@ -109,18 +112,24 @@ def prepare_output_paths(file_path: Path) -> Optional[Tuple[Path, Path]]:
 
     base_name = file_path.stem
     output_audio_filename = (
-        dynamic_output_dir / f"{base_name}_{config.target_lang}.{config.output_format}"
+        dynamic_output_dir / f"{base_name}_{target_lang}.{output_format}"
     )
     return dynamic_output_dir, output_audio_filename
 
 
-def process_single_file(file_path: Path, services: Tuple) -> bool:
-    config = GlobalConfig()
+def process_single_file(
+    file_path: Path,
+    services: Tuple,
+    source_lang: str,
+    target_lang: str,
+    output_format: str,
+    gen_video: bool,
+) -> bool:
     translation_agent, audio_generator, video_generator = services
 
     logging.info(f"\n--- Processing file: {os.path.basename(file_path)} ---")
 
-    output_paths = prepare_output_paths(file_path)
+    output_paths = prepare_output_paths(file_path, target_lang, output_format)
     if not output_paths:
         return False
     _, output_audio_filename = output_paths
@@ -170,7 +179,9 @@ def process_single_file(file_path: Path, services: Tuple) -> bool:
             temp_text_file_path.unlink()
             logging.info(f"Archivo temporal eliminado: {temp_text_file_path}")
 
-    translated_text = translate_text(translation_agent, original_text, file_path)
+    translated_text = translate_text(
+        translation_agent, original_text, file_path, source_lang, target_lang
+    )
     if translated_text is None:
         return False
 
@@ -183,7 +194,7 @@ def process_single_file(file_path: Path, services: Tuple) -> bool:
         )
         return False
 
-    if config.gen_video:
+    if gen_video:
         video_success = generate_video(
             video_generator, [], output_audio_filename, file_path
         )
@@ -212,9 +223,15 @@ def initialize_services() -> Optional[Tuple]:
         return None
 
 
-def process_files_with_progress(services: Tuple) -> Tuple[int, int]:
-    config = GlobalConfig()
-    file_finder = FileFinder(config.input_path)
+def process_files_with_progress(
+    services: Tuple,
+    input_path: Path,
+    source_lang: str,
+    target_lang: str,
+    output_format: str,
+    gen_video: bool,
+) -> Tuple[int, int]:
+    file_finder = FileFinder(input_path)
 
     files_to_process: List[Path] = file_finder.get_files(
         file_type=DEFAULT_FILE_TYPE_TO_PROCESS,
@@ -223,7 +240,7 @@ def process_files_with_progress(services: Tuple) -> Tuple[int, int]:
 
     if not files_to_process:
         console.print(
-            f"[yellow]No .{DEFAULT_FILE_TYPE_TO_PROCESS} files found in '{config.input_path}'[/yellow]"
+            f"[yellow]No .{DEFAULT_FILE_TYPE_TO_PROCESS} files found in '{input_path}'[/yellow]"
         )
         return 0, 0
 
@@ -245,7 +262,9 @@ def process_files_with_progress(services: Tuple) -> Tuple[int, int]:
 
         for file_path in files_to_process:
             progress.update(task, description=f"[cyan]Processing: {file_path.name}")
-            success = process_single_file(file_path, services)
+            success = process_single_file(
+                file_path, services, source_lang, target_lang, output_format, gen_video
+            )
             if success:
                 successful_file_count += 1
             else:
@@ -291,19 +310,6 @@ def process(
     translating, and generating audiobooks.
     """
     setup_logging()
-    config = GlobalConfig()
-
-    config.update_from_dict(
-        {
-            "input_path": str(input_path),
-            "source_lang": source_lang,
-            "target_lang": target_lang,
-            "output_format": output_format,
-            "voice": voice,
-            "gen_video": gen_video,
-            "agent": agent,
-        }
-    )
 
     console.print(
         Panel.fit(
@@ -320,15 +326,33 @@ def process(
     successful_file_count = 0
     failed_file_count = 0
 
+    # Normalize language codes (remove region if present)
+    source_lang_code = source_lang.split("-")[0]
+    target_lang_code = target_lang.split("-")[0]
+
     if input_path.is_file():
         console.print(f"[cyan]Processing single file:[/cyan] {input_path.name}")
-        if process_single_file(input_path, services):
+        if process_single_file(
+            input_path,
+            services,
+            source_lang_code,
+            target_lang_code,
+            output_format,
+            gen_video,
+        ):
             successful_file_count = 1
         else:
             failed_file_count = 1
     elif input_path.is_dir():
         console.print(f"[cyan]Processing directory:[/cyan] {input_path}")
-        successful_file_count, failed_file_count = process_files_with_progress(services)
+        successful_file_count, failed_file_count = process_files_with_progress(
+            services,
+            input_path,
+            source_lang_code,
+            target_lang_code,
+            output_format,
+            gen_video,
+        )
     else:
         console.print(f"[red]Invalid path: {input_path}[/red]")
         raise typer.Exit(1)

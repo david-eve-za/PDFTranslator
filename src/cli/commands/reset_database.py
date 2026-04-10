@@ -28,13 +28,13 @@ def reset_database():
 
     Only available when develop_mode is enabled in Settings.
     """
-    config = GlobalConfig()
+    config = Settings.get()
 
-    if not config.develop_mode:
+    if not config.processing.develop_mode:
         console.print(
             Panel.fit(
                 "[red]Error: This command is only available in develop mode.[/red]\n"
-                "[yellow]Set develop_mode = True in GlobalConfig to enable.[/yellow]"
+                "[yellow]Set develop_mode = True in Settings to enable.[/yellow]"
             )
         )
         raise typer.Exit(1)

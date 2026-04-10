@@ -69,8 +69,8 @@ class AudioGenerator:
         if not shutil.which("say"):
             raise RuntimeError("The 'say' command is not available on this system.")
 
-        config = GlobalConfig()
-        self.voice = config.voice
+        config = Settings.get()
+        self.voice = config.processing.voice
         self.output_dir = None
 
         _ensure_nltk_punkt()

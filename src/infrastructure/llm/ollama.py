@@ -13,6 +13,9 @@ from src.infrastructure.llm.base import BaseLLM
 
 logger = logging.getLogger(__name__)
 
+# Default timeout for LLM calls (30 minutes in seconds)
+DEFAULT_TIMEOUT = 1800
+
 
 class OllamaLLM(BaseLLM):
     """Ollama local LLM connector using langchain-ollama."""
@@ -34,6 +37,7 @@ class OllamaLLM(BaseLLM):
             validate_model_on_init=config.validate_model,
             temperature=config.temperature,
             top_p=config.top_p,
+            request_timeout=DEFAULT_TIMEOUT,
             verbose=True,
             reasoning=False,
         )

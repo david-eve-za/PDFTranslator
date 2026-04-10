@@ -13,17 +13,22 @@ class VectorStoreService:
     """
 
     def __init__(self):
-        self._config = GlobalConfig()
+        self._config = Settings.get()
         self._embedder: Optional[NVIDIAEmbeddings] = None
         self._reranker: Optional[NVIDIARerank] = None
+
+    @property
+    def _nvidia(self):
+        """Convenience accessor for NVIDIA config"""
+        return self._config.llm.nvidia
 
     @property
     def embedder(self) -> NVIDIAEmbeddings:
         """Lazy initialization del embedder"""
         if self._embedder is None:
             self._embedder = NVIDIAEmbeddings(
-                model=self._config.nvidia_embed_model,
-                api_key=self._config.nvidia_nim_api_key,
+                model=self._nvidia.embed_model,
+                api_key=self._config.llm.nvidia_api_key,
             )
         return self._embedder
 
@@ -32,9 +37,9 @@ class VectorStoreService:
         """Lazy initialization del reranker"""
         if self._reranker is None:
             self._reranker = NVIDIARerank(
-                model=self._config.nvidia_rerank_model,
-                api_key=self._config.nvidia_nim_api_key,
-                top_n=self._config.nvidia_rerank_top_n,
+                model=self._nvidia.rerank_model,
+                api_key=self._config.llm.nvidia_api_key,
+                top_n=self._nvidia.rerank_top_n,
             )
         return self._reranker
 
@@ -80,9 +85,9 @@ class VectorStoreService:
             return []
 
         reranker = NVIDIARerank(
-            model=self._config.nvidia_rerank_model,
-            api_key=self._config.nvidia_nim_api_key,
-            top_n=top_n or self._config.nvidia_rerank_top_n,
+            model=self._nvidia.rerank_model,
+            api_key=self._config.llm.nvidia_api_key,
+            top_n=top_n or self._nvidia.rerank_top_n,
         )
         return reranker.compress_documents(documents=documents, query=query)
 

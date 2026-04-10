@@ -72,20 +72,17 @@ class GlossaryEntryResponse(BaseModel):
 
     id: int
     work_id: int
-    volume_id: Optional[int]
-    source_term: str
-    target_term: str
-    context: Optional[str]
+    term: str
+    translation: Optional[str]
     notes: Optional[str]
+    is_proper_noun: bool
     created_at: datetime
-    updated_at: datetime
 
 
 class GlossaryUpdateRequest(BaseModel):
     """Glossary update request schema."""
 
-    target_term: Optional[str] = None
-    context: Optional[str] = None
+    translation: Optional[str] = None
     notes: Optional[str] = None
 
 

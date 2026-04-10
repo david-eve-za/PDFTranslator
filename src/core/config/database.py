@@ -8,8 +8,8 @@ class DatabaseSettings(BaseModel):
 
     host: str = Field(default="localhost")
     port: int = Field(default=5432, gt=0)
-    name: str = Field(default="pdftranslator")
-    user: str = Field(default="postgres")
+    name: str = Field(default="book_translator")
+    user: str = Field(default="translator_user")
     password: str = Field(default="postgres")
     min_connections: int = Field(default=1, ge=1)
     max_connections: int = Field(default=10, ge=1)

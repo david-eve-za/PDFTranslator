@@ -87,6 +87,10 @@ class NvidiaConfig(BaseModel):
         default="mistralai/Mistral-Large-3-675B-Instruct-2512"
     )
     local_tokenizer_dir: str = Field(default="mistral-large-3-675b-instruct-2512")
+    # NVIDIA NIM Embedding/Reranking settings
+    embed_model: str = Field(default="nvidia/nv-embedqa-e5-v5")
+    rerank_model: str = Field(default="nvidia/nv-rerankqa-mistral-2b-4b-4096-v1")
+    rerank_top_n: int = Field(default=5, gt=0)
 
 
 class OllamaConfig(BaseModel):
@@ -110,6 +114,9 @@ class LLMSettings(BaseModel):
     gemini: GeminiConfig = Field(default_factory=GeminiConfig)
     nvidia: NvidiaConfig = Field(default_factory=NvidiaConfig)
     ollama: OllamaConfig = Field(default_factory=OllamaConfig)
+    # API keys (loaded from environment)
+    nvidia_api_key: str = Field(default="", description="NVIDIA NIM API key")
+    google_api_key: str = Field(default="", description="Google/Gemini API key")
 
     def get_config_for_provider(
         self, provider: LLMProvider

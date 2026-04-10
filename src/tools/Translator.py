@@ -6,8 +6,6 @@ from src.infrastructure.llm.gemini import GeminiLLM
 from src.infrastructure.llm.nvidia import NvidiaLLM
 from src.infrastructure.llm.ollama import OllamaLLM
 from src.infrastructure.llm.base import BaseLLM
-from src.tools import OverlapCleaner
-from src.tools.OverlapCleaner import clean_overlap
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -26,27 +24,28 @@ class Translator:
         Initializes the Translator, creating the appropriate LLM client
         based on the global configuration.
         """
-        self.config = GlobalConfig()
+        self._settings = Settings.get()
         self.llm_client = self._create_llm_client()
         self._progress = progress
 
     def _create_llm_client(self) -> BaseLLM:
         """Factory function to create an LLM client."""
-        if self.config.agent == "gemini":
-            return GeminiLLM()
-        elif self.config.agent == "ollama":
-            return OllamaLLM()
-        elif self.config.agent == "nvidia":
-            return NvidiaLLM()
+        agent = self._settings.agent.value  # LLMProvider enum
+        if agent == "gemini":
+            return GeminiLLM(self._settings)
+        elif agent == "ollama":
+            return OllamaLLM(self._settings)
+        elif agent == "nvidia":
+            return NvidiaLLM(self._settings)
         else:
-            raise ValueError(
-                f"Unsupported agent specified in config: {self.config.agent}"
-            )
+            raise ValueError(f"Unsupported agent specified in config: {agent}")
 
     def _get_translation_prompt_template(
         self, source_lang: str, target_lang: str
     ) -> str:
-        with open(self.config.translation_prompt_path, "r", encoding="utf-8") as f:
+        with open(
+            self._settings.paths.translation_prompt_path, "r", encoding="utf-8"
+        ) as f:
             prompt_template = f.read()
         return prompt_template.format(source_lang=source_lang, target_lang=target_lang)
 
@@ -84,12 +83,12 @@ class Translator:
         original_chunks = self.llm_client.split_into_limit(full_text)
 
         logger.info(
-            f"  - Original text split into {len(original_chunks)} chunks for translation."
+            f" - Original text split into {len(original_chunks)} chunks for translation."
         )
 
         if not original_chunks:
             logger.warning(
-                "  - Warning: The original text resulted in 0 chunks. Check input."
+                " - Warning: The original text resulted in 0 chunks. Check input."
             )
             return ""
 

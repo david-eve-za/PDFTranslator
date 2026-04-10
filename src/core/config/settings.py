@@ -8,6 +8,7 @@ from src.core.config.database import DatabaseSettings
 from src.core.config.nlp import NLPSettings
 from src.core.config.paths import PathSettings
 from src.core.config.document import DoclingConfig
+from src.core.config.processing import ProcessingSettings
 
 
 class Settings(BaseSettings):
@@ -38,6 +39,7 @@ class Settings(BaseSettings):
     nlp: NLPSettings = Field(default_factory=NLPSettings)
     paths: PathSettings = Field(default_factory=PathSettings)
     document: DoclingConfig = Field(default_factory=DoclingConfig)
+    processing: ProcessingSettings = Field(default_factory=ProcessingSettings)
 
     @property
     def agent(self) -> LLMProvider:
