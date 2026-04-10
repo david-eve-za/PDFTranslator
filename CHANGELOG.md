@@ -7,6 +7,137 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Modern Python Structure Refactoring (2025-04-10)
+
+#### New Package Structure
+- **Created `pdftranslator` package** under `src/`:
+  - All code now under `src/pdftranslator/` (standard Python 2025 layout)
+  - Frontend integrated into `src/pdftranslator/frontend/`
+  - Clean separation: backend, cli, core, database, infrastructure, services, tools
+
+#### Configuration & Standards
+- **Modern `pyproject.toml`** configuration:
+  - Project metadata (name, version 0.2.0, description)
+  - Dependencies and optional dependencies (dev, gemini, ollama, docling)
+  - Entry points: `pdftranslator` and `pdfagent` commands
+  - Tool configurations: ruff, mypy, pytest, coverage
+  - Package discovery and data files
+- **MIT License** added
+- **`.python-version`** file (Python 3.11)
+- **Entry points**:
+  - `src/pdftranslator/__init__.py` with version metadata
+  - `src/pdftranslator/__main__.py` as main entry point
+  - Support for: `python -m pdftranslator`, `pdftranslator` command
+
+#### Import Updates
+- **Updated 181 import statements**:
+  - Old: `from src.module` → New: `from pdftranslator.module`
+  - All modules now use new package namespace
+- **Updated test mocks**:
+  - All `patch("src.")` → `patch("pdftranslator.")`
+
+#### Directory Cleanup
+- **Removed duplicate directories** from root:
+  - `backend/` (moved to `src/pdftranslator/backend/`)
+  - `config/` (moved to `src/pdftranslator/core/config/`)
+  - `infrastructure/` (moved to `src/pdftranslator/infrastructure/`)
+- **Removed obsolete files**:
+  - `src/__init__.py` (package now under pdftranslator)
+  - `mistral-large-3-675b-instruct-2512/` (tokenizer cache)
+  - `PDFAgent.log` (log file)
+
+### Changed - Backward Compatibility
+
+#### Entry Point Migration
+- **`PDFAgent.py`** now deprecated:
+  - Shows deprecation warning
+  - Delegates to new `pdftranslator` package
+  - Recommended new usage: `python -m pdftranslator` or `pdftranslator` command
+- **New entry points** available:
+  - `pdftranslator cli translate document.pdf`
+  - `pdftranslator backend --port 8080`
+  - `pdftranslator frontend`
+  - `pdftranslator dev`
+  - `python -m pdftranslator [command]`
+
+### Migration Guide
+
+#### For Users
+
+**Before (Old Structure):**
+```python
+from src.backend.main import app
+from src.core.config.settings import Settings
+from src.database.models import Work
+```
+
+**After (New Structure):**
+```python
+from pdftranslator.backend.main import app
+from pdftranslator.core.config.settings import Settings
+from pdftranslator.database.models import Work
+```
+
+#### Running the Application
+
+**Before:**
+```bash
+python PDFAgent.py cli translate document.pdf
+python PDFAgent.py backend
+```
+
+**After (Recommended):**
+```bash
+# Using installed command
+pdftranslator cli translate document.pdf
+pdftranslator backend --port 8080
+
+# Using module execution
+python -m pdftranslator cli translate document.pdf
+python -m pdftranslator backend
+
+# Backward compatible (deprecated)
+python PDFAgent.py cli translate document.pdf
+```
+
+#### Installing the Package
+
+```bash
+# Development install
+pip install -e .
+
+# Or with optional dependencies
+pip install -e ".[dev]"
+pip install -e ".[all]"
+```
+
+### Directory Structure (After Refactoring)
+
+```
+PDFTranslator/
+├── src/
+│   └── pdftranslator/           # Main package
+│       ├── __init__.py          # Version 0.2.0
+│       ├── __main__.py          # Entry point
+│       ├── backend/             # FastAPI backend
+│       ├── cli/                 # CLI interface
+│       ├── core/                # Core functionality
+│       ├── database/            # Database layer
+│       ├── infrastructure/      # External integrations
+│       ├── services/            # Business logic
+│       ├── tools/               # Utility tools
+│       └── frontend/            # React frontend
+├── tests/                       # Test suite
+├── docs/                        # Documentation
+├── pyproject.toml               # Modern config
+├── LICENSE                      # MIT License
+├── .python-version              # Python 3.11
+├── README.md
+├── CHANGELOG.md
+├── AGENTS.md
+└── PDFAgent.py                  # Deprecated entry point
+```
+
 ### Fixed
 - **Configuration system migration completed**:
   - Replaced all `GlobalConfig` references with `Settings.get()` throughout the codebase
