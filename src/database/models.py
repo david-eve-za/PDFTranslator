@@ -63,6 +63,8 @@ class EntityCandidate:
     contexts: List[str] = field(default_factory=list)
     confidence: float = 0.0
     source_language: str = "en"
+    translation: Optional[str] = None
+    validated: bool = False
 
     def add_context(self, context: str):
         if context not in self.contexts:
