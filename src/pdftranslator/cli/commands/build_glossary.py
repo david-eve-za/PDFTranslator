@@ -15,13 +15,13 @@ from rich.progress import (
 )
 from rich.table import Table
 
-from src.cli.app import app, console, setup_logging
-from src.database.connection import DatabasePool
-from src.database.models import Work, Volume, Chapter, BuildResult
-from src.database.repositories.book_repository import BookRepository
-from src.database.repositories.chapter_repository import ChapterRepository
-from src.database.repositories.volume_repository import VolumeRepository
-from src.database.services.glossary_manager import GlossaryManager
+from pdftranslator.cli.app import app, console, setup_logging
+from pdftranslator.database.connection import DatabasePool
+from pdftranslator.database.models import Work, Volume, Chapter, BuildResult
+from pdftranslator.database.repositories.book_repository import BookRepository
+from pdftranslator.database.repositories.chapter_repository import ChapterRepository
+from pdftranslator.database.repositories.volume_repository import VolumeRepository
+from pdftranslator.database.services.glossary_manager import GlossaryManager
 
 logger = logging.getLogger(__name__)
 

@@ -2,7 +2,7 @@
 
 from typing import Protocol, runtime_checkable
 
-from src.core.config.llm import BCP47Language
+from pdftranslator.core.config.llm import BCP47Language
 
 
 @runtime_checkable

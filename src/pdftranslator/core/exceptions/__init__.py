@@ -1,6 +1,6 @@
 """Custom exceptions for the application."""
 
-from src.database.exceptions import (
+from pdftranslator.database.exceptions import (
     DatabaseError,
     ConnectionError,
     QueryError,

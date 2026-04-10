@@ -1,8 +1,8 @@
 from typing import Optional, Dict
 
-from src.database.connection import DatabasePool
-from src.database.repositories.base import BaseRepository
-from src.database.models import FantasyTerm
+from pdftranslator.database.connection import DatabasePool
+from pdftranslator.database.repositories.base import BaseRepository
+from pdftranslator.database.models import FantasyTerm
 
 
 class FantasyTermRepository(BaseRepository[FantasyTerm]):

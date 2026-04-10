@@ -15,11 +15,11 @@ from rich.progress import (
     TaskProgressColumn,
 )
 
-from src.cli.app import app, console, VALID_EXTENSIONS
-from src.database.models import Work, Volume
-from src.database.repositories.book_repository import BookRepository
-from src.database.repositories.volume_repository import VolumeRepository
-from src.tools.TextExtractor import TextExtractor
+from pdftranslator.cli.app import app, console, VALID_EXTENSIONS
+from pdftranslator.database.models import Work, Volume
+from pdftranslator.database.repositories.book_repository import BookRepository
+from pdftranslator.database.repositories.volume_repository import VolumeRepository
+from pdftranslator.tools.TextExtractor import TextExtractor
 
 logger = logging.getLogger(__name__)
 

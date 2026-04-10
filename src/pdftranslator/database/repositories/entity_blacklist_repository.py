@@ -1,8 +1,8 @@
 from typing import Optional, Set
 
-from src.database.connection import DatabasePool
-from src.database.repositories.base import BaseRepository
-from src.database.models import EntityBlacklist
+from pdftranslator.database.connection import DatabasePool
+from pdftranslator.database.repositories.base import BaseRepository
+from pdftranslator.database.models import EntityBlacklist
 
 
 class EntityBlacklistRepository(BaseRepository[EntityBlacklist]):

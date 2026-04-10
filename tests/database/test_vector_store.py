@@ -15,7 +15,7 @@ def test_embed_query(mock_settings_class, mock_embeddings_class):
     mock_embedder.embed_query.return_value = [0.1, 0.2, 0.3]
     mock_embeddings_class.return_value = mock_embedder
 
-    from src.database.services.vector_store import VectorStoreService
+    from pdftranslator.database.services.vector_store import VectorStoreService
 
     service = VectorStoreService()
     result = service.embed_query("test query")
@@ -34,7 +34,7 @@ def test_embed_documents(mock_settings_class, mock_embeddings_class):
     mock_embedder.embed_documents.return_value = [[0.1, 0.2], [0.3, 0.4]]
     mock_embeddings_class.return_value = mock_embedder
 
-    from src.database.services.vector_store import VectorStoreService
+    from pdftranslator.database.services.vector_store import VectorStoreService
 
     service = VectorStoreService()
     result = service.embed_documents(["doc1", "doc2"])
@@ -55,7 +55,7 @@ def test_rerank_documents(mock_settings_class, mock_rerank_class):
     mock_reranker.compress_documents.return_value = [docs[0]]
     mock_rerank_class.return_value = mock_reranker
 
-    from src.database.services.vector_store import VectorStoreService
+    from pdftranslator.database.services.vector_store import VectorStoreService
 
     service = VectorStoreService()
     result = service.rerank_documents("query", docs)
@@ -69,7 +69,7 @@ def test_cosine_similarity(mock_settings_class):
     mock_config.llm.nvidia_api_key = "test-key"
     mock_settings_class.get.return_value = mock_config
 
-    from src.database.services.vector_store import VectorStoreService
+    from pdftranslator.database.services.vector_store import VectorStoreService
 
     service = VectorStoreService()
     query = [1.0, 0.0, 0.0]
@@ -86,7 +86,7 @@ def test_find_most_similar(mock_settings_class):
     mock_config.llm.nvidia_api_key = "test-key"
     mock_settings_class.get.return_value = mock_config
 
-    from src.database.services.vector_store import VectorStoreService
+    from pdftranslator.database.services.vector_store import VectorStoreService
 
     service = VectorStoreService()
     query = [1.0, 0.0]
@@ -101,7 +101,7 @@ def test_rerank_empty_documents(mock_settings_class):
     mock_config.llm.nvidia_api_key = "test-key"
     mock_settings_class.get.return_value = mock_config
 
-    from src.database.services.vector_store import VectorStoreService
+    from pdftranslator.database.services.vector_store import VectorStoreService
 
     service = VectorStoreService()
     result = service.rerank_documents("query", [])

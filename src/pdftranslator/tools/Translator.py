@@ -1,11 +1,11 @@
 import logging
 import re
 
-from src.core.config.settings import Settings
-from src.infrastructure.llm.gemini import GeminiLLM
-from src.infrastructure.llm.nvidia import NvidiaLLM
-from src.infrastructure.llm.ollama import OllamaLLM
-from src.infrastructure.llm.base import BaseLLM
+from pdftranslator.core.config.settings import Settings
+from pdftranslator.infrastructure.llm.gemini import GeminiLLM
+from pdftranslator.infrastructure.llm.nvidia import NvidiaLLM
+from pdftranslator.infrastructure.llm.ollama import OllamaLLM
+from pdftranslator.infrastructure.llm.base import BaseLLM
 
 # Configure logging
 logger = logging.getLogger(__name__)

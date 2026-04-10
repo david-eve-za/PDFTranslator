@@ -30,7 +30,7 @@ async def health():
     return {"status": "healthy"}
 
 
-from src.backend.api.routes import files
+from pdftranslator.backend.api.routes import files
 
 app.include_router(files.router)
 

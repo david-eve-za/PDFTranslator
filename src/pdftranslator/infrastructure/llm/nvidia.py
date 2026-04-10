@@ -8,9 +8,9 @@ from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from langchain_text_splitters import NLTKTextSplitter
 from transformers import AutoTokenizer
 
-from src.core.config.settings import Settings
-from src.core.config.llm import BCP47Language
-from src.infrastructure.llm.base import BaseLLM
+from pdftranslator.core.config.settings import Settings
+from pdftranslator.core.config.llm import BCP47Language
+from pdftranslator.infrastructure.llm.base import BaseLLM
 
 logger = logging.getLogger(__name__)
 

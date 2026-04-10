@@ -3,10 +3,10 @@
 import logging
 from typing import List
 
-from src.core.config.llm import BCP47Language
-from src.database.models import GlossaryEntry
-from src.services.translator import TranslatorService, TranslationResult
-from src.cli.services.glossary_post_processor import GlossaryPostProcessor
+from pdftranslator.core.config.llm import BCP47Language
+from pdftranslator.database.models import GlossaryEntry
+from pdftranslator.services.translator import TranslatorService, TranslationResult
+from pdftranslator.cli.services.glossary_post_processor import GlossaryPostProcessor
 
 logger = logging.getLogger(__name__)
 

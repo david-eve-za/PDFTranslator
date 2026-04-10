@@ -58,7 +58,7 @@ def backend(
     """
     try:
         import uvicorn
-        from src.backend.main import app as fastapi_app
+        from pdftranslator.backend.main import app as fastapi_app
 
         logger.info(f"Starting backend server at http://{host}:{port}")
         uvicorn.run(fastapi_app, host=host, port=port, reload=reload, log_level="info")
@@ -121,7 +121,7 @@ def dev(
     def start_backend_thread():
         """Backend thread for dev mode."""
         import uvicorn
-        from src.backend.main import app as fastapi_app
+        from pdftranslator.backend.main import app as fastapi_app
 
         uvicorn.run(fastapi_app, host=host, port=port, log_level="info")
 
@@ -150,7 +150,7 @@ def dev(
 
 
 try:
-    from src.cli.app import app as cli_app
+    from pdftranslator.cli.app import app as cli_app
 
     app.add_typer(cli_app, name="cli")
 except ImportError as e:

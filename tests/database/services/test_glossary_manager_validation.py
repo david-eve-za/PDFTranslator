@@ -2,8 +2,8 @@
 
 import pytest
 from unittest.mock import MagicMock, patch
-from src.database.models import EntityCandidate
-from src.database.services.glossary_manager import GlossaryManager
+from pdftranslator.database.models import EntityCandidate
+from pdftranslator.database.services.glossary_manager import GlossaryManager
 
 
 @pytest.fixture

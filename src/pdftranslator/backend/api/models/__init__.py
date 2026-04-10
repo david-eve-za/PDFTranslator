@@ -1,6 +1,6 @@
 """API models module."""
 
-from src.backend.api.models.schemas import (
+from pdftranslator.backend.api.models.schemas import (
     FileUploadResponse,
     TaskStateSchema,
     TaskStatusResponse,

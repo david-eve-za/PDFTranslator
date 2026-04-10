@@ -4,10 +4,10 @@ import logging
 import threading
 from typing import Type
 
-from src.core.config.settings import Settings
-from src.core.config.llm import LLMProvider
-from src.infrastructure.llm.protocol import LLMClient
-from src.infrastructure.llm.base import BaseLLM
+from pdftranslator.core.config.settings import Settings
+from pdftranslator.core.config.llm import LLMProvider
+from pdftranslator.infrastructure.llm.protocol import LLMClient
+from pdftranslator.infrastructure.llm.base import BaseLLM
 
 logger = logging.getLogger(__name__)
 
@@ -82,17 +82,17 @@ class LLMFactory:
         """
         # Import here to avoid circular imports and allow lazy loading
         if provider == LLMProvider.GEMINI:
-            from src.infrastructure.llm.gemini import GeminiLLM
+            from pdftranslator.infrastructure.llm.gemini import GeminiLLM
 
             return GeminiLLM(self._settings)
 
         elif provider == LLMProvider.NVIDIA:
-            from src.infrastructure.llm.nvidia import NvidiaLLM
+            from pdftranslator.infrastructure.llm.nvidia import NvidiaLLM
 
             return NvidiaLLM(self._settings)
 
         elif provider == LLMProvider.OLLAMA:
-            from src.infrastructure.llm.ollama import OllamaLLM
+            from pdftranslator.infrastructure.llm.ollama import OllamaLLM
 
             return OllamaLLM(self._settings)
 

@@ -12,7 +12,7 @@ Other classes remain here until migrated.
 """
 
 # Backward compatibility imports
-from src.core.models.work import Work, Volume, Chapter, GlossaryEntry
+from pdftranslator.core.models.work import Work, Volume, Chapter, GlossaryEntry
 
 # Classes that remain in this module (not yet migrated)
 from dataclasses import dataclass, field

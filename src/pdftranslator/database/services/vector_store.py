@@ -2,7 +2,7 @@ from typing import List, Optional
 import numpy as np
 from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings, NVIDIARerank
 from langchain_core.documents import Document
-from src.core.config.settings import Settings
+from pdftranslator.core.config.settings import Settings
 
 
 class VectorStoreService:

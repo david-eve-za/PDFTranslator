@@ -1,4 +1,4 @@
-from src.cli.app import app
+from pdftranslator.cli.app import app
 
 if __name__ == "__main__":
     app()

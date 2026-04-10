@@ -13,7 +13,7 @@ from rich.progress import (
     TaskProgressColumn,
 )
 
-from src.cli.app import (
+from pdftranslator.cli.app import (
     app,
     console,
     setup_logging,
@@ -23,12 +23,12 @@ from src.cli.app import (
     DEFAULT_OUTPUT_SUBDIR,
     DEFAULT_FILE_TYPE_TO_PROCESS,
 )
-from src.core.config.settings import Settings
-from src.tools.VideoGenerator import VideoGenerator
-from src.tools.AudioGenerator import AudioGenerator
-from src.tools.FileFinder import FileFinder, IsFileFilter, ExcludeTranslatedFilter
-from src.tools.TextExtractor import TextExtractor
-from src.tools.Translator import Translator
+from pdftranslator.core.config.settings import Settings
+from pdftranslator.tools.VideoGenerator import VideoGenerator
+from pdftranslator.tools.AudioGenerator import AudioGenerator
+from pdftranslator.tools.FileFinder import FileFinder, IsFileFilter, ExcludeTranslatedFilter
+from pdftranslator.tools.TextExtractor import TextExtractor
+from pdftranslator.tools.Translator import Translator
 
 
 def translate_text(

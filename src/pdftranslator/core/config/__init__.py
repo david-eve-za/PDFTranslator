@@ -1,7 +1,7 @@
 """Configuration module using Pydantic Settings."""
 
-from src.core.config.settings import Settings
-from src.core.config.llm import (
+from pdftranslator.core.config.settings import Settings
+from pdftranslator.core.config.llm import (
     LLMSettings,
     LLMProvider,
     BCP47Language,
@@ -9,9 +9,9 @@ from src.core.config.llm import (
     NvidiaConfig,
     OllamaConfig,
 )
-from src.core.config.database import DatabaseSettings
-from src.core.config.nlp import NLPSettings
-from src.core.config.paths import PathSettings
+from pdftranslator.core.config.database import DatabaseSettings
+from pdftranslator.core.config.nlp import NLPSettings
+from pdftranslator.core.config.paths import PathSettings
 
 __all__ = [
     "Settings",

@@ -5,10 +5,10 @@ import re
 from dataclasses import dataclass, field
 from typing import List
 
-from src.core.config.llm import BCP47Language
-from src.core.config.settings import Settings
-from src.infrastructure.llm.factory import LLMFactory
-from src.infrastructure.llm.protocol import LLMClient
+from pdftranslator.core.config.llm import BCP47Language
+from pdftranslator.core.config.settings import Settings
+from pdftranslator.infrastructure.llm.factory import LLMFactory
+from pdftranslator.infrastructure.llm.protocol import LLMClient
 
 logger = logging.getLogger(__name__)
 

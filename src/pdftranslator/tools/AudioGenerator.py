@@ -9,8 +9,8 @@ import nltk
 from langchain_text_splitters import NLTKTextSplitter
 from tqdm import tqdm
 
-from src.core.config.settings import Settings
-from src.tools.OverlapCleaner import clean_overlap
+from pdftranslator.core.config.settings import Settings
+from pdftranslator.tools.OverlapCleaner import clean_overlap
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)

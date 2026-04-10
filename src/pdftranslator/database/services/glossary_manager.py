@@ -15,12 +15,12 @@ import json
 import logging
 from typing import Dict, List, Optional
 
-from src.database.connection import DatabasePool
-from src.database.models import EntityCandidate, BuildResult, GlossaryEntry
-from src.database.repositories.glossary_repository import GlossaryRepository
-from src.database.services.entity_extractor import EntityExtractor
-from src.database.services.vector_store import VectorStoreService
-from src.infrastructure.llm.nvidia import NvidiaLLM
+from pdftranslator.database.connection import DatabasePool
+from pdftranslator.database.models import EntityCandidate, BuildResult, GlossaryEntry
+from pdftranslator.database.repositories.glossary_repository import GlossaryRepository
+from pdftranslator.database.services.entity_extractor import EntityExtractor
+from pdftranslator.database.services.vector_store import VectorStoreService
+from pdftranslator.infrastructure.llm.nvidia import NvidiaLLM
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ class GlossaryManager:
 
     def _ensure_llm(self):
         if self._llm_client is None:
-            from src.core.config.settings import Settings
+            from pdftranslator.core.config.settings import Settings
 
             settings = Settings.get()
             self._llm_client = NvidiaLLM(settings)

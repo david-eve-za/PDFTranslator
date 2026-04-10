@@ -4,10 +4,10 @@ from rich.console import Console
 from rich.panel import Panel
 import questionary
 
-from src.cli.app import app, console
-from src.core.config.settings import Settings
-from src.database.connection import DatabasePool
-from src.database.initializer import DatabaseInitializer
+from pdftranslator.cli.app import app, console
+from pdftranslator.core.config.settings import Settings
+from pdftranslator.database.connection import DatabasePool
+from pdftranslator.database.initializer import DatabaseInitializer
 
 logger = logging.getLogger(__name__)
 

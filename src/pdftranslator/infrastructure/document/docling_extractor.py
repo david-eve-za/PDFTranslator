@@ -16,7 +16,7 @@ from docling.datamodel.accelerator_options import (
 from docling.datamodel.document import ConversionResult
 from docling_core.types.doc import DoclingDocument
 
-from src.core.config.document import DoclingConfig
+from pdftranslator.core.config.document import DoclingConfig
 
 logger = logging.getLogger(__name__)
 

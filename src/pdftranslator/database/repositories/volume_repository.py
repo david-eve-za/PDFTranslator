@@ -1,7 +1,7 @@
 from typing import Optional, List
-from src.database.connection import DatabasePool
-from src.database.repositories.base import BaseRepository
-from src.database.models import Volume
+from pdftranslator.database.connection import DatabasePool
+from pdftranslator.database.repositories.base import BaseRepository
+from pdftranslator.database.models import Volume
 
 
 class VolumeRepository(BaseRepository[Volume]):

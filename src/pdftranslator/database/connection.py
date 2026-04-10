@@ -1,7 +1,7 @@
 from typing import Optional
 from urllib.parse import quote
 from psycopg_pool import ConnectionPool, AsyncConnectionPool
-from src.database.initializer import DatabaseInitializer
+from pdftranslator.database.initializer import DatabaseInitializer
 
 
 class DatabasePool:
@@ -38,7 +38,7 @@ class DatabasePool:
             or user is None
             or password is None
         ):
-            from src.core.config.settings import Settings
+            from pdftranslator.core.config.settings import Settings
 
             config = Settings.get()
             db = config.database

@@ -1,5 +1,5 @@
 # database/__init__.py
-from src.database.models import (
+from pdftranslator.database.models import (
     Work,
     Volume,
     Chapter,
@@ -7,18 +7,18 @@ from src.database.models import (
     TermContext,
     ContextExample,
 )
-from src.database.exceptions import (
+from pdftranslator.database.exceptions import (
     DatabaseError,
     ConnectionError,
     QueryError,
     EntityNotFoundError,
     DuplicateEntityError,
 )
-from src.database.connection import DatabasePool
-from src.database.repositories.book_repository import BookRepository
-from src.database.repositories.chapter_repository import ChapterRepository
-from src.database.repositories.glossary_repository import GlossaryRepository
-from src.database.initializer import DatabaseInitializer
+from pdftranslator.database.connection import DatabasePool
+from pdftranslator.database.repositories.book_repository import BookRepository
+from pdftranslator.database.repositories.chapter_repository import ChapterRepository
+from pdftranslator.database.repositories.glossary_repository import GlossaryRepository
+from pdftranslator.database.initializer import DatabaseInitializer
 
 __all__ = [
     "Work",

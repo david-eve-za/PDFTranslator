@@ -1,9 +1,9 @@
 from typing import Optional, List
 
-from src.database.connection import DatabasePool
-from src.database.repositories.base import BaseRepository
-from src.database.models import Work
-from src.database.services.vector_store import VectorStoreService
+from pdftranslator.database.connection import DatabasePool
+from pdftranslator.database.repositories.base import BaseRepository
+from pdftranslator.database.models import Work
+from pdftranslator.database.services.vector_store import VectorStoreService
 
 
 class BookRepository(BaseRepository[Work]):

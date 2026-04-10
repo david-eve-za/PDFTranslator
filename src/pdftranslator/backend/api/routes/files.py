@@ -5,7 +5,7 @@ from typing import List
 
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
-from src.backend.api.models.schemas import FileUploadResponse
+from pdftranslator.backend.api.models.schemas import FileUploadResponse
 
 router = APIRouter(prefix="/api/files", tags=["files"])
 

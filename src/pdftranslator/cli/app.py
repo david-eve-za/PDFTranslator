@@ -64,7 +64,7 @@ def validate_output_format(value: str) -> str:
     return value.lower()
 
 
-from src.cli.commands import (
+from pdftranslator.cli.commands import (
     process,
     add_to_database,
     split_text,

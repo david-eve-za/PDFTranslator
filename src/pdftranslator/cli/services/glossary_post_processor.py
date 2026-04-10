@@ -9,7 +9,7 @@ by validating and correcting terms after translation.
 import logging
 import re
 from typing import List, Dict, Set, Tuple
-from src.database.models import GlossaryEntry
+from pdftranslator.database.models import GlossaryEntry
 
 logger = logging.getLogger(__name__)
 

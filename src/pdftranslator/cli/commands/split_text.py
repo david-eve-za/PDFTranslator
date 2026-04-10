@@ -11,11 +11,11 @@ import questionary
 import typer
 from rich.panel import Panel
 
-from src.cli.app import app, console
-from src.database.models import Chapter, Work, Volume
-from src.database.repositories.book_repository import BookRepository
-from src.database.repositories.chapter_repository import ChapterRepository
-from src.database.repositories.volume_repository import VolumeRepository
+from pdftranslator.cli.app import app, console
+from pdftranslator.database.models import Chapter, Work, Volume
+from pdftranslator.database.repositories.book_repository import BookRepository
+from pdftranslator.database.repositories.chapter_repository import ChapterRepository
+from pdftranslator.database.repositories.volume_repository import VolumeRepository
 
 logger = logging.getLogger(__name__)
 

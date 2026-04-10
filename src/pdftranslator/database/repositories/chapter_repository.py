@@ -1,10 +1,10 @@
 from typing import Optional, List
 import numpy as np
 
-from src.database.connection import DatabasePool
-from src.database.repositories.base import BaseRepository
-from src.database.models import Chapter
-from src.database.services.vector_store import VectorStoreService
+from pdftranslator.database.connection import DatabasePool
+from pdftranslator.database.repositories.base import BaseRepository
+from pdftranslator.database.models import Chapter
+from pdftranslator.database.services.vector_store import VectorStoreService
 from langchain_core.documents import Document
 
 

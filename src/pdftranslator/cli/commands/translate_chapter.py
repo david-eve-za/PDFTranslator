@@ -22,16 +22,16 @@ from rich.progress import (
 )
 from rich.table import Table
 
-from src.cli.app import app, console, setup_logging
-from src.cli.services.glossary_post_processor import GlossaryPostProcessor
-from src.database.models import Work, Volume, Chapter, GlossaryEntry
-from src.database.repositories.book_repository import BookRepository
-from src.database.repositories.chapter_repository import ChapterRepository
-from src.database.repositories.volume_repository import VolumeRepository
-from src.database.repositories.glossary_repository import GlossaryRepository
-from src.infrastructure.llm.base import BCP47Language
-from src.tools.Translator import Translator
-from src.core.config.settings import Settings
+from pdftranslator.cli.app import app, console, setup_logging
+from pdftranslator.cli.services.glossary_post_processor import GlossaryPostProcessor
+from pdftranslator.database.models import Work, Volume, Chapter, GlossaryEntry
+from pdftranslator.database.repositories.book_repository import BookRepository
+from pdftranslator.database.repositories.chapter_repository import ChapterRepository
+from pdftranslator.database.repositories.volume_repository import VolumeRepository
+from pdftranslator.database.repositories.glossary_repository import GlossaryRepository
+from pdftranslator.infrastructure.llm.base import BCP47Language
+from pdftranslator.tools.Translator import Translator
+from pdftranslator.core.config.settings import Settings
 
 logger = logging.getLogger(__name__)
 

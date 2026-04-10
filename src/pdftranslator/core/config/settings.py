@@ -3,12 +3,12 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 
-from src.core.config.llm import LLMSettings, LLMProvider
-from src.core.config.database import DatabaseSettings
-from src.core.config.nlp import NLPSettings
-from src.core.config.paths import PathSettings
-from src.core.config.document import DoclingConfig
-from src.core.config.processing import ProcessingSettings
+from pdftranslator.core.config.llm import LLMSettings, LLMProvider
+from pdftranslator.core.config.database import DatabaseSettings
+from pdftranslator.core.config.nlp import NLPSettings
+from pdftranslator.core.config.paths import PathSettings
+from pdftranslator.core.config.document import DoclingConfig
+from pdftranslator.core.config.processing import ProcessingSettings
 
 
 class Settings(BaseSettings):
