@@ -1,0 +1,166 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pdftranslator"
+version = "0.2.0"
+description = "PDF/EPUB document translation with AI-powered glossary management"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+authors = [
+    {name = "David Gonzalez", email = "david@example.com"}
+]
+keywords = ["pdf", "epub", "translation", "llm", "nvidia", "glossary", "ai", "nlp"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Text Processing :: Linguistic",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "typer[all]>=0.9.0",
+    "rich>=13.0.0",
+    "questionary>=2.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "psycopg[binary,pool]>=3.1.0",
+    "pgvector>=0.2.0",
+    "langchain-nvidia-ai-endpoints>=0.3.0",
+    "langchain-core>=0.3.0",
+    "langchain-text-splitters>=0.3.0",
+    "transformers>=4.40.0",
+    "nltk>=3.8.0",
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.27.0",
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.23.0",
+    "ruff>=0.3.0",
+    "mypy>=1.9.0",
+    "python-dotenv>=1.0.0",
+    "httpx>=0.27.0",
+]
+gemini = [
+    "google-generativeai>=0.5.0",
+]
+ollama = [
+    "ollama>=0.1.0",
+]
+docling = [
+    "docling>=2.0.0",
+]
+all = [
+    "pdftranslator[dev,gemini,ollama,docling]",
+]
+
+[project.scripts]
+pdftranslator = "pdftranslator.__main__:main"
+pdfagent = "pdftranslator.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/david-eve-za/PDFTranslator"
+Repository = "https://github.com/david-eve-za/PDFTranslator.git"
+Issues = "https://github.com/david-eve-za/PDFTranslator/issues"
+Documentation = "https://github.com/david-eve-za/PDFTranslator#readme"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = false
+
+[tool.setuptools.package-data]
+pdftranslator = [
+    "tools/translation_prompt.txt",
+    "tools/translation_prompt_glossary.txt",
+    "database/schemas/*.sql",
+    "frontend/**/*",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "N",      # pep8-naming
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "SIM",    # flake8-simplify
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # do not perform function calls in argument defaults
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pdftranslator"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+namespace_packages = false
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = [
+    "nltk.*",
+    "pgvector.*",
+    "psycopg.*",
+    "langchain.*",
+    "transformers.*",
+    "typer.*",
+    "rich.*",
+    "questionary.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short --strict-markers"
+markers = [
+    "integration: marks tests as integration tests",
+    "slow: marks tests as slow running",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["src/pdftranslator"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
