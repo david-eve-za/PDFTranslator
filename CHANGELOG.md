@@ -49,9 +49,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Feature Components
 
-**Dashboard:**
+**Dashboard (with Chart):**
 - Stats cards with metrics (works, terms, translations, progress)
+- Doughnut chart showing translation status distribution
 - Recent activity feed with icons and timestamps
+- Side-by-side layout with responsive grid
 - Real-time data loading from mock API
 
 **Library:**
@@ -94,11 +96,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SVG icons for each navigation item
 - Responsive layout with theme toggle
 
+#### Styling
+- Responsive grid layouts for mobile/tablet/desktop
+- CSS custom properties for theming
+- Dark/light mode support
+- Smooth transitions and animations
+
 #### Bug Fixes
 - Fixed `ECONNREFUSED` error when backend not running
 - Mock data serves all required API endpoints
 - InMemoryWebAPI compatible with Angular 21 (version 0.21.0)
 - Added FormsModule to Library and Split components
+- Fixed SCSS structure issues in Dashboard
 
 ### Added - Frontend Migration to Angular (2026-04-10)
 
