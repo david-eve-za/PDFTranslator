@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Frontend Migration to Angular (2026-04-10)
+
+#### Frontend Migration
+- **Replaced React frontend with Angular 17+**:
+  - Standalone components (no NgModules)
+  - Signal-based reactive state management
+  - TypeScript strict mode
+  - SCSS styling with dark/light theme support
+  - Lazy-loaded feature modules
+
+#### New Angular Features
+- **Translation Module**:
+  - Drag-and-drop file upload for PDF/EPUB
+  - Language selector with search functionality
+  - LLM provider selection (NVIDIA, Gemini, Ollama)
+  - Real-time progress indicator with animations
+  - Error handling and success states
+- **Glossary Module**:
+  - Full CRUD operations for glossary terms
+  - Search and filter by language pair
+  - Context support for translations
+  - Responsive table layout
+
+#### Backend API Enhancements
+- **New endpoints** for frontend integration:
+  - `GET /api/languages` - List supported languages
+  - `GET /api/providers` - List available LLM providers
+  - `GET /api/glossary` - List glossary terms with filters
+  - `POST /api/glossary` - Create glossary term
+  - `PUT /api/glossary/{id}` - Update glossary term
+  - `DELETE /api/glossary/{id}` - Delete glossary term
+
+#### Configuration Updates
+- **CORS configuration** updated to support Angular dev server:
+  - Added `http://localhost:4200` to allowed origins
+- **PDFAgent.py** updated for Angular:
+  - Changed `npm run dev` to `npm start` (Angular CLI default)
+  - Updated frontend path to `src/pdftranslator/frontend`
+  - Fixed frontend and dev commands
+
+#### Styling & Design
+- **Distinctive typography**: Google Fonts (Outfit for headings, DM Sans for body)
+- **Bold color scheme** with CSS custom properties
+- **Dark/Light theme** with smooth transitions and localStorage persistence
+- **Responsive design** for mobile and desktop
+- **Accessibility compliance** (a11y standards)
+
+### Changed
+- Frontend technology stack: React → Angular 17+
+- Build tool: Vite → Angular CLI
+- Package manager scripts updated for Angular
+
+### Fixed
+- Frontend path resolution in PDFAgent.py
+- Missing `npm start` command for Angular
+- CORS issues with Angular development server
+
 ### Added - Modern Python Structure Refactoring (2025-04-10)
 
 #### New Package Structure

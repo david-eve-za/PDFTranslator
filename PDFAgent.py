@@ -16,13 +16,10 @@ For new usage, use one of these methods:
 This file will delegate to the new pdftranslator package.
 """
 
-import sys
+import logging
 import subprocess
 import threading
-import logging
 from pathlib import Path
-from typing import List, Optional
-from enum import Enum
 
 import typer
 from rich.console import Console
@@ -74,12 +71,12 @@ def backend(
 
 @app.command()
 def frontend() -> None:
-    """Start React frontend development server.
+    """Start Angular frontend development server.
 
     Examples:
-        python PDFAgent.py frontend
+    python PDFAgent.py frontend
     """
-    frontend_dir = Path(__file__).parent / "frontend"
+    frontend_dir = Path(__file__).parent / "src" / "pdftranslator" / "frontend"
 
     if not frontend_dir.exists():
         logger.error(f"Frontend directory not found at {frontend_dir}")
@@ -93,9 +90,9 @@ def frontend() -> None:
             logger.error(f"Failed to install dependencies: {e}")
             raise typer.Exit(code=1)
 
-    logger.info("Starting frontend development server...")
+    logger.info("Starting Angular frontend development server...")
     try:
-        subprocess.run(["npm", "run", "dev"], cwd=frontend_dir, check=True)
+        subprocess.run(["npm", "start"], cwd=frontend_dir, check=True)
     except subprocess.CalledProcessError as e:
         logger.error(f"Failed to start frontend: {e}")
         raise typer.Exit(code=1)
@@ -112,13 +109,13 @@ def dev(
 ) -> None:
     """Start both backend and frontend for development.
 
-    This command starts the FastAPI backend and React frontend simultaneously
+    This command starts the FastAPI backend and Angular frontend simultaneously
     for a complete development environment.
 
     Examples:
-        python PDFAgent.py dev
-        python PDFAgent.py dev --port 8080
-        python PDFAgent.py dev --host localhost --port 3000
+    python PDFAgent.py dev
+    python PDFAgent.py dev --port 8080
+    python PDFAgent.py dev --host localhost --port 3000
     """
     logger.info("Starting development mode (backend + frontend)...")
 
@@ -136,7 +133,7 @@ def dev(
     console.print(f"[green]Backend:[/green] http://{host}:{port}")
     console.print("[blue]Frontend:[/blue] Starting...")
 
-    frontend_dir = Path(__file__).parent / "frontend"
+    frontend_dir = Path(__file__).parent / "src" / "pdftranslator" / "frontend"
 
     if not frontend_dir.exists():
         logger.error(f"Frontend directory not found at {frontend_dir}")
@@ -147,7 +144,7 @@ def dev(
         subprocess.run(["npm", "install"], cwd=frontend_dir, check=True)
 
     try:
-        subprocess.run(["npm", "run", "dev"], cwd=frontend_dir, check=True)
+        subprocess.run(["npm", "start"], cwd=frontend_dir, check=True)
     except subprocess.CalledProcessError as e:
         logger.error(f"Failed to start frontend: {e}")
         raise typer.Exit(code=1)

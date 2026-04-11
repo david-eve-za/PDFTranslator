@@ -11,7 +11,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:4200"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -30,9 +30,11 @@ async def health():
     return {"status": "healthy"}
 
 
-from pdftranslator.backend.api.routes import files
+from pdftranslator.backend.api.routes import files, glossary, translation
 
 app.include_router(files.router)
+app.include_router(glossary.router)
+app.include_router(translation.router)
 
 if __name__ == "__main__":
     import uvicorn

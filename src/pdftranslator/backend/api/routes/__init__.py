@@ -1,5 +1,5 @@
 """Routes module."""
 
-from pdftranslator.backend.api.routes import files
+from pdftranslator.backend.api.routes import files, glossary, translation
 
-__all__ = ["files"]
+__all__ = ["files", "glossary", "translation"]

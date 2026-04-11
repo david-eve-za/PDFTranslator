@@ -1,0 +1,52 @@
+<div class="language-selector-container">
+  <label class="language-label">{{ label }}</label>
+  
+  <div class="language-dropdown" [class.open]="isOpen()" (keydown)="onKeydown($event)">
+    <button
+      type="button"
+      class="language-button"
+      (click)="toggleDropdown()">
+      <span class="language-text">{{ selectedLanguageName }}</span>
+      <svg
+        class="dropdown-icon"
+        [class.rotated]="isOpen()"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </button>
+
+    <div *ngIf="isOpen()" class="language-menu">
+      <div class="search-container">
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Search languages..."
+          [value]="searchTerm()"
+          (input)="onSearchInput($event)"
+          autofocus
+        />
+      </div>
+
+      <ul class="language-list">
+        <li
+          *ngFor="let language of filteredLanguages"
+          class="language-option"
+          [class.selected]="language.code === selectedLanguageValue"
+          (click)="selectLanguage(language.code)">
+          <span class="language-name">{{ language.name }}</span>
+          <span *ngIf="language.nativeName" class="language-native">
+            ({{ language.nativeName }})
+          </span>
+        </li>
+        <li *ngIf="filteredLanguages.length === 0" class="no-results">
+          No languages found
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>

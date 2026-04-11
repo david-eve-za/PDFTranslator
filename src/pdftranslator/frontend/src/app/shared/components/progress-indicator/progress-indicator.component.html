@@ -1,0 +1,40 @@
+<div class="progress-container">
+  <div class="progress-header">
+    <div class="status-icon" [ngClass]="status()">
+      <ng-container [ngSwitch]="statusIcon">
+        <svg *ngSwitchCase="'loading'" class="spinner" width="24" height="24" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" opacity="0.3"/>
+          <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>
+        </svg>
+        
+        <svg *ngSwitchCase="'success'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M9 12l2 2 4-4"/>
+        </svg>
+        
+        <svg *ngSwitchCase="'error'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="15" y1="9" x2="9" y2="15"/>
+          <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        
+        <svg *ngSwitchCase="'idle'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" opacity="0.3"/>
+        </svg>
+      </ng-container>
+    </div>
+    
+    <span class="status-text" [ngClass]="status()">{{ statusText }}</span>
+  </div>
+
+  <div class="progress-bar-container" *ngIf="status() === 'uploading' || status() === 'processing'">
+    <div class="progress-bar">
+      <div
+        class="progress-fill"
+        [style.width.%]="progress()"
+        [style.background]="progressColor">
+      </div>
+    </div>
+    <span class="progress-percentage">{{ progress() }}%</span>
+  </div>
+</div>

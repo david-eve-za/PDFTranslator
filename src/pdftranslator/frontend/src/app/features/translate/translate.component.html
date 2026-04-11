@@ -1,0 +1,124 @@
+<div class="translate-container">
+  <header class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">Translate Document</h1>
+      <button
+        class="theme-toggle"
+        (click)="toggleTheme()"
+        [attr.aria-label]="'Toggle ' + (currentTheme === 'light' ? 'dark' : 'light') + ' mode'">
+        <svg *ngIf="currentTheme === 'light'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+        <svg *ngIf="currentTheme === 'dark'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      </button>
+    </div>
+    <p class="page-description">
+      Translate PDF and EPUB documents using AI-powered language models
+    </p>
+  </header>
+
+  <main class="translate-content">
+    <section class="upload-section">
+      <app-file-upload (fileSelected)="onFileSelected($event)"></app-file-upload>
+    </section>
+
+    <section class="languages-section">
+      <div class="languages-grid">
+        <app-language-selector
+          [label]="'Source Language'"
+          [languages]="languages()"
+          [selectedLanguage]="sourceLanguage()"
+          (languageChange)="onSourceLanguageChange($event)">
+        </app-language-selector>
+
+        <div class="language-swap">
+          <button
+            type="button"
+            class="swap-button"
+            title="Swap languages"
+            (click)="swapLanguages()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M7 16V4M7 16L3 12M7 16L11 12"/>
+              <path d="M17 8V20M17 8L21 12M17 8L13 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <app-language-selector
+          [label]="'Target Language'"
+          [languages]="languages()"
+          [selectedLanguage]="targetLanguage()"
+          (languageChange)="onTargetLanguageChange($event)">
+        </app-language-selector>
+      </div>
+    </section>
+
+    <section class="provider-section">
+      <label class="provider-label">Translation Provider</label>
+      <select
+        class="provider-select"
+        [value]="selectedProvider()"
+        (change)="onProviderChange($event)">
+        <option value="" disabled>Select a provider</option>
+        <option *ngFor="let provider of providers()" [value]="provider.id">
+          {{ provider.name }}
+        </option>
+      </select>
+    </section>
+
+    <section class="progress-section" *ngIf="progressStatus() !== 'idle'">
+      <app-progress-indicator
+        [progress]="progressValue"
+        [status]="progressStatus"
+        [message]="progressMessage">
+      </app-progress-indicator>
+    </section>
+
+    <section class="error-section" *ngIf="errorMessage()">
+      <div class="error-message">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    </section>
+
+    <section class="actions-section">
+      <button
+        class="translate-button"
+        [disabled]="!canTranslate() || progressStatus() === 'uploading' || progressStatus() === 'processing'"
+        (click)="startTranslation()">
+        <span *ngIf="progressStatus() !== 'uploading' && progressStatus() !== 'processing'">
+          Start Translation
+        </span>
+        <span *ngIf="progressStatus() === 'uploading' || progressStatus() === 'processing'">
+          Translating...
+        </span>
+      </button>
+
+      <button
+        *ngIf="downloadUrl()"
+        class="download-button"
+        (click)="downloadResult()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <span>Download Result</span>
+      </button>
+    </section>
+  </main>
+</div>

@@ -1,78 +1,59 @@
-# PDFTranslator Frontend
+# Frontend
 
-React-based web UI for PDFTranslator document processing workflow.
+This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.7.
 
-## Tech Stack
+## Development server
 
-- React 18 + TypeScript (strict mode)
-- Vite (build tool)
-- Zustand (state management)
-- shadcn/ui (component library)
-- Tailwind CSS
-- React Router (routing)
-
-## Development
+To start a local development server, run:
 
 ```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
-
-# Type check
-npx tsc --noEmit
+ng serve
 ```
 
-## Environment Variables
+Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
 
-Create `.env` file:
+## Code scaffolding
 
-```
-VITE_USE_MOCK_DATA=true
-VITE_API_BASE_URL=http://localhost:8000/api
-```
-
-## Project Structure
-
-```
-src/
-├── components/
-│   ├── containers/    # Logic-heavy components
-│   └── ui/            # Presentational components (shadcn/ui)
-├── pages/             # Route pages
-├── stores/            # Zustand state stores
-├── services/          # API abstraction layer
-├── hooks/             # Custom React hooks
-├── types/             # TypeScript types
-└── lib/               # Utilities
-```
-
-## Features
-
-- File upload (drag & drop + manual selection)
-- File type validation (PDF, EPUB, DOC, DOCX)
-- Task status tracking (pending, in-progress, completed, failed)
-- Split Chapters screen
-- Glossary screen with search/filter
-- Translated screen (side-by-side view)
-- Audio screen with player
-
-## Testing
+Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
 
 ```bash
-# Run tests (TODO: add test setup)
-npm test
+ng generate component component-name
 ```
 
-## Notes
+For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
 
-- Mock data enabled by default (set `VITE_USE_MOCK_DATA=false` to use real API)
-- Backend API must be running on http://localhost:8000
-- TypeScript strict mode enabled
+```bash
+ng generate --help
+```
+
+## Building
+
+To build the project run:
+
+```bash
+ng build
+```
+
+This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+
+## Running unit tests
+
+To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+
+```bash
+ng test
+```
+
+## Running end-to-end tests
+
+For end-to-end (e2e) testing, run:
+
+```bash
+ng e2e
+```
+
+Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+
+## Additional Resources
+
+For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
