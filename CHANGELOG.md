@@ -40,6 +40,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `TranslationProgress`, `TranslationStartRequest`
 - `DashboardStats`, `RecentActivity`, `TranslationChartData`
 
+#### New Feature Components
+
+**Dashboard Feature:**
+- Stats cards showing total works, glossary terms, translations, progress
+- Recent activity feed with icons and timestamps
+- Real-time data loading from mock API
+
+**Library Feature:**
+- Work cards with title, author, and translation status
+- Progress bars showing chapter translation completion
+- Search functionality by title or author
+- Visual status indicators (complete/in-progress/not-started)
+
+**Split Chapters Feature:**
+- Work and volume selection dropdowns
+- Text editor with block format markers
+- Visual chapter parser with type icons (Prologue/Chapter/Epilogue)
+- Preview of parsed chapters before saving
+
+#### Navigation Enhancements
+- 5 feature links: Dashboard, Library, Translate, Glossary, Split
+- Active state highlighting for current route
+- SVG icons for each navigation item
+- Responsive layout with theme toggle
+
 #### Bug Fixes
 - Fixed `ECONNREFUSED` error when backend not running
 - Mock data now serves `/api/languages` and `/api/providers` endpoints
