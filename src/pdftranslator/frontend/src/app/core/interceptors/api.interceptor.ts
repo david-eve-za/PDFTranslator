@@ -20,8 +20,8 @@ export const apiInterceptor: HttpInterceptorFn = (
 };
 
 function getApiUrl(url: string): string {
-  if (url.startsWith('/api')) {
-    return url;
+  if (url.startsWith('/api') || url.startsWith('api/')) {
+    return url.startsWith('api/') ? `/${url}` : url;
   }
 
   if (url.startsWith('http://') || url.startsWith('https://')) {
