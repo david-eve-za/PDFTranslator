@@ -1,13 +1,14 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { WorkService } from '../../core/services/work.service';
 import { Work } from '../../core/models';
 
 @Component({
   selector: 'app-library',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './library.component.html',
   styleUrl: './library.component.scss'
 })
