@@ -80,6 +80,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Proper noun badge display
 - Frequency counter for each term
 - Enhanced CRUD operations with mock data
+- Entity distribution doughnut chart
+- Two-column layout with sticky chart sidebar
+- Real-time chart updates on term changes
 
 #### Shared Components
 - `WorkCardComponent` - Reusable work card for Library
