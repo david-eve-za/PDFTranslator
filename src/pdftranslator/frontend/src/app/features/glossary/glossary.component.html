@@ -166,8 +166,8 @@
           <span class="empty-hint">Add your first glossary term to ensure consistent translations</span>
         </div>
 
-      <div *ngIf="!isLoading() && filteredTerms.length > 0" class="terms-grid">
-        @for (term of filteredTerms; track term.id) {
+<div *ngIf="!isLoading() && filteredTerms.length > 0" class="terms-grid" [@listAnimation]>
+  @for (term of filteredTerms; track term.id) {
           <div class="term-card">
             @if (editingTerm()?.id !== term.id) {
               <div class="term-content">

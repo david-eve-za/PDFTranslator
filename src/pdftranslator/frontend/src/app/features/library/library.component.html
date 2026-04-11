@@ -12,11 +12,11 @@
       class="search-input">
   </div>
 
-  @if (isLoading) {
-    <div class="loading">Loading works...</div>
-  } @else {
-    <div class="works-grid">
-      @for (work of filteredWorks; track work.id) {
+@if (isLoading) {
+  <div class="loading">Loading works...</div>
+} @else {
+  <div class="works-grid" [@cardAnimation]>
+    @for (work of filteredWorks; track work.id) {
         <div class="work-card" [class]="getProgressClass(work)">
           <div class="work-card-header">
             <h3 class="work-title">{{ work.title }}</h3>

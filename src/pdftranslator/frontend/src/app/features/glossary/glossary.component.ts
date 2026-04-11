@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration } from 'chart.js';
+import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
 import { GlossaryService } from '../../core/services/glossary.service';
 import { TranslationConfigService } from '../../core/services/translation-config.service';
 import { ThemeService } from '../../core/services/theme.service';
@@ -14,6 +15,18 @@ import { GlossaryTerm, EntityType } from '../../core/models';
   imports: [CommonModule, FormsModule, BaseChartDirective],
   templateUrl: './glossary.component.html',
   styleUrls: ['./glossary.component.scss'],
+  animations: [
+    trigger('listAnimation', [
+      transition('* => *', [
+        query(':enter', [
+          style({ opacity: 0, transform: 'translateY(10px)' }),
+          stagger('50ms', [
+            animate('200ms ease-out', style({ opacity: 1, transform: 'translateY(0)' })),
+          ]),
+        ], { optional: true }),
+      ]),
+    ]),
+  ],
 })
 export class GlossaryComponent implements OnInit {
   private glossaryService = inject(GlossaryService);

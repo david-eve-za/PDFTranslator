@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
 import { WorkService } from '../../core/services/work.service';
 import { Work } from '../../core/models';
 
@@ -10,7 +11,19 @@ import { Work } from '../../core/models';
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './library.component.html',
-  styleUrl: './library.component.scss'
+  styleUrl: './library.component.scss',
+  animations: [
+    trigger('cardAnimation', [
+      transition('* => *', [
+        query(':enter', [
+          style({ opacity: 0, transform: 'translateY(20px)' }),
+          stagger('100ms', [
+            animate('300ms ease-out', style({ opacity: 1, transform: 'translateY(0)' })),
+          ]),
+        ], { optional: true }),
+      ]),
+    ]),
+  ],
 })
 export class LibraryComponent implements OnInit {
   private workService = inject(WorkService);

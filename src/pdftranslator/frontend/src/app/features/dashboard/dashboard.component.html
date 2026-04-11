@@ -10,10 +10,10 @@
       <app-skeleton-loader variant="card" [count]="1"></app-skeleton-loader>
       <app-skeleton-loader variant="list" [count]="3"></app-skeleton-loader>
     </div>
-  } @else {
-    <div class="dashboard-content">
-      <section class="stats-grid">
-        <div class="stats-card">
+} @else {
+  <div class="dashboard-content">
+    <section class="stats-grid" [@statsAnimation]>
+      <div class="stats-card">
           <div class="stats-card-icon">📚</div>
           <div class="stats-card-content">
             <h3 class="stats-card-title">Total Works</h3>

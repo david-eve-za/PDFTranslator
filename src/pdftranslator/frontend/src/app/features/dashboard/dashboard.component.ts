@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration } from 'chart.js';
+import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { WorkService } from '../../core/services/work.service';
 import { GlossaryService } from '../../core/services/glossary.service';
@@ -13,7 +14,19 @@ import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader
   standalone: true,
   imports: [CommonModule, BaseChartDirective, SkeletonLoaderComponent],
   templateUrl: './dashboard.component.html',
-  styleUrl: './dashboard.component.scss'
+  styleUrl: './dashboard.component.scss',
+  animations: [
+    trigger('statsAnimation', [
+      transition(':enter', [
+        query('.stats-card', [
+          style({ opacity: 0, transform: 'scale(0.9)' }),
+          stagger('100ms', [
+            animate('300ms ease-out', style({ opacity: 1, transform: 'scale(1)' })),
+          ]),
+        ], { optional: true }),
+      ]),
+    ]),
+  ],
 })
 export class DashboardComponent implements OnInit {
   private dashboardService = inject(DashboardService);
