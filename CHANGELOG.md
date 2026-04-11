@@ -83,6 +83,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Entity distribution doughnut chart
 - Two-column layout with sticky chart sidebar
 - Real-time chart updates on term changes
+- Form validation with inline errors and required state
+
+#### UX/UI Polish (2026-04-11)
+- **Skeleton Loader Component**: 5 variants (card, list, grid, stat, text)
+- **Form Validation**: Inline errors, required indicators, disabled states
+- **Accessibility**: ARIA attributes for language-selector and file-upload
+- **Keyboard Navigation**: :focus-visible for better focus indicators
+- **Empty States**: Icons, helpful hints, and call-to-action buttons
 
 #### Shared Components
 - `WorkCardComponent` - Reusable work card for Library
