@@ -92,6 +92,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Keyboard Navigation**: :focus-visible for better focus indicators
 - **Empty States**: Icons, helpful hints, and call-to-action buttons
 
+#### Animations (2026-04-11)
+- **Page Transitions**: Fade/slide effects on route changes
+- **Card Hover**: Scale and shadow animations with active states
+- **Button Micro-interactions**: Ripple effect and scale on click
+- **List Stagger**: Animated entry for cards and items
+- **Stats Animation**: Entrance animations for dashboard cards
+- **Shared Animations**: Reusable SCSS mixins for consistency
+
 #### Shared Components
 - `WorkCardComponent` - Reusable work card for Library
 - `StatusBadgeComponent` - Status badges (success/warning/error/info)
