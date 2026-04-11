@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added - Frontend Mock Data Integration (2026-04-11)
 
+#### Architecture
+- **Environment Configuration**: Switch between mock data and real API
+  - `environment.ts` for development with mock data
+  - `environment.prod.ts` for production with real API
+  - Conditional InMemoryWebAPI loading
+
 #### Mock Data Implementation
 - **Angular InMemoryWebAPI** configured for development:
   - Local mock data for all entities (works, volumes, chapters, glossary)
@@ -25,14 +31,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Glossary Terms**: 5 glossary entries with entity types
 - **Recent Activities**: 5 activity log entries
 
-#### Core Services Created
+#### Core Services
 - `WorkService` - CRUD operations for works
 - `VolumeService` - Volume management by work
 - `GlossaryService` - Glossary term CRUD with filters
 - `DashboardService` - Recent activity fetching
 - `TranslationConfigService` - Languages and providers
+- `NotificationService` - Toast notification system
 
-#### Models Implemented
+#### Models
 - `Work`, `WorkCreate`, `WorkUpdate`
 - `Volume`, `VolumeCreate`
 - `Chapter`, `ChapterCreate`, `ChapterType`, `TranslationStatus`
@@ -40,39 +47,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `TranslationProgress`, `TranslationStartRequest`
 - `DashboardStats`, `RecentActivity`, `TranslationChartData`
 
-#### New Feature Components
+#### Feature Components
 
-**Dashboard Feature:**
-- Stats cards showing total works, glossary terms, translations, progress
+**Dashboard:**
+- Stats cards with metrics (works, terms, translations, progress)
 - Recent activity feed with icons and timestamps
 - Real-time data loading from mock API
 
-**Library Feature:**
+**Library:**
 - Work cards with title, author, and translation status
 - Progress bars showing chapter translation completion
 - Search functionality by title or author
 - Visual status indicators (complete/in-progress/not-started)
 
-**Split Chapters Feature:**
+**Split Chapters:**
 - Work and volume selection dropdowns
 - Text editor with block format markers
-- Visual chapter parser with type icons (Prologue/Chapter/Epilogue)
+- Visual chapter parser with type icons
 - Preview of parsed chapters before saving
 
-**Translate Feature (Updated):**
+**Translate (Updated):**
 - Simulated translation progress without backend
 - File upload with visual feedback
 - Progress animation (upload → processing → complete)
 - Download simulation on completion
 
-**Glossary Feature (Updated):**
+**Glossary (Updated):**
 - Entity type filtering (character, place, skill, etc.)
 - Type-specific icons and colors
 - Proper noun badge display
 - Frequency counter for each term
 - Enhanced CRUD operations with mock data
 
-#### Navigation Enhancements
+#### Shared Components
+- `WorkCardComponent` - Reusable work card for Library
+- `StatusBadgeComponent` - Status badges (success/warning/error/info)
+- `EmptyStateComponent` - Empty data displays
+- `NotificationToastComponent` - Toast notification display
+- `FileUploadComponent` - Drag-and-drop file upload
+- `LanguageSelectorComponent` - Language selection dropdown
+- `ProgressIndicatorComponent` - Progress bar display
+
+#### Navigation
 - 5 feature links: Dashboard, Library, Translate, Glossary, Split
 - Active state highlighting for current route
 - SVG icons for each navigation item
@@ -80,7 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Bug Fixes
 - Fixed `ECONNREFUSED` error when backend not running
-- Mock data now serves `/api/languages` and `/api/providers` endpoints
+- Mock data serves all required API endpoints
 - InMemoryWebAPI compatible with Angular 21 (version 0.21.0)
 - Added FormsModule to Library and Split components
 
