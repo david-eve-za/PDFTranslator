@@ -1,0 +1,30 @@
+<div class="work-card" [class]="getStatusClass()">
+  <div class="work-card-header">
+    <h3 class="work-title">{{ work.title }}</h3>
+    @if (work.title_translated) {
+      <p class="work-title-translated">{{ work.title_translated }}</p>
+    }
+  </div>
+
+  <div class="work-card-body">
+    <p class="work-author">by {{ work.author }}</p>
+    <div class="work-stats">
+      <span class="stat">
+        <strong>{{ work.total_chapters }}</strong> chapters
+      </span>
+      <span class="stat">
+        <strong>{{ work.translated_chapters }}</strong> translated
+      </span>
+    </div>
+
+    <div class="progress-bar">
+      <div class="progress-fill" [style.width.%]="getProgressPercentage()"></div>
+    </div>
+    <p class="progress-text">{{ getProgressPercentage() }}% complete</p>
+  </div>
+
+  <div class="work-card-actions">
+    <button class="btn btn-primary" (click)="onTranslate()">Translate</button>
+    <button class="btn btn-secondary" (click)="onGlossary()">Glossary</button>
+  </div>
+</div>
