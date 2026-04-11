@@ -1,6 +1,7 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners, importProvidersFrom } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideAnimations } from '@angular/platform-browser/animations';
 import { InMemoryWebApiModule } from 'angular-in-memory-web-api';
 
 import { routes } from './app.routes';
@@ -11,7 +12,8 @@ import { environment } from '../environments/environment';
 const providers: any[] = [
   provideBrowserGlobalErrorListeners(),
   provideRouter(routes),
-  provideHttpClient(withInterceptors([apiInterceptor]))
+  provideHttpClient(withInterceptors([apiInterceptor])),
+  provideAnimations()
 ];
 
 // Only load InMemoryWebAPI in development with mock data enabled
