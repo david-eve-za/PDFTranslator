@@ -1,21 +1,48 @@
 """Pydantic schemas for API models."""
 
 from datetime import datetime
-from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class FileUploadResponse(BaseModel):
     """Response schema for file upload."""
 
-    id: str
-    name: str
-    size: int
-    type: str
-    uploaded_at: datetime
-    work_id: int
-    volume_id: int
+    id: int
+    filename: str
+    original_name: str
+    file_size: int
+    file_type: str
+    work_id: int | None = None
+    work_title: str | None = None
+    volume_id: int | None = None
+    volume_number: int | None = None
+    status: str
+    created_at: datetime
+
+
+class FileListResponse(BaseModel):
+    """Paginated list of files."""
+
+    items: list[FileUploadResponse]
+    total: int
+    page: int
+    page_size: int
+
+    @property
+    def pages(self) -> int:
+        return (
+            (self.total + self.page_size - 1) // self.page_size
+            if self.page_size > 0
+            else 0
+        )
+
+
+class FileUploadQuery(BaseModel):
+    """Query parameters for file upload."""
+
+    source_lang: str = Field(default="en", description="Source language code")
+    target_lang: str = Field(default="es", description="Target language code")
 
 
 class TaskStateSchema(BaseModel):
@@ -23,8 +50,8 @@ class TaskStateSchema(BaseModel):
 
     status: str
     updated_at: datetime
-    error: Optional[str] = None
-    progress: Optional[int] = None
+    error: str | None = None
+    progress: int | None = None
 
 
 class TaskStatusResponse(BaseModel):
@@ -64,7 +91,7 @@ class ChapterResponse(BaseModel):
 class ChapterUpdateRequest(BaseModel):
     """Chapter update request schema."""
 
-    title: Optional[str] = None
+    title: str | None = None
 
 
 class GlossaryEntryResponse(BaseModel):
@@ -73,8 +100,8 @@ class GlossaryEntryResponse(BaseModel):
     id: int
     work_id: int
     term: str
-    translation: Optional[str]
-    notes: Optional[str]
+    translation: str | None
+    notes: str | None
     is_proper_noun: bool
     created_at: datetime
 
@@ -82,8 +109,8 @@ class GlossaryEntryResponse(BaseModel):
 class GlossaryUpdateRequest(BaseModel):
     """Glossary update request schema."""
 
-    translation: Optional[str] = None
-    notes: Optional[str] = None
+    translation: str | None = None
+    notes: str | None = None
 
 
 class TranslationChunkResponse(BaseModel):
@@ -133,5 +160,5 @@ class AudioStatusResponse(BaseModel):
 
     status: str
     progress: int
-    audio_files: Optional[list[AudioFileResponse]] = None
-    error: Optional[str] = None
+    audio_files: list[AudioFileResponse] | None = None
+    error: str | None = None

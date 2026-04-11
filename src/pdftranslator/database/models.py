@@ -12,47 +12,70 @@ Other classes remain here until migrated.
 """
 
 # Backward compatibility imports
-from pdftranslator.core.models.work import Work, Volume, Chapter, GlossaryEntry
-
 # Classes that remain in this module (not yet migrated)
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict
-import numpy as np
+from datetime import datetime
+
+from pdftranslator.core.models.work import Chapter, GlossaryEntry, Volume, Work
+
+
+@dataclass
+class UploadedFile:
+    """Represents an uploaded file pending processing."""
+
+    id: int | None = None
+    filename: str = ""
+    original_name: str = ""
+    file_path: str | None = None
+    file_size: int = 0
+    file_type: str = ""
+    mime_type: str | None = None
+    work_id: int | None = None
+    volume_id: int | None = None
+    status: str = "uploaded"
+    error_message: str | None = None
+    source_lang: str = "en"
+    target_lang: str = "es"
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+    def __repr__(self) -> str:
+        return f"UploadedFile(id={self.id}, filename='{self.filename}', status='{self.status}')"
 
 
 @dataclass
 class ContextExample:
-    id: Optional[int]
+    id: int | None
     context_id: int
     original_sentence: str
     translated_sentence: str
-    chapter_id: Optional[int] = None
+    chapter_id: int | None = None
 
 
 @dataclass
 class TermContext:
-    id: Optional[int]
+    id: int | None
     term_id: int
     context_hint: str
     translation: str
-    example_usage: Optional[str] = None
-    examples: List[ContextExample] = field(default_factory=list)
+    example_usage: str | None = None
+    examples: list[ContextExample] = field(default_factory=list)
 
 
 @dataclass
 class EntityBlacklist:
-    id: Optional[int]
+    id: int | None
     term: str
-    reason: Optional[str] = None
+    reason: str | None = None
 
 
 @dataclass
 class FantasyTerm:
-    id: Optional[int]
+    id: int | None
     term: str
     entity_type: str
     do_not_translate: bool = False
-    context_hint: Optional[str] = None
+    context_hint: str | None = None
 
 
 @dataclass
@@ -60,10 +83,10 @@ class EntityCandidate:
     text: str
     entity_type: str
     frequency: int = 1
-    contexts: List[str] = field(default_factory=list)
+    contexts: list[str] = field(default_factory=list)
     confidence: float = 0.0
     source_language: str = "en"
-    translation: Optional[str] = None
+    translation: str | None = None
     validated: bool = False
 
     def add_context(self, context: str):
@@ -82,7 +105,7 @@ class BuildResult:
     extracted: int
     new: int
     skipped: int
-    entities_by_type: Dict[str, int] = field(default_factory=dict)
+    entities_by_type: dict[str, int] = field(default_factory=dict)
 
 
 __all__ = [
@@ -92,6 +115,7 @@ __all__ = [
     "Chapter",
     "GlossaryEntry",
     # From this module
+    "UploadedFile",
     "ContextExample",
     "TermContext",
     "EntityBlacklist",
