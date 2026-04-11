@@ -46,29 +46,45 @@
         </div>
       </section>
 
-      <section class="activity-section">
-        <div class="recent-activity">
-          <h3>Recent Activity</h3>
-          <div class="activity-list">
-            @for (activity of recentActivities; track activity.id) {
-              <div class="activity-item">
-                <div class="activity-icon">
-                  {{ getActivityIcon(activity.type) }}
-                </div>
-                <div class="activity-content">
-                  <p class="activity-action">{{ activity.action }}</p>
-                  @if (activity.work_title) {
-                    <p class="activity-work">{{ activity.work_title }}</p>
-                  }
-                </div>
-                <span class="activity-time">{{ formatTime(activity.timestamp) }}</span>
-              </div>
-            } @empty {
-              <p class="empty-state">No recent activity</p>
-            }
+      <div class="dashboard-grid">
+        <section class="chart-section">
+          <div class="chart-card">
+            <h3>Translation Status</h3>
+            <div class="chart-container">
+              <canvas 
+                baseChart
+                [data]="translationChartData"
+                [options]="translationChartOptions"
+                type="doughnut">
+              </canvas>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        <section class="activity-section">
+          <div class="recent-activity">
+            <h3>Recent Activity</h3>
+            <div class="activity-list">
+              @for (activity of recentActivities; track activity.id) {
+                <div class="activity-item">
+                  <div class="activity-icon">
+                    {{ getActivityIcon(activity.type) }}
+                  </div>
+                  <div class="activity-content">
+                    <p class="activity-action">{{ activity.action }}</p>
+                    @if (activity.work_title) {
+                      <p class="activity-work">{{ activity.work_title }}</p>
+                    }
+                  </div>
+                  <span class="activity-time">{{ formatTime(activity.timestamp) }}</span>
+                </div>
+              } @empty {
+                <p class="empty-state">No recent activity</p>
+              }
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
   }
 </div>

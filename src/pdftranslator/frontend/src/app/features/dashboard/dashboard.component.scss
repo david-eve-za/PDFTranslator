@@ -87,73 +87,105 @@
       }
     }
 
-    .activity-section {
-      max-width: 800px;
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 2rem;
 
-      .recent-activity {
-        background-color: var(--surface);
-        border-radius: 12px;
-        padding: 1.5rem;
+      @media (max-width: 1024px) {
+        grid-template-columns: 1fr;
+      }
 
-        h3 {
-          font-size: 1.125rem;
-          margin-bottom: 1rem;
-        }
+      .chart-section {
+        .chart-card {
+          background-color: var(--surface);
+          border-radius: 12px;
+          padding: 1.5rem;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-        .activity-list {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-
-          .activity-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem;
-            border-radius: 8px;
-            transition: background-color 0.2s;
-
-            &:hover {
-              background-color: var(--background);
-            }
-
-            .activity-icon {
-              width: 40px;
-              height: 40px;
-              border-radius: 50%;
-              background-color: var(--primary);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 1.25rem;
-            }
-
-            .activity-content {
-              flex: 1;
-
-              .activity-action {
-                font-size: 0.875rem;
-                color: var(--text);
-                margin: 0;
-              }
-
-              .activity-work {
-                font-size: 0.75rem;
-                color: var(--text-secondary);
-                margin: 0;
-              }
-            }
-
-            .activity-time {
-              font-size: 0.75rem;
-              color: var(--text-secondary);
-            }
+          h3 {
+            font-size: 1.125rem;
+            margin-bottom: 1rem;
           }
 
-          .empty-state {
-            text-align: center;
-            color: var(--text-secondary);
-            padding: 2rem;
+          .chart-container {
+            height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+        }
+      }
+
+      .activity-section {
+        .recent-activity {
+          background-color: var(--surface);
+          border-radius: 12px;
+          padding: 1.5rem;
+          height: 100%;
+
+          h3 {
+            font-size: 1.125rem;
+            margin-bottom: 1rem;
+          }
+
+          .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-height: 280px;
+            overflow-y: auto;
+
+            .activity-item {
+              display: flex;
+              align-items: center;
+              gap: 0.75rem;
+              padding: 0.75rem;
+              border-radius: 8px;
+              transition: background-color 0.2s;
+
+              &:hover {
+                background-color: var(--background);
+              }
+
+              .activity-icon {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background-color: var(--primary);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.25rem;
+              }
+
+              .activity-content {
+                flex: 1;
+
+                .activity-action {
+                  font-size: 0.875rem;
+                  color: var(--text);
+                  margin: 0;
+                }
+
+                .activity-work {
+                  font-size: 0.75rem;
+                  color: var(--text-secondary);
+                  margin: 0;
+                }
+              }
+
+              .activity-time {
+                font-size: 0.75rem;
+                color: var(--text-secondary);
+              }
+            }
+
+            .empty-state {
+              text-align: center;
+              color: var(--text-secondary);
+              padding: 2rem;
+            }
           }
         }
       }
