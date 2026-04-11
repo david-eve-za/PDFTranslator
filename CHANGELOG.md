@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Frontend Mock Data Integration (2026-04-11)
+
+#### Mock Data Implementation
+- **Angular InMemoryWebAPI** configured for development:
+  - Local mock data for all entities (works, volumes, chapters, glossary)
+  - Simulates backend API responses without running server
+  - 500ms delay to simulate real network latency
+  - Automatic HTTP request interception
+
+#### Mock Data Entities
+- **Languages**: 12 supported languages (en-US, es-MX, fr-FR, de-DE, etc.)
+- **Providers**: 3 LLM providers (NVIDIA, Gemini, Ollama)
+- **Works**: 3 sample works with translation progress
+- **Volumes**: 5 volumes across works
+- **Chapters**: 5 chapters with translation status
+- **Glossary Terms**: 5 glossary entries with entity types
+- **Recent Activities**: 5 activity log entries
+
+#### Core Services Created
+- `WorkService` - CRUD operations for works
+- `VolumeService` - Volume management by work
+- `GlossaryService` - Glossary term CRUD with filters
+- `DashboardService` - Recent activity fetching
+- `TranslationConfigService` - Languages and providers
+
+#### Models Implemented
+- `Work`, `WorkCreate`, `WorkUpdate`
+- `Volume`, `VolumeCreate`
+- `Chapter`, `ChapterCreate`, `ChapterType`, `TranslationStatus`
+- `GlossaryTerm`, `GlossaryTermCreate`, `GlossaryTermUpdate`, `EntityType`
+- `TranslationProgress`, `TranslationStartRequest`
+- `DashboardStats`, `RecentActivity`, `TranslationChartData`
+
+#### Bug Fixes
+- Fixed `ECONNREFUSED` error when backend not running
+- Mock data now serves `/api/languages` and `/api/providers` endpoints
+- InMemoryWebAPI compatible with Angular 21 (version 0.21.0)
+
 ### Added - Frontend Migration to Angular (2026-04-10)
 
 #### Frontend Migration
