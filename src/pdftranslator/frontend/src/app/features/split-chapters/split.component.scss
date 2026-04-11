@@ -44,7 +44,8 @@
           color: var(--text);
           cursor: pointer;
 
-          &:focus {
+          
+&:focus-visible {
             outline: none;
             border-color: var(--primary);
           }
@@ -100,7 +101,8 @@
         resize: vertical;
         min-height: 300px;
 
-        &:focus {
+        
+&:focus-visible {
           outline: none;
           border-color: var(--primary);
         }

@@ -192,3 +192,30 @@
     }
   }
 }
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xxl);
+  color: var(--color-text-secondary);
+  gap: var(--spacing-sm);
+  text-align: center;
+
+  svg {
+    opacity: 0.5;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  p {
+    margin: 0;
+    font-weight: var(--font-weight-medium);
+  }
+
+  .empty-hint {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-tertiary);
+    max-width: 280px;
+  }
+}

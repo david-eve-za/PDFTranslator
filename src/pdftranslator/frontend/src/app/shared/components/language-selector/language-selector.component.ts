@@ -15,7 +15,9 @@ export class LanguageSelectorComponent implements OnInit {
   @Input() placeholder = 'Select a language';
   @Input() languages: Language[] = [];
   private _selectedLanguage = signal<string>('');
-  
+
+  buttonId = `language-selector-${Math.random().toString(36).substring(2, 9)}`;
+
   @Input()
   set selectedLanguage(value: string | InputSignal<string>) {
     if (typeof value === 'string') {

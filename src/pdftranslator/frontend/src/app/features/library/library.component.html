@@ -54,14 +54,19 @@
             </button>
           </div>
         </div>
-      } @empty {
-        <div class="empty-state">
-          <p>No works found</p>
-          <button class="btn btn-primary" [routerLink]="['/split']">
-            Add New Work
-          </button>
-        </div>
-      }
+        } @empty {
+          <div class="empty-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-17A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+            <p>No works found</p>
+            <span class="empty-hint">Import a PDF or EPUB to start translating</span>
+            <button class="btn btn-primary" [routerLink]="['/split']">
+              Add New Work
+            </button>
+          </div>
+        }
     </div>
   }
 </div>

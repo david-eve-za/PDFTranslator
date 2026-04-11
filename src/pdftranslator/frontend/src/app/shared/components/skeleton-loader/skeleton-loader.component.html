@@ -1,0 +1,63 @@
+@if (variant === 'card') {
+  @for (item of items; track $index) {
+    <div class="skeleton-card">
+      <div class="skeleton-header"></div>
+      <div class="skeleton-body">
+        <div class="skeleton-line" style="width: 80%"></div>
+        <div class="skeleton-line" style="width: 60%"></div>
+      </div>
+      <div class="skeleton-footer">
+        <div class="skeleton-badge"></div>
+        <div class="skeleton-badge"></div>
+      </div>
+    </div>
+  }
+}
+
+@if (variant === 'list') {
+  @for (item of items; track $index) {
+    <div class="skeleton-list-item">
+      <div class="skeleton-avatar"></div>
+      <div class="skeleton-content">
+        <div class="skeleton-line" style="width: 70%"></div>
+        <div class="skeleton-line" style="width: 50%"></div>
+      </div>
+    </div>
+  }
+}
+
+@if (variant === 'grid') {
+  <div class="skeleton-grid">
+    @for (item of items; track $index) {
+      <div class="skeleton-card">
+        <div class="skeleton-header"></div>
+        <div class="skeleton-body">
+          <div class="skeleton-line" style="width: 85%"></div>
+          <div class="skeleton-line" style="width: 65%"></div>
+        </div>
+      </div>
+    }
+  </div>
+}
+
+@if (variant === 'stat') {
+  <div class="skeleton-stats">
+    @for (item of items; track $index) {
+      <div class="skeleton-stat-card">
+        <div class="skeleton-icon"></div>
+        <div class="skeleton-stat-content">
+          <div class="skeleton-value"></div>
+          <div class="skeleton-label"></div>
+        </div>
+      </div>
+    }
+  </div>
+}
+
+@if (variant === 'text') {
+  <div class="skeleton-text-block">
+    @for (row of textRows; track $index) {
+      <div class="skeleton-line" [style.width.%]="100 - ($index * 10)"></div>
+    }
+  </div>
+}

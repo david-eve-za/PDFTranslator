@@ -31,7 +31,8 @@
     background: var(--color-surface-hover);
   }
 
-  &:focus {
+  
+&:focus-visible {
     outline: none;
     border-color: var(--color-primary);
     box-shadow: 0 0 0 3px var(--color-primary-light);
@@ -83,7 +84,8 @@
   background: var(--color-surface);
   color: var(--color-text-primary);
 
-  &:focus {
+  
+&:focus-visible {
     outline: none;
     border-color: var(--color-primary);
   }

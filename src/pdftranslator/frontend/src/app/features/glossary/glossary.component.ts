@@ -38,6 +38,7 @@ export class GlossaryComponent implements OnInit {
   isLoading = signal(false);
   errorMessage = signal<string | null>(null);
   successMessage = signal<string | null>(null);
+  termTouched = false;
 
   entityTypes: EntityType[] = ['character', 'place', 'skill', 'item', 'spell', 'faction', 'title', 'race', 'other'];
 
@@ -183,6 +184,8 @@ export class GlossaryComponent implements OnInit {
   }
 
   addTerm(): void {
+    this.termTouched = true;
+
     if (!this.newTerm.term.trim()) {
       this.errorMessage.set('Term is required');
       return;
@@ -206,6 +209,7 @@ export class GlossaryComponent implements OnInit {
     this.glossaryService.create(termToAdd).subscribe({
       next: (createdTerm) => {
         this.terms.update((terms) => [...terms, createdTerm]);
+        this.updateChartData(this.terms());
         this.newTerm = {
           term: '',
           translation: '',
@@ -213,6 +217,7 @@ export class GlossaryComponent implements OnInit {
           context: '',
           is_proper_noun: false
         };
+        this.termTouched = false;
         this.successMessage.set('Term added successfully!');
         this.isLoading.set(false);
         setTimeout(() => this.successMessage.set(null), 3000);

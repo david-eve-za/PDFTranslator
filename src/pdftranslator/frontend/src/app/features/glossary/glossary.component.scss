@@ -104,7 +104,8 @@
   font-size: var(--font-size-base);
   transition: all var(--transition-fast);
 
-  &:focus {
+  
+&:focus-visible {
     outline: none;
     border-color: var(--color-primary);
     box-shadow: 0 0 0 3px var(--color-primary-light);
@@ -177,7 +178,8 @@
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
 
-  &:focus {
+  
+&:focus-visible {
     outline: none;
     border-color: var(--color-primary);
     box-shadow: 0 0 0 3px var(--color-primary-light);
@@ -531,7 +533,8 @@
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
 
-  &:focus {
+  
+&:focus-visible {
     outline: none;
     border-color: var(--color-primary);
   }
@@ -590,5 +593,59 @@
     .clear-filters-btn {
       width: 100%;
     }
+  }
+}
+
+.form-input.invalid,
+.form-textarea.invalid {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px var(--color-error-light);
+}
+
+.required {
+  color: var(--color-error);
+  font-weight: var(--font-weight-medium);
+}
+
+.field-error {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--color-error);
+  margin-top: var(--spacing-xs);
+}
+
+.form-input:focus-visible,
+.form-textarea:focus-visible,
+.search-input:focus-visible,
+.filter-select:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xxl);
+  color: var(--color-text-secondary);
+  gap: var(--spacing-sm);
+  text-align: center;
+
+  svg {
+    opacity: 0.5;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  p {
+    margin: 0;
+    font-weight: var(--font-weight-medium);
+  }
+
+  .empty-hint {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-tertiary);
+    max-width: 280px;
   }
 }

@@ -5,7 +5,11 @@
   </header>
 
   @if (isLoading) {
-    <div class="loading">Loading dashboard data...</div>
+    <app-skeleton-loader variant="stat" [count]="4"></app-skeleton-loader>
+    <div class="dashboard-grid">
+      <app-skeleton-loader variant="card" [count]="1"></app-skeleton-loader>
+      <app-skeleton-loader variant="list" [count]="3"></app-skeleton-loader>
+    </div>
   } @else {
     <div class="dashboard-content">
       <section class="stats-grid">
@@ -78,9 +82,16 @@
                   </div>
                   <span class="activity-time">{{ formatTime(activity.timestamp) }}</span>
                 </div>
-              } @empty {
-                <p class="empty-state">No recent activity</p>
-              }
+        } @empty {
+          <div class="empty-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <p>No recent activity</p>
+            <span class="empty-hint">Start translating to see activity here</span>
+          </div>
+        }
             </div>
           </div>
         </section>

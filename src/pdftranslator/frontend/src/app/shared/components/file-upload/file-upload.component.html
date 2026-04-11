@@ -2,36 +2,43 @@
   <div
     class="drop-zone"
     [class.dragging]="isDragging()"
+    role="button"
+    tabindex="0"
+    aria-label="Upload file by drag and drop or click to browse"
+    aria-describedby="supported-formats"
     (dragover)="onDragOver($event)"
     (dragleave)="onDragLeave($event)"
-    (drop)="onDrop($event)">
-    
-    <div class="drop-zone-content" *ngIf="!selectedFile(); else fileSelected">
-      <div class="upload-icon">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="17 8 12 3 7 8"/>
-          <line x1="12" y1="3" x2="12" y2="15"/>
-        </svg>
-      </div>
-      
-      <p class="drop-text">Drag & drop your file here</p>
-      <p class="drop-subtext">or</p>
-      
-      <label class="file-input-label">
-        <input
-          type="file"
-          accept=".pdf,.epub"
-          (change)="onFileInput($event)"
-          class="file-input"
-        />
-        <span class="file-input-button">Browse Files</span>
-      </label>
-      
-      <p class="supported-formats">Supported formats: PDF, EPUB</p>
-    </div>
+    (drop)="onDrop($event)"
+    (keydown.enter)="fileInputRef.nativeElement.click()"
+    (keydown.space)="$event.preventDefault(); fileInputRef.nativeElement.click()">
 
-    <ng-template #fileSelected>
+    @if (!selectedFile()) {
+      <div class="drop-zone-content">
+        <div class="upload-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+
+        <p class="drop-text">Drag & drop your file here</p>
+        <p class="drop-subtext">or</p>
+
+        <label class="file-input-label">
+          <input
+            #fileInput
+            type="file"
+            accept=".pdf,.epub"
+            (change)="onFileInput($event)"
+            class="file-input"
+            aria-label="Choose file to upload" />
+          <span class="file-input-button">Browse Files</span>
+        </label>
+
+        <p id="supported-formats" class="supported-formats">Supported formats: PDF, EPUB</p>
+      </div>
+    } @else {
       <div class="selected-file">
         <div class="file-info">
           <div class="file-icon">
@@ -48,6 +55,7 @@
         <button
           type="button"
           class="remove-file-button"
+          aria-label="Remove selected file"
           (click)="clearFile()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/>
@@ -55,15 +63,17 @@
           </svg>
         </button>
       </div>
-    </ng-template>
+    }
   </div>
 
-  <div *ngIf="errorMessage()" class="error-message">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="10"/>
-      <line x1="12" y1="8" x2="12" y2="12"/>
-      <line x1="12" y1="16" x2="12.01" y2="16"/>
-    </svg>
-    <span>{{ errorMessage() }}</span>
-  </div>
+  @if (errorMessage()) {
+    <div class="error-message" role="alert">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
 </div>

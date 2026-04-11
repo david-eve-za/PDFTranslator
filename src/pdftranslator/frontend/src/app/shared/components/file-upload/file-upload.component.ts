@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter, signal } from '@angular/core';
+import { Component, Output, EventEmitter, signal, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -11,6 +11,7 @@ import { FormsModule } from '@angular/forms';
 })
 export class FileUploadComponent {
   @Output() fileSelected = new EventEmitter<File>();
+  @ViewChild('fileInput') fileInputRef!: ElementRef<HTMLInputElement>;
 
   isDragging = signal(false);
   selectedFile = signal<File | null>(null);

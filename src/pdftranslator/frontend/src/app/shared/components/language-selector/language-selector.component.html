@@ -1,10 +1,14 @@
 <div class="language-selector-container">
-  <label class="language-label">{{ label }}</label>
-  
+  <label class="language-label" [attr.for]="buttonId">{{ label }}</label>
+
   <div class="language-dropdown" [class.open]="isOpen()" (keydown)="onKeydown($event)">
     <button
       type="button"
       class="language-button"
+      [id]="buttonId"
+      [attr.aria-expanded]="isOpen()"
+      aria-haspopup="listbox"
+      [attr.aria-labelledby]="buttonId"
       (click)="toggleDropdown()">
       <span class="language-text">{{ selectedLanguageName }}</span>
       <svg
@@ -20,33 +24,37 @@
       </svg>
     </button>
 
-    <div *ngIf="isOpen()" class="language-menu">
-      <div class="search-container">
-        <input
-          type="text"
-          class="search-input"
-          placeholder="Search languages..."
-          [value]="searchTerm()"
-          (input)="onSearchInput($event)"
-          autofocus
-        />
-      </div>
+    @if (isOpen()) {
+      <div class="language-menu" role="listbox" [attr.aria-label]="label">
+        <div class="search-container">
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Search languages..."
+            aria-label="Search languages"
+            [value]="searchTerm()"
+            (input)="onSearchInput($event)" />
+        </div>
 
-      <ul class="language-list">
-        <li
-          *ngFor="let language of filteredLanguages"
-          class="language-option"
-          [class.selected]="language.code === selectedLanguageValue"
-          (click)="selectLanguage(language.code)">
-          <span class="language-name">{{ language.name }}</span>
-          <span *ngIf="language.nativeName" class="language-native">
-            ({{ language.nativeName }})
-          </span>
-        </li>
-        <li *ngIf="filteredLanguages.length === 0" class="no-results">
-          No languages found
-        </li>
-      </ul>
-    </div>
+        <ul class="language-list">
+          @for (language of filteredLanguages; track language.code) {
+            <li
+              class="language-option"
+              [class.selected]="language.code === selectedLanguageValue"
+              role="option"
+              [attr.aria-selected]="language.code === selectedLanguageValue"
+              (click)="selectLanguage(language.code)"
+              (keydown.enter)="selectLanguage(language.code)">
+              <span class="language-name">{{ language.name }}</span>
+              @if (language.nativeName) {
+                <span class="language-native">({{ language.nativeName }})</span>
+              }
+            </li>
+          } @empty {
+            <li class="no-results" role="status">No languages found</li>
+          }
+        </ul>
+      </div>
+    }
   </div>
 </div>

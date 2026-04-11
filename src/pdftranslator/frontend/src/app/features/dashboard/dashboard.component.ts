@@ -6,11 +6,12 @@ import { DashboardService } from '../../core/services/dashboard.service';
 import { WorkService } from '../../core/services/work.service';
 import { GlossaryService } from '../../core/services/glossary.service';
 import { RecentActivity, Work, GlossaryTerm } from '../../core/models';
+import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader/skeleton-loader.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, BaseChartDirective],
+  imports: [CommonModule, BaseChartDirective, SkeletonLoaderComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
 })
