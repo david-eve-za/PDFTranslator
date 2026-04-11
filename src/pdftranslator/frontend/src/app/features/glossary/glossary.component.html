@@ -27,71 +27,95 @@
     </p>
   </header>
 
-  <main class="glossary-content">
-    <section class="add-term-section">
-      <h2 class="section-title">Add New Term</h2>
-
-      <div class="add-term-form">
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Term</label>
-            <input
-              type="text"
-              class="form-input"
-              [(ngModel)]="newTerm.term"
-              placeholder="Enter term" />
+<main class="glossary-content">
+  <div class="glossary-grid">
+    <section class="chart-section">
+      <div class="chart-card">
+        <h3>Entity Distribution</h3>
+        @if (terms().length > 0) {
+          <div class="chart-container">
+            <canvas 
+              baseChart
+              [data]="entityChartData"
+              [options]="entityChartOptions"
+              type="doughnut">
+            </canvas>
           </div>
-
-          <div class="form-group">
-            <label class="form-label">Translation</label>
-            <input
-              type="text"
-              class="form-input"
-              [(ngModel)]="newTerm.translation"
-              placeholder="Enter translation" />
+        } @else {
+          <div class="chart-empty">
+            <p>No terms to display</p>
           </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Entity Type</label>
-            <select class="form-input" [(ngModel)]="newTerm.entity_type">
-              @for (type of entityTypes; track type) {
-                <option [value]="type">{{ type | titlecase }}</option>
-              }
-            </select>
-          </div>
-
-          <div class="form-group checkbox-group">
-            <label class="checkbox-label">
-              <input type="checkbox" [(ngModel)]="newTerm.is_proper_noun" />
-              <span>Proper Noun</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="form-group full-width">
-          <label class="form-label">Context (Optional)</label>
-          <textarea
-            class="form-textarea"
-            [(ngModel)]="newTerm.context"
-            placeholder="Provide context for the term"
-            rows="3">
-          </textarea>
-        </div>
-
-        <button
-          class="add-term-button"
-          (click)="addTerm()"
-          [disabled]="isLoading()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          <span>Add Term</span>
-        </button>
+        }
       </div>
     </section>
+
+    <section class="terms-section">
+      <div class="add-term-card">
+        <h3>Add New Term</h3>
+
+        <div class="add-term-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Term</label>
+              <input
+                type="text"
+                class="form-input"
+                [(ngModel)]="newTerm.term"
+                placeholder="Enter term" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Translation</label>
+              <input
+                type="text"
+                class="form-input"
+                [(ngModel)]="newTerm.translation"
+                placeholder="Enter translation" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Entity Type</label>
+              <select class="form-input" [(ngModel)]="newTerm.entity_type">
+                @for (type of entityTypes; track type) {
+                  <option [value]="type">{{ type | titlecase }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="form-group checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="newTerm.is_proper_noun" />
+                <span>Proper Noun</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group full-width">
+            <label class="form-label">Context (Optional)</label>
+            <textarea
+              class="form-textarea"
+              [(ngModel)]="newTerm.context"
+              placeholder="Provide context for the term"
+              rows="2">
+            </textarea>
+          </div>
+
+          <button
+            class="add-term-button"
+            (click)="addTerm()"
+            [disabled]="isLoading()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span>Add Term</span>
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
 
     <section class="terms-list-section">
       <div class="terms-list-header">

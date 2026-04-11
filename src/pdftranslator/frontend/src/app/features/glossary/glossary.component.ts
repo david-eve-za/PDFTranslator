@@ -1,16 +1,17 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { BaseChartDirective } from 'ng2-charts';
+import { ChartConfiguration } from 'chart.js';
 import { GlossaryService } from '../../core/services/glossary.service';
 import { TranslationConfigService } from '../../core/services/translation-config.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { GlossaryTerm, EntityType } from '../../core/models';
-import { LanguageSelectorComponent } from '../../shared/components/language-selector/language-selector.component';
 
 @Component({
   selector: 'app-glossary',
   standalone: true,
-  imports: [CommonModule, FormsModule, LanguageSelectorComponent],
+  imports: [CommonModule, FormsModule, BaseChartDirective],
   templateUrl: './glossary.component.html',
   styleUrls: ['./glossary.component.scss'],
 })
@@ -40,6 +41,32 @@ export class GlossaryComponent implements OnInit {
 
   entityTypes: EntityType[] = ['character', 'place', 'skill', 'item', 'spell', 'faction', 'title', 'race', 'other'];
 
+  // Chart data
+  entityChartData: ChartConfiguration<'doughnut'>['data'] = {
+    labels: [],
+    datasets: [{
+      data: [],
+      backgroundColor: [],
+      borderWidth: 0
+    }]
+  };
+
+  entityChartOptions: ChartConfiguration<'doughnut'>['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: {
+          padding: 15,
+          usePointStyle: true,
+          pointStyle: 'circle'
+        }
+      }
+    },
+    cutout: '60%'
+  };
+
   ngOnInit(): void {
     this.loadLanguages();
     this.loadTerms();
@@ -57,6 +84,7 @@ export class GlossaryComponent implements OnInit {
     this.glossaryService.getAll().subscribe({
       next: (terms) => {
         this.terms.set(terms);
+        this.updateChartData(terms);
         this.isLoading.set(false);
       },
       error: (err) => {
@@ -65,6 +93,40 @@ export class GlossaryComponent implements OnInit {
         console.error('Failed to load terms:', err);
       },
     });
+  }
+
+  private updateChartData(terms: GlossaryTerm[]): void {
+    const entityCounts: Record<EntityType, number> = {
+      character: 0,
+      place: 0,
+      skill: 0,
+      item: 0,
+      spell: 0,
+      faction: 0,
+      title: 0,
+      race: 0,
+      other: 0
+    };
+
+    terms.forEach(term => {
+      entityCounts[term.entity_type]++;
+    });
+
+    const labels: string[] = [];
+    const data: number[] = [];
+    const colors: string[] = [];
+
+    this.entityTypes.forEach(type => {
+      if (entityCounts[type] > 0) {
+        labels.push(type.charAt(0).toUpperCase() + type.slice(1));
+        data.push(entityCounts[type]);
+        colors.push(this.getEntityTypeColor(type));
+      }
+    });
+
+    this.entityChartData.labels = labels;
+    this.entityChartData.datasets[0].data = data;
+    this.entityChartData.datasets[0].backgroundColor = colors;
   }
 
   get filteredTerms(): GlossaryTerm[] {
