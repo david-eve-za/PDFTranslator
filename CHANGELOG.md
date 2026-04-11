@@ -59,6 +59,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Visual chapter parser with type icons (Prologue/Chapter/Epilogue)
 - Preview of parsed chapters before saving
 
+**Translate Feature (Updated):**
+- Simulated translation progress without backend
+- File upload with visual feedback
+- Progress animation (upload → processing → complete)
+- Download simulation on completion
+
+**Glossary Feature (Updated):**
+- Entity type filtering (character, place, skill, etc.)
+- Type-specific icons and colors
+- Proper noun badge display
+- Frequency counter for each term
+- Enhanced CRUD operations with mock data
+
 #### Navigation Enhancements
 - 5 feature links: Dashboard, Library, Translate, Glossary, Split
 - Active state highlighting for current route
@@ -69,6 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `ECONNREFUSED` error when backend not running
 - Mock data now serves `/api/languages` and `/api/providers` endpoints
 - InMemoryWebAPI compatible with Angular 21 (version 0.21.0)
+- Added FormsModule to Library and Split components
 
 ### Added - Frontend Migration to Angular (2026-04-10)
 
