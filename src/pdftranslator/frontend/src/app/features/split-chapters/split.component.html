@@ -1,0 +1,94 @@
+<div class="split">
+  <header class="split-header">
+    <h1>Split Chapters</h1>
+    <p class="subtitle">Divide volumes into chapters</p>
+  </header>
+
+  <div class="split-content">
+    <section class="selectors">
+      <div class="selector-group">
+        <label for="work-select">Select Work:</label>
+        <select 
+          id="work-select" 
+          class="select-input"
+          (change)="onWorkSelect($any($event.target).value)">
+          <option value="">Choose a work...</option>
+          @for (work of works; track work.id) {
+            <option [value]="work.id">{{ work.title }}</option>
+          }
+        </select>
+      </div>
+
+      @if (selectedWork) {
+        <div class="selector-group">
+          <label for="volume-select">Select Volume:</label>
+          <select 
+            id="volume-select" 
+            class="select-input"
+            (change)="onVolumeSelect($any($event.target).value)">
+            <option value="">Choose a volume...</option>
+            <option value="1">Volume 1</option>
+            <option value="2">Volume 2</option>
+          </select>
+        </div>
+      }
+    </section>
+
+    @if (selectedVolume && volumeText) {
+      <section class="text-editor">
+        <div class="editor-header">
+          <h3>Volume Text</h3>
+          <div class="format-help">
+            <p>Use these markers to define blocks:</p>
+            <code>[===Type="Prologue"===]</code>
+            <code>[===Type="Chapter"===]</code>
+            <code>[===Type="Epilogue"===]</code>
+            <code>[===End Block===]</code>
+          </div>
+        </div>
+        
+        <textarea 
+          class="text-area"
+          [(ngModel)]="volumeText"
+          rows="15">
+        </textarea>
+
+        <div class="editor-actions">
+          <button class="btn btn-primary" (click)="parseChapters()" [disabled]="isParsing">
+            @if (isParsing) {
+              Parsing...
+            } @else {
+              Parse Chapters
+            }
+          </button>
+        </div>
+      </section>
+    }
+
+    @if (parsedChapters.length > 0) {
+      <section class="parsed-chapters">
+        <h3>Parsed Chapters ({{ parsedChapters.length }})</h3>
+        
+        <div class="chapters-list">
+          @for (chapter of parsedChapters; track chapter.title; let i = $index) {
+            <div class="chapter-item">
+              <div class="chapter-icon">
+                {{ getChapterTypeIcon(chapter.type) }}
+              </div>
+              <div class="chapter-info">
+                <h4>{{ chapter.title }}</h4>
+                <p class="chapter-type">{{ chapter.type | titlecase }}</p>
+              </div>
+              <span class="chapter-number">#{{ i + 1 }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="confirm-actions">
+          <button class="btn btn-success">Confirm & Save</button>
+          <button class="btn btn-secondary" (click)="parsedChapters = []">Cancel</button>
+        </div>
+      </section>
+    }
+  </div>
+</div>

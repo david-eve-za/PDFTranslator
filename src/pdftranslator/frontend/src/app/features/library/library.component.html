@@ -1,0 +1,67 @@
+<div class="library">
+  <header class="library-header">
+    <h1>Library</h1>
+    <p class="subtitle">Manage your translated works</p>
+  </header>
+
+  <div class="search-bar">
+    <input 
+      type="text" 
+      placeholder="Search works by title or author..." 
+      [(ngModel)]="searchTerm"
+      class="search-input">
+  </div>
+
+  @if (isLoading) {
+    <div class="loading">Loading works...</div>
+  } @else {
+    <div class="works-grid">
+      @for (work of filteredWorks; track work.id) {
+        <div class="work-card" [class]="getProgressClass(work)">
+          <div class="work-card-header">
+            <h3 class="work-title">{{ work.title }}</h3>
+            @if (work.title_translated) {
+              <p class="work-title-translated">{{ work.title_translated }}</p>
+            }
+          </div>
+          
+          <div class="work-card-body">
+            <p class="work-author">by {{ work.author }}</p>
+            <div class="work-stats">
+              <span class="stat">
+                <strong>{{ work.total_chapters }}</strong> chapters
+              </span>
+              <span class="stat">
+                <strong>{{ work.translated_chapters }}</strong> translated
+              </span>
+            </div>
+            
+            <div class="progress-bar">
+              <div 
+                class="progress-fill" 
+                [style.width.%]="getProgressPercentage(work)">
+              </div>
+            </div>
+            <p class="progress-text">{{ getProgressPercentage(work) }}% complete</p>
+          </div>
+
+          <div class="work-card-actions">
+            <button class="btn btn-primary" [routerLink]="['/translate']">
+              Translate
+            </button>
+            <button class="btn btn-secondary" [routerLink]="['/glossary']">
+              Glossary
+            </button>
+          </div>
+        </div>
+      } @empty {
+        <div class="empty-state">
+          <p>No works found</p>
+          <button class="btn btn-primary" [routerLink]="['/split']">
+            Add New Work
+          </button>
+        </div>
+      }
+    </div>
+  }
+</div>
