@@ -30,51 +30,51 @@
   <main class="glossary-content">
     <section class="add-term-section">
       <h2 class="section-title">Add New Term</h2>
-      
+
       <div class="add-term-form">
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Source Term</label>
+            <label class="form-label">Term</label>
             <input
               type="text"
               class="form-input"
-              [(ngModel)]="newTerm().sourceTerm"
-              placeholder="Enter source term"
-            />
+              [(ngModel)]="newTerm.term"
+              placeholder="Enter term" />
           </div>
 
           <div class="form-group">
-            <label class="form-label">Target Term</label>
+            <label class="form-label">Translation</label>
             <input
               type="text"
               class="form-input"
-              [(ngModel)]="newTerm().targetTerm"
-              placeholder="Enter target term"
-            />
+              [(ngModel)]="newTerm.translation"
+              placeholder="Enter translation" />
           </div>
         </div>
 
         <div class="form-row">
-          <app-language-selector
-            [label]="'Source Language'"
-            [languages]="languages()"
-            [selectedLanguage]="newTerm().sourceLanguage"
-            (languageChange)="onSourceLanguageChange($event)">
-          </app-language-selector>
+          <div class="form-group">
+            <label class="form-label">Entity Type</label>
+            <select class="form-input" [(ngModel)]="newTerm.entity_type">
+              @for (type of entityTypes; track type) {
+                <option [value]="type">{{ type | titlecase }}</option>
+              }
+            </select>
+          </div>
 
-          <app-language-selector
-            [label]="'Target Language'"
-            [languages]="languages()"
-            [selectedLanguage]="newTerm().targetLanguage"
-            (languageChange)="onTargetLanguageChange($event)">
-          </app-language-selector>
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="newTerm.is_proper_noun" />
+              <span>Proper Noun</span>
+            </label>
+          </div>
         </div>
 
         <div class="form-group full-width">
           <label class="form-label">Context (Optional)</label>
           <textarea
             class="form-textarea"
-            [(ngModel)]="newTerm().context"
+            [(ngModel)]="newTerm.context"
             placeholder="Provide context for the term"
             rows="3">
           </textarea>
@@ -96,13 +96,19 @@
     <section class="terms-list-section">
       <div class="terms-list-header">
         <h2 class="section-title">Glossary Terms</h2>
-        <div class="search-container">
+        <div class="filters">
           <input
             type="text"
             class="search-input"
             placeholder="Search terms..."
-            [(ngModel)]="searchTerm"
-          />
+            [(ngModel)]="searchTerm" />
+          <select class="filter-select" [(ngModel)]="selectedEntityType">
+            <option value="">All Types</option>
+            @for (type of entityTypes; track type) {
+              <option [value]="type">{{ type | titlecase }}</option>
+            }
+          </select>
+          <button class="clear-filters-btn" (click)="clearFilters()">Clear</button>
         </div>
       </div>
 
@@ -120,83 +126,80 @@
       </div>
 
       <div *ngIf="!isLoading() && filteredTerms.length > 0" class="terms-grid">
-        <div *ngFor="let term of filteredTerms" class="term-card">
-          <div *ngIf="editingTerm()?.id !== term.id; else editMode" class="term-content">
-            <div class="term-header">
-              <span class="term-lang-badge">{{ term.sourceLanguage }} → {{ term.targetLanguage }}</span>
-              <div class="term-actions">
-                <button
-                  class="action-button"
-                  (click)="startEdit(term)"
-                  title="Edit">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                  </svg>
-                </button>
-                <button
-                  class="action-button delete"
-                  (click)="deleteTerm(term.id)"
-                  title="Delete">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-            
-            <div class="term-body">
-              <div class="term-pair">
-                <div class="term-item">
-                  <span class="term-label">Source:</span>
-                  <span class="term-value">{{ term.sourceTerm }}</span>
+        @for (term of filteredTerms; track term.id) {
+          <div class="term-card">
+            @if (editingTerm()?.id !== term.id) {
+              <div class="term-content">
+                <div class="term-header">
+                  <span 
+                    class="entity-badge"
+                    [style.background-color]="getEntityTypeColor(term.entity_type)">
+                    {{ getEntityTypeIcon(term.entity_type) }} {{ term.entity_type }}
+                  </span>
+                  <div class="term-actions">
+                    <button class="action-button" (click)="startEdit(term)" title="Edit">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    </button>
+                    <button class="action-button delete" (click)="deleteTerm(term.id)" title="Delete">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-                <div class="term-item">
-                  <span class="term-label">Target:</span>
-                  <span class="term-value">{{ term.targetTerm }}</span>
-                </div>
-              </div>
-              <div *ngIf="term.context" class="term-context">
-                <span class="term-label">Context:</span>
-                <p>{{ term.context }}</p>
-              </div>
-            </div>
-          </div>
 
-          <ng-template #editMode>
-            <div class="term-edit-form">
-              <div class="form-group">
-                <label class="form-label">Source Term</label>
-                <input
-                  type="text"
-                  class="form-input"
-                  [(ngModel)]="editingTerm()!.sourceTerm"
-                />
+                <div class="term-body">
+                  <div class="term-pair">
+                    <div class="term-item">
+                      <span class="term-label">Term:</span>
+                      <span class="term-value">{{ term.term }}</span>
+                      @if (term.is_proper_noun) {
+                        <span class="proper-noun-badge">PN</span>
+                      }
+                    </div>
+                    <div class="term-item">
+                      <span class="term-label">Translation:</span>
+                      <span class="term-value">{{ term.translation || '-' }}</span>
+                    </div>
+                  </div>
+                  @if (term.context) {
+                    <div class="term-context">
+                      <span class="term-label">Context:</span>
+                      <p>{{ term.context }}</p>
+                    </div>
+                  }
+                  <div class="term-meta">
+                    <span class="frequency-badge">Freq: {{ term.frequency }}</span>
+                    <span class="lang-badge">{{ term.source_lang }} → {{ term.target_lang }}</span>
+                  </div>
+                </div>
               </div>
-              <div class="form-group">
-                <label class="form-label">Target Term</label>
-                <input
-                  type="text"
-                  class="form-input"
-                  [(ngModel)]="editingTerm()!.targetTerm"
-                />
+            } @else {
+              <div class="term-edit-form">
+                <div class="form-group">
+                  <label class="form-label">Term</label>
+                  <input type="text" class="form-input" [(ngModel)]="editingTerm()!.term" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Translation</label>
+                  <input type="text" class="form-input" [(ngModel)]="editingTerm()!.translation" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Context</label>
+                  <textarea class="form-textarea" [(ngModel)]="editingTerm()!.context" rows="2"></textarea>
+                </div>
+                <div class="edit-actions">
+                  <button class="cancel-button" (click)="cancelEdit()">Cancel</button>
+                  <button class="save-button" (click)="saveEdit()">Save</button>
+                </div>
               </div>
-              <div class="form-group">
-                <label class="form-label">Context</label>
-                <textarea
-                  class="form-textarea"
-                  [(ngModel)]="editingTerm()!.context"
-                  rows="2">
-                </textarea>
-              </div>
-              <div class="edit-actions">
-                <button class="cancel-button" (click)="cancelEdit()">Cancel</button>
-                <button class="save-button" (click)="saveEdit()">Save</button>
-              </div>
-            </div>
-          </ng-template>
-        </div>
+            }
+          </div>
+        }
       </div>
     </section>
 

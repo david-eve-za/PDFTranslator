@@ -1,9 +1,10 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ApiService } from '../../core/services/api.service';
+import { GlossaryService } from '../../core/services/glossary.service';
+import { TranslationConfigService } from '../../core/services/translation-config.service';
 import { ThemeService } from '../../core/services/theme.service';
-import { GlossaryTerm, GlossaryCreateRequest, Language } from '../../core/models/translation.models';
+import { GlossaryTerm, EntityType } from '../../core/models';
 import { LanguageSelectorComponent } from '../../shared/components/language-selector/language-selector.component';
 
 @Component({
@@ -14,25 +15,30 @@ import { LanguageSelectorComponent } from '../../shared/components/language-sele
   styleUrls: ['./glossary.component.scss'],
 })
 export class GlossaryComponent implements OnInit {
-  private apiService = inject(ApiService);
+  private glossaryService = inject(GlossaryService);
+  private configService = inject(TranslationConfigService);
   private themeService = inject(ThemeService);
 
   terms = signal<GlossaryTerm[]>([]);
-  languages = signal<Language[]>([]);
-  
-  newTerm = signal<GlossaryCreateRequest>({
-    sourceTerm: '',
-    targetTerm: '',
-    sourceLanguage: 'en',
-    targetLanguage: 'es',
+  languages = signal<{code: string, name: string}[]>([]);
+
+  newTerm = {
+    term: '',
+    translation: '',
+    entity_type: 'other' as EntityType,
     context: '',
-  });
+    is_proper_noun: false
+  };
 
   editingTerm = signal<GlossaryTerm | null>(null);
   searchTerm = signal('');
+  selectedWorkId = signal<number | null>(null);
+  selectedEntityType = signal<EntityType | ''>('');
   isLoading = signal(false);
   errorMessage = signal<string | null>(null);
   successMessage = signal<string | null>(null);
+
+  entityTypes: EntityType[] = ['character', 'place', 'skill', 'item', 'spell', 'faction', 'title', 'race', 'other'];
 
   ngOnInit(): void {
     this.loadLanguages();
@@ -40,7 +46,7 @@ export class GlossaryComponent implements OnInit {
   }
 
   private loadLanguages(): void {
-    this.apiService.getLanguages().subscribe({
+    this.configService.getLanguages().subscribe({
       next: (langs) => this.languages.set(langs),
       error: (err) => console.error('Failed to load languages:', err),
     });
@@ -48,7 +54,7 @@ export class GlossaryComponent implements OnInit {
 
   private loadTerms(): void {
     this.isLoading.set(true);
-    this.apiService.getGlossaryTerms().subscribe({
+    this.glossaryService.getAll().subscribe({
       next: (terms) => {
         this.terms.set(terms);
         this.isLoading.set(false);
@@ -63,27 +69,60 @@ export class GlossaryComponent implements OnInit {
 
   get filteredTerms(): GlossaryTerm[] {
     const search = this.searchTerm().toLowerCase();
-    if (!search) return this.terms();
+    let filtered = this.terms();
 
-    return this.terms().filter((term) =>
-      term.sourceTerm.toLowerCase().includes(search) ||
-      term.targetTerm.toLowerCase().includes(search) ||
-      (term.context && term.context.toLowerCase().includes(search))
-    );
+    if (this.selectedWorkId()) {
+      filtered = filtered.filter(t => t.work_id === this.selectedWorkId());
+    }
+
+    if (this.selectedEntityType()) {
+      filtered = filtered.filter(t => t.entity_type === this.selectedEntityType());
+    }
+
+    if (search) {
+      filtered = filtered.filter((term) =>
+        term.term.toLowerCase().includes(search) ||
+        (term.translation && term.translation.toLowerCase().includes(search)) ||
+        (term.context && term.context.toLowerCase().includes(search))
+      );
+    }
+
+    return filtered;
   }
 
-  onSourceLanguageChange(code: string): void {
-    this.newTerm.update((term) => ({ ...term, sourceLanguage: code }));
+  getEntityTypeIcon(type: EntityType): string {
+    const icons: Record<EntityType, string> = {
+      character: '👤',
+      place: '📍',
+      skill: '⚡',
+      item: '📦',
+      spell: '✨',
+      faction: '🏛️',
+      title: '👑',
+      race: '🧬',
+      other: '📝'
+    };
+    return icons[type] || '📝';
   }
 
-  onTargetLanguageChange(code: string): void {
-    this.newTerm.update((term) => ({ ...term, targetLanguage: code }));
+  getEntityTypeColor(type: EntityType): string {
+    const colors: Record<EntityType, string> = {
+      character: '#3b82f6',
+      place: '#10b981',
+      skill: '#f59e0b',
+      item: '#8b5cf6',
+      spell: '#ec4899',
+      faction: '#6366f1',
+      title: '#f97316',
+      race: '#14b8a6',
+      other: '#6b7280'
+    };
+    return colors[type] || '#6b7280';
   }
 
   addTerm(): void {
-    const term = this.newTerm();
-    if (!term.sourceTerm.trim() || !term.targetTerm.trim()) {
-      this.errorMessage.set('Both source and target terms are required');
+    if (!this.newTerm.term.trim()) {
+      this.errorMessage.set('Term is required');
       return;
     }
 
@@ -91,16 +130,27 @@ export class GlossaryComponent implements OnInit {
     this.errorMessage.set(null);
     this.successMessage.set(null);
 
-    this.apiService.createGlossaryTerm(term).subscribe({
+    const termToAdd = {
+      work_id: 1,
+      term: this.newTerm.term,
+      translation: this.newTerm.translation || undefined,
+      entity_type: this.newTerm.entity_type,
+      context: this.newTerm.context || undefined,
+      is_proper_noun: this.newTerm.is_proper_noun,
+      source_lang: 'en',
+      target_lang: 'es'
+    };
+
+    this.glossaryService.create(termToAdd).subscribe({
       next: (createdTerm) => {
         this.terms.update((terms) => [...terms, createdTerm]);
-        this.newTerm.set({
-          sourceTerm: '',
-          targetTerm: '',
-          sourceLanguage: 'en',
-          targetLanguage: 'es',
+        this.newTerm = {
+          term: '',
+          translation: '',
+          entity_type: 'other',
           context: '',
-        });
+          is_proper_noun: false
+        };
         this.successMessage.set('Term added successfully!');
         this.isLoading.set(false);
         setTimeout(() => this.successMessage.set(null), 3000);
@@ -128,7 +178,12 @@ export class GlossaryComponent implements OnInit {
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    this.apiService.updateGlossaryTerm(term).subscribe({
+    this.glossaryService.update(term.id, {
+      term: term.term,
+      translation: term.translation,
+      context: term.context,
+      is_proper_noun: term.is_proper_noun
+    }).subscribe({
       next: (updatedTerm) => {
         this.terms.update((terms) =>
           terms.map((t) => (t.id === updatedTerm.id ? updatedTerm : t))
@@ -154,7 +209,7 @@ export class GlossaryComponent implements OnInit {
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    this.apiService.deleteGlossaryTerm(id).subscribe({
+    this.glossaryService.delete(id).subscribe({
       next: () => {
         this.terms.update((terms) => terms.filter((t) => t.id !== id));
         this.successMessage.set('Term deleted successfully!');
@@ -167,6 +222,12 @@ export class GlossaryComponent implements OnInit {
         console.error('Failed to delete term:', err);
       },
     });
+  }
+
+  clearFilters(): void {
+    this.searchTerm.set('');
+    this.selectedWorkId.set(null);
+    this.selectedEntityType.set('');
   }
 
   toggleTheme(): void {

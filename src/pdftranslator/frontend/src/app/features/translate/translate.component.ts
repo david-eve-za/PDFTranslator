@@ -1,9 +1,8 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ApiService } from '../../core/services/api.service';
+import { TranslationConfigService, Language, Provider } from '../../core/services/translation-config.service';
 import { ThemeService } from '../../core/services/theme.service';
-import { Language, Provider, TranslationResponse } from '../../core/models/translation.models';
 import { FileUploadComponent } from '../../shared/components/file-upload/file-upload.component';
 import { LanguageSelectorComponent } from '../../shared/components/language-selector/language-selector.component';
 import { ProgressIndicatorComponent, ProgressStatus } from '../../shared/components/progress-indicator/progress-indicator.component';
@@ -22,7 +21,7 @@ import { ProgressIndicatorComponent, ProgressStatus } from '../../shared/compone
   styleUrls: ['./translate.component.scss'],
 })
 export class TranslateComponent implements OnInit {
-  private apiService = inject(ApiService);
+  private configService = inject(TranslationConfigService);
   private themeService = inject(ThemeService);
 
   languages = signal<Language[]>([]);
@@ -46,14 +45,14 @@ export class TranslateComponent implements OnInit {
   }
 
   private loadLanguages(): void {
-    this.apiService.getLanguages().subscribe({
+    this.configService.getLanguages().subscribe({
       next: (langs) => this.languages.set(langs),
       error: (err) => console.error('Failed to load languages:', err),
     });
   }
 
   private loadProviders(): void {
-    this.apiService.getProviders().subscribe({
+    this.configService.getProviders().subscribe({
       next: (provs) => {
         this.providers.set(provs);
         if (provs.length > 0) {
@@ -103,71 +102,45 @@ export class TranslateComponent implements OnInit {
       return;
     }
 
+    // Simulate translation with mock data
     this.progressStatus.set('uploading');
     this.progressValue.set(0);
     this.progressMessage.set('Preparing file for upload...');
     this.errorMessage.set(null);
     this.downloadUrl.set(null);
 
-    this.apiService
-      .translateFile(
-        file,
-        this.sourceLanguage(),
-        this.targetLanguage(),
-        this.selectedProvider(),
-        (progressEvent) => {
-          this.progressStatus.set('uploading');
-          this.progressValue.set(progressEvent.percentage);
-          this.progressMessage.set(
-            `Uploading... ${progressEvent.percentage}%`
-          );
-        }
-      )
-      .subscribe({
-        next: (response: TranslationResponse) => {
-          this.handleTranslationResponse(response);
-        },
-        error: (err) => {
-          this.progressStatus.set('error');
-          this.errorMessage.set(
-            err.message || 'An error occurred during translation'
-          );
-        },
-      });
+    // Simulate upload progress
+    let progress = 0;
+    const uploadInterval = setInterval(() => {
+      progress += 10;
+      this.progressValue.set(progress);
+      this.progressMessage.set(`Uploading... ${progress}%`);
+      
+      if (progress >= 100) {
+        clearInterval(uploadInterval);
+        this.simulateProcessing();
+      }
+    }, 200);
   }
 
-  private handleTranslationResponse(response: TranslationResponse): void {
-    switch (response.status) {
-      case 'pending':
-      case 'processing':
-        this.progressStatus.set('processing');
-        this.progressValue.set(response.progress);
-        this.progressMessage.set(`Processing... ${response.progress}%`);
-        setTimeout(() => {
-          this.pollTranslationStatus(response.id);
-        }, 2000);
-        break;
-      case 'completed':
+  private simulateProcessing(): void {
+    this.progressStatus.set('processing');
+    this.progressValue.set(0);
+    this.progressMessage.set('Processing translation...');
+
+    let progress = 0;
+    const processInterval = setInterval(() => {
+      progress += 5;
+      this.progressValue.set(progress);
+      this.progressMessage.set(`Translating... ${progress}%`);
+      
+      if (progress >= 100) {
+        clearInterval(processInterval);
         this.progressStatus.set('completed');
-        this.progressValue.set(100);
         this.progressMessage.set('Translation completed successfully!');
-        this.downloadUrl.set(response.downloadUrl || null);
-        break;
-      case 'error':
-        this.progressStatus.set('error');
-        this.errorMessage.set(response.error || 'Translation failed');
-        break;
-    }
-  }
-
-  private pollTranslationStatus(id: string): void {
-    this.apiService.getTranslationStatus(id).subscribe({
-      next: (response) => this.handleTranslationResponse(response),
-      error: (err) => {
-        this.progressStatus.set('error');
-        this.errorMessage.set(err.message || 'Failed to check status');
-      },
-    });
+        this.downloadUrl.set('mock://download/translated-document.pdf');
+      }
+    }, 150);
   }
 
   downloadResult(): void {
