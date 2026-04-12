@@ -1,124 +1,122 @@
 """Glossary management routes."""
 
 from datetime import datetime
-from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
-from pydantic import BaseModel
+from pdftranslator.backend.api.models.schemas import (
+    GlossaryCreate,
+    GlossaryEntryResponse,
+    GlossaryUpdateRequest,
+)
+from pdftranslator.database.connection import DatabasePool
+from pdftranslator.database.repositories.glossary_repository import GlossaryRepository
 
 router = APIRouter(prefix="/api/glossary", tags=["glossary"])
 
 
-class GlossaryTerm(BaseModel):
-    """Glossary term schema."""
-
-    id: int
-    source_lang: str
-    target_lang: str
-    term: str
-    translation: Optional[str] = None
-    context: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
+def get_glossary_repository() -> GlossaryRepository:
+    """Get glossary repository instance."""
+    pool = DatabasePool.get_instance().get_pool()
+    return GlossaryRepository(pool)
 
 
-class GlossaryCreateRequest(BaseModel):
-    """Glossary create request schema."""
-
-    source_lang: str
-    target_lang: str
-    term: str
-    translation: Optional[str] = None
-    context: Optional[str] = None
-
-
-class GlossaryUpdateRequest(BaseModel):
-    """Glossary update request schema."""
-
-    term: Optional[str] = None
-    translation: Optional[str] = None
-    context: Optional[str] = None
-
-
-_glossary_db: List[GlossaryTerm] = []
-_id_counter = 0
-
-
-@router.get("/", response_model=List[GlossaryTerm])
+@router.get("/", response_model=list[GlossaryEntryResponse])
 async def list_glossary(
-    source_lang: Optional[str] = None,
-    target_lang: Optional[str] = None,
-    search: Optional[str] = None,
+    work_id: int | None = None,
+    search: str | None = None,
+    repo: GlossaryRepository = Depends(get_glossary_repository),
 ):
     """List all glossary terms with optional filters."""
-    results = _glossary_db
-    if source_lang:
-        results = [t for t in results if t.source_lang == source_lang]
-    if target_lang:
-        results = [t for t in results if t.target_lang == target_lang]
+    if work_id:
+        entries = repo.get_by_work(work_id)
+    else:
+        entries = repo.get_all()
+
     if search:
         search_lower = search.lower()
-        results = [
-            t
-            for t in results
-            if search_lower in t.term.lower()
-            or (t.translation and search_lower in t.translation.lower())
+        entries = [
+            e
+            for e in entries
+            if search_lower in e.term.lower()
+            or (e.translation and search_lower in e.translation.lower())
         ]
-    return results
+
+    return [_entry_to_response(e) for e in entries]
 
 
-@router.post("/", response_model=GlossaryTerm)
-async def create_glossary_term(data: GlossaryCreateRequest):
+@router.post("/", response_model=GlossaryEntryResponse, status_code=201)
+async def create_glossary_term(
+    data: GlossaryCreate, repo: GlossaryRepository = Depends(get_glossary_repository)
+):
     """Create a new glossary term."""
-    global _id_counter
-    _id_counter += 1
-    now = datetime.now()
-    term = GlossaryTerm(
-        id=_id_counter,
-        source_lang=data.source_lang,
-        target_lang=data.target_lang,
+    from pdftranslator.core.models.work import GlossaryEntry
+
+    entry = GlossaryEntry(
+        work_id=data.work_id,
         term=data.term,
         translation=data.translation,
-        context=data.context,
-        created_at=now,
-        updated_at=now,
+        notes=data.notes,
+        is_proper_noun=data.is_proper_noun,
     )
-    _glossary_db.append(term)
-    return term
+    created = repo.create(entry)
+    return _entry_to_response(created)
 
 
-@router.get("/{term_id}", response_model=GlossaryTerm)
-async def get_glossary_term(term_id: int):
+@router.get("/{term_id}", response_model=GlossaryEntryResponse)
+async def get_glossary_term(
+    term_id: int, repo: GlossaryRepository = Depends(get_glossary_repository)
+):
     """Get a glossary term by ID."""
-    for term in _glossary_db:
-        if term.id == term_id:
-            return term
-    raise HTTPException(status_code=404, detail="Glossary term not found")
+    entry = repo.get_by_id(term_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Glossary term not found")
+    return _entry_to_response(entry)
 
 
-@router.put("/{term_id}", response_model=GlossaryTerm)
-async def update_glossary_term(term_id: int, data: GlossaryUpdateRequest):
+@router.put("/{term_id}", response_model=GlossaryEntryResponse)
+async def update_glossary_term(
+    term_id: int,
+    data: GlossaryUpdateRequest,
+    repo: GlossaryRepository = Depends(get_glossary_repository),
+):
     """Update a glossary term."""
-    for term in _glossary_db:
-        if term.id == term_id:
-            if data.term is not None:
-                term.term = data.term
-            if data.translation is not None:
-                term.translation = data.translation
-            if data.context is not None:
-                term.context = data.context
-            term.updated_at = datetime.now()
-            return term
-    raise HTTPException(status_code=404, detail="Glossary term not found")
+    entry = repo.get_by_id(term_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Glossary term not found")
+
+    if data.translation is not None:
+        entry.translation = data.translation
+    if data.notes is not None:
+        entry.notes = data.notes
+
+    updated = repo.update(entry)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Glossary term not found")
+    return _entry_to_response(updated)
 
 
 @router.delete("/{term_id}")
-async def delete_glossary_term(term_id: int):
+async def delete_glossary_term(
+    term_id: int, repo: GlossaryRepository = Depends(get_glossary_repository)
+):
     """Delete a glossary term."""
-    global _glossary_db
-    for i, term in enumerate(_glossary_db):
-        if term.id == term_id:
-            _glossary_db.pop(i)
-            return {"message": "Glossary term deleted"}
-    raise HTTPException(status_code=404, detail="Glossary term not found")
+    deleted = repo.delete(term_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Glossary term not found")
+    return {"message": "Glossary term deleted", "id": term_id}
+
+
+def _entry_to_response(entry) -> dict:
+    """Convert glossary entry to response dict."""
+    return {
+        "id": entry.id,
+        "work_id": entry.work_id,
+        "term": entry.term,
+        "translation": entry.translation,
+        "notes": entry.notes,
+        "is_proper_noun": entry.is_proper_noun,
+        "created_at": entry.created_at.isoformat()
+        if entry.created_at
+        else datetime.now().isoformat(),
+    }

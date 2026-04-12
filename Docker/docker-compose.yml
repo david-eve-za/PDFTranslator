@@ -1,0 +1,107 @@
+# =============================================================================
+# Book Translator System — Docker Compose
+# =============================================================================
+# Requisitos: Docker Engine 24+ / Docker Desktop 4.25+
+#
+# Inicio rápido:
+#   cp .env.example .env        # Editar credenciales
+#   docker compose up -d
+#   docker compose logs -f db   # Verificar que pgvector se inicializó
+# =============================================================================
+
+services:
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # PostgreSQL 16 + pgvector
+  # Imagen oficial con pgvector preinstalado (ankane/pgvector es el estándar)
+  # ─────────────────────────────────────────────────────────────────────────
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: postgres_db
+    restart: unless-stopped              # 'always' reinicia incluso en docker stop
+    environment:
+      POSTGRES_USER:     "translator_user"
+      POSTGRES_PASSWORD: "uQ201/-R]f3\"j@]N7/L:"
+      POSTGRES_DB:       book_translator
+      # Afina el locale para texto español/japonés/coreano
+      POSTGRES_INITDB_ARGS: "--locale=en_US.UTF-8 --encoding=UTF8"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # Persistencia de datos — CRÍTICO: sin esto los datos se pierden
+      - postgres_data:/var/lib/postgresql/data
+      # Scripts de inicialización: se ejecutan en orden alfabético al crear la DB
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    command: >
+      postgres
+        -c shared_buffers=256MB
+        -c work_mem=16MB
+        -c maintenance_work_mem=128MB
+        -c effective_cache_size=1GB
+        -c max_connections=100
+        -c wal_level=replica
+        -c log_min_duration_statement=1000
+        -c log_line_prefix='%t [%p] %u@%d '
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U translator_user -d book_translator"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - translator_net
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+        reservations:
+          memory: 512M
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # CloudBeaver — Web UI para administrar PostgreSQL
+  #
+  # FIX: Las vars DB_HOST/DB_PORT/etc NO existen en la imagen oficial.
+  # CloudBeaver se configura desde su UI web en el primer arranque,
+  # o montando un workspace pre-configurado (ver volumen cloudbeaver_workspace).
+  # ─────────────────────────────────────────────────────────────────────────
+  admin-panel:
+    image: dbeaver/cloudbeaver:latest
+    container_name: cloudbeaver_web
+    restart: unless-stopped
+    ports:
+      - "${CLOUDBEAVER_PORT:-8978}:8978"
+    depends_on:
+      db:
+        condition: service_healthy    # Espera al healthcheck real de Postgres
+    volumes:
+      # Persiste la configuración del workspace (conexiones guardadas, etc.)
+      - cloudbeaver_workspace:/opt/cloudbeaver/workspace
+    networks:
+      - translator_net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+
+# =============================================================================
+# Volúmenes nombrados — datos persisten entre reinicios y recreaciones
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  cloudbeaver_workspace:
+    driver: local
+
+# =============================================================================
+# Red interna aislada
+# Los servicios se comunican por nombre (db, admin-panel)
+# Solo los puertos definidos en 'ports' se exponen al host
+# =============================================================================
+networks:
+  translator_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

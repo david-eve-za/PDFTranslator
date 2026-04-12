@@ -30,11 +30,21 @@ async def health():
     return {"status": "healthy"}
 
 
-from pdftranslator.backend.api.routes import files, glossary, translation
+from pdftranslator.backend.api.routes import (
+    files,
+    glossary,
+    translation,
+    works,
+    volumes,
+    chapters,
+)
 
 app.include_router(files.router)
 app.include_router(glossary.router)
 app.include_router(translation.router)
+app.include_router(works.router)
+app.include_router(volumes.router)
+app.include_router(chapters.router)
 
 if __name__ == "__main__":
     import uvicorn

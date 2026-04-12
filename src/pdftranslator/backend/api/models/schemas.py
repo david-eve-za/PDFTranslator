@@ -82,10 +82,13 @@ class ChapterResponse(BaseModel):
 
     id: int
     volume_id: int
-    chapter_number: int
-    title: str
-    created_at: datetime
-    updated_at: datetime
+    chapter_number: int | None = None
+    title: str | None = None
+    original_text: str | None = None
+    translated_text: str | None = None
+    is_translated: bool = False
+    created_at: str
+    updated_at: str
 
 
 class ChapterUpdateRequest(BaseModel):
@@ -162,3 +165,112 @@ class AudioStatusResponse(BaseModel):
     progress: int
     audio_files: list[AudioFileResponse] | None = None
     error: str | None = None
+
+
+class WorkResponse(BaseModel):
+    """Work response schema."""
+
+    id: int
+    title: str
+    title_translated: str | None = None
+    author: str
+    source_lang: str = "en"
+    target_lang: str = "es"
+    volumes: list[dict] = []
+    created_at: str
+    updated_at: str
+
+
+class WorkListResponse(BaseModel):
+    """Paginated list of works."""
+
+    items: list[WorkResponse]
+    total: int
+    page: int
+    page_size: int
+
+    @property
+    def pages(self) -> int:
+        return (
+            (self.total + self.page_size - 1) // self.page_size
+            if self.page_size > 0
+            else 0
+        )
+
+
+class WorkCreate(BaseModel):
+    """Work create request schema."""
+
+    title: str
+    author: str
+    title_translated: str | None = None
+    source_lang: str = "en"
+    target_lang: str = "es"
+
+
+class WorkUpdate(BaseModel):
+    """Work update request schema."""
+
+    title: str | None = None
+    title_translated: str | None = None
+    author: str | None = None
+    source_lang: str | None = None
+    target_lang: str | None = None
+
+
+class VolumeResponse(BaseModel):
+    """Volume response schema."""
+
+    id: int
+    work_id: int
+    volume_number: int
+    title: str | None = None
+    chapters: list[dict] = []
+    created_at: str
+
+
+class VolumeListResponse(BaseModel):
+    """Paginated list of volumes."""
+
+    items: list[VolumeResponse]
+    total: int
+
+
+class VolumeCreate(BaseModel):
+    """Volume create request schema."""
+
+    work_id: int
+    volume_number: int
+    title: str | None = None
+
+
+class ChapterListResponse(BaseModel):
+    """Paginated list of chapters."""
+
+    items: list[ChapterResponse]
+    total: int
+
+
+class ChapterUpdate(BaseModel):
+    """Chapter update request schema."""
+
+    title: str | None = None
+    translated_text: str | None = None
+
+
+class GlossaryCreate(BaseModel):
+    """Glossary create request schema."""
+
+    work_id: int
+    term: str
+    translation: str | None = None
+    notes: str | None = None
+    is_proper_noun: bool = False
+
+
+class GlossaryUpdateRequestNew(BaseModel):
+    """Glossary update request schema (new)."""
+
+    translation: str | None = None
+    notes: str | None = None
+    is_proper_noun: bool | None = None
