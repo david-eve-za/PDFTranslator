@@ -1,0 +1,199 @@
+<div class="files-page">
+  <header class="files-header">
+    <h1>File Manager</h1>
+    <p class="subtitle">Upload and manage your PDF and EPUB documents</p>
+  </header>
+
+  <div class="upload-section">
+    <div 
+      class="upload-zone"
+      [class.drag-over]="isDragOver"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)"
+      (dragenter)="onDragEnter($event)"
+      (drop)="onDrop($event)"
+      [@uploadAnimation]
+    >
+      <div class="upload-zone-content">
+        <div class="upload-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <p class="upload-text">Drag & drop your file here</p>
+        <span class="upload-hint">or</span>
+        <label class="upload-btn">
+          Browse Files
+          <input 
+            type="file" 
+            accept=".pdf,.epub"
+            (change)="onFileSelected($event)"
+            hidden
+          >
+        </label>
+        <span class="upload-formats">PDF, EPUB (max 100MB)</span>
+      </div>
+    </div>
+
+    <div class="upload-config">
+      <div class="config-field">
+        <label for="source-lang">Source Language</label>
+        <select id="source-lang" [(ngModel)]="uploadConfig.source_lang">
+          <option value="en">English</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          <option value="de">German</option>
+          <option value="ja">Japanese</option>
+          <option value="zh">Chinese</option>
+        </select>
+      </div>
+      <div class="config-field">
+        <label for="target-lang">Target Language</label>
+        <select id="target-lang" [(ngModel)]="uploadConfig.target_lang">
+          <option value="en">English</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          <option value="de">German</option>
+          <option value="ja">Japanese</option>
+          <option value="zh">Chinese</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  @if (isUploading && uploadProgress) {
+    <div class="upload-progress" [@uploadAnimation]>
+      <div class="progress-bar">
+        <div class="progress-fill" [style.width.%]="uploadProgress.percentage"></div>
+      </div>
+      <span class="progress-text">Uploading... {{ uploadProgress.percentage }}%</span>
+    </div>
+  }
+
+  @if (isLoading) {
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>Loading files...</p>
+    </div>
+  } @else {
+    <div class="files-section">
+      <div class="files-header-row">
+        <h2>Your Files</h2>
+        <span class="files-count">{{ totalFiles }} file(s)</span>
+      </div>
+
+      @if (files.length > 0) {
+        <div class="files-grid" [@fileListAnimation]>
+          @for (file of files; track file.id) {
+            <div class="file-card" [class]="'status-' + file.status">
+              <div class="file-card-header">
+                <div class="file-icon" [style.color]="getStatusColor(file.status)">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                  </svg>
+                </div>
+                <div class="file-info">
+                  <h3 class="file-name" [title]="file.original_name">{{ file.original_name }}</h3>
+                  <span class="file-meta">
+                    {{ formatSize(file.file_size) }} • {{ file.file_type }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="file-card-body">
+                <div class="file-status" [style.color]="getStatusColor(file.status)">
+                  <span class="status-icon">{{ getStatusIcon(file.status) }}</span>
+                  <span class="status-text">{{ file.status }}</span>
+                </div>
+
+                @if (file.work_title) {
+                  <div class="file-work">
+                    <span class="label">Work:</span>
+                    <span class="value">{{ file.work_title }}</span>
+                  </div>
+                }
+
+                @if (file.volume_number) {
+                  <div class="file-volume">
+                    <span class="label">Volume:</span>
+                    <span class="value">{{ file.volume_number }}</span>
+                  </div>
+                }
+
+                <div class="file-date">
+                  <span class="label">Uploaded:</span>
+                  <span class="value">{{ formatDate(file.created_at) }}</span>
+                </div>
+              </div>
+
+              <div class="file-card-actions">
+                @if (file.work_id) {
+                  <button class="btn btn-primary" [routerLink]="['/translate']">
+                    Translate
+                  </button>
+                }
+                <button 
+                  class="btn btn-danger"
+                  (click)="deleteFile(file.id, file.original_name)"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+
+        @if (totalPages > 1) {
+          <div class="pagination">
+            <button 
+              class="pagination-btn"
+              [disabled]="currentPage === 1"
+              (click)="prevPage()"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+            </button>
+
+            <div class="pagination-pages">
+              @for (page of getPaginationPages(); track page) {
+                <button 
+                  class="pagination-page"
+                  [class.active]="page === currentPage"
+                  (click)="goToPage(page)"
+                >
+                  {{ page }}
+                </button>
+              }
+            </div>
+
+            <button 
+              class="pagination-btn"
+              [disabled]="currentPage === totalPages"
+              (click)="nextPage()"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </button>
+          </div>
+        }
+      } @else {
+        <div class="empty-state">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+            <polyline points="13 2 13 9 20 9"/>
+          </svg>
+          <p>No files uploaded yet</p>
+          <span class="empty-hint">Upload a PDF or EPUB file to get started</span>
+        </div>
+      }
+    </div>
+  }
+</div>

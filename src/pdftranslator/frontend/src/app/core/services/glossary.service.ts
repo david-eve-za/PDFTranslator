@@ -7,14 +7,13 @@ import { GlossaryTerm, GlossaryTermCreate, GlossaryTermUpdate, EntityType } from
   providedIn: 'root'
 })
 export class GlossaryService {
-  private apiUrl = 'api/glossaryTerms';
+  private apiUrl = '/api/glossary';
 
   constructor(private http: HttpClient) {}
 
   getAll(workId?: number, entityType?: EntityType): Observable<GlossaryTerm[]> {
     let params = new HttpParams();
     if (workId) params = params.set('work_id', workId.toString());
-    if (entityType) params = params.set('entity_type', entityType);
     return this.http.get<GlossaryTerm[]>(this.apiUrl, { params });
   }
 

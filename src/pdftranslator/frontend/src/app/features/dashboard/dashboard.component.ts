@@ -4,7 +4,7 @@ import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration } from 'chart.js';
 import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
 import { DashboardService } from '../../core/services/dashboard.service';
-import { WorkService } from '../../core/services/work.service';
+import { WorkService, WorkListResponse } from '../../core/services/work.service';
 import { GlossaryService } from '../../core/services/glossary.service';
 import { RecentActivity, Work, GlossaryTerm } from '../../core/models';
 import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader/skeleton-loader.component';
@@ -77,29 +77,30 @@ export class DashboardComponent implements OnInit {
     this.isLoading = true;
 
     this.workService.getAll().subscribe({
-      next: (works: Work[]) => {
+      next: (response: WorkListResponse) => {
+        const works = response.items;
         this.stats.totalWorks = works.length;
-        const totalProgress = works.reduce((sum, w) => 
+        const totalProgress = works.reduce((sum, w) =>
           sum + (w.total_chapters > 0 ? (w.translated_chapters / w.total_chapters) * 100 : 0), 0
         );
         this.stats.averageProgress = works.length > 0 ? Math.round(totalProgress / works.length) : 0;
-        
+
         // Calculate chart data
         let completed = 0;
         let inProgress = 0;
         let pending = 0;
-        
+
         works.forEach(work => {
-          const progress = work.total_chapters > 0 
-            ? (work.translated_chapters / work.total_chapters) * 100 
+          const progress = work.total_chapters > 0
+            ? (work.translated_chapters / work.total_chapters) * 100
             : 0;
           if (progress === 100) completed++;
           else if (progress > 0) inProgress++;
           else pending++;
         });
-        
+
         this.translationChartData.datasets[0].data = [completed, inProgress, pending];
-        
+
         this.isLoading = false;
       },
       error: (err) => {

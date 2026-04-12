@@ -1,18 +1,28 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Work, WorkCreate, WorkUpdate } from '../models';
+
+export interface WorkListResponse {
+  items: Work[];
+  total: number;
+  page: number;
+  page_size: number;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class WorkService {
-  private apiUrl = 'api/works';
+  private apiUrl = '/api/works';
 
   constructor(private http: HttpClient) {}
 
-  getAll(): Observable<Work[]> {
-    return this.http.get<Work[]>(this.apiUrl);
+  getAll(page: number = 1, pageSize: number = 20): Observable<WorkListResponse> {
+    const params = new HttpParams()
+      .set('page', page.toString())
+      .set('page_size', pageSize.toString());
+    return this.http.get<WorkListResponse>(this.apiUrl, { params });
   }
 
   getById(id: number): Observable<Work> {

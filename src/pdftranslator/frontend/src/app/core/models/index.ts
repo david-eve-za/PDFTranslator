@@ -4,3 +4,4 @@ export * from './chapter.model';
 export * from './glossary-term.model';
 export * from './translation-progress.model';
 export * from './dashboard.model';
+export * from './file.model';

@@ -17,6 +17,11 @@ export const routes: Routes = [
       import('./features/library/library.component').then(m => m.LibraryComponent)
   },
   {
+    path: 'files',
+    loadComponent: () =>
+      import('./features/files/files.component').then(m => m.FilesComponent)
+  },
+  {
     path: 'translate',
     loadComponent: () =>
       import('./features/translate/translate.component').then(m => m.TranslateComponent)

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
-import { WorkService } from '../../core/services/work.service';
+import { WorkService, WorkListResponse } from '../../core/services/work.service';
 import { Work } from '../../core/models';
 
 @Component({
@@ -39,8 +39,8 @@ export class LibraryComponent implements OnInit {
   private loadWorks(): void {
     this.isLoading = true;
     this.workService.getAll().subscribe({
-      next: (works: Work[]) => {
-        this.works = works;
+      next: (response: WorkListResponse) => {
+        this.works = response.items;
         this.isLoading = false;
       },
       error: (err) => {
@@ -53,15 +53,15 @@ export class LibraryComponent implements OnInit {
   get filteredWorks(): Work[] {
     if (!this.searchTerm) return this.works;
     const term = this.searchTerm.toLowerCase();
-    return this.works.filter(w => 
-      w.title.toLowerCase().includes(term) || 
+    return this.works.filter(w =>
+      w.title.toLowerCase().includes(term) ||
       w.author.toLowerCase().includes(term)
     );
   }
 
   getProgressPercentage(work: Work): number {
-    return work.total_chapters > 0 
-      ? Math.round((work.translated_chapters / work.total_chapters) * 100) 
+    return work.total_chapters > 0
+      ? Math.round((work.translated_chapters / work.total_chapters) * 100)
       : 0;
   }
 
