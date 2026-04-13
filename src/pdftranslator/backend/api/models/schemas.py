@@ -39,10 +39,14 @@ class FileListResponse(BaseModel):
 
 
 class FileUploadQuery(BaseModel):
-    """Query parameters for file upload."""
+    """Query parameters for file upload (deprecated - languages configured in Work)."""
 
-    source_lang: str = Field(default="en", description="Source language code")
-    target_lang: str = Field(default="es", description="Target language code")
+    source_lang: str | None = Field(
+        default=None, description="Source language code (ignored)"
+    )
+    target_lang: str | None = Field(
+        default=None, description="Target language code (ignored)"
+    )
 
 
 class TaskStateSchema(BaseModel):
