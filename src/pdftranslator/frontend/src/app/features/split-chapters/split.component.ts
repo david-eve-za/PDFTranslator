@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WorkService, WorkListResponse } from '../../core/services/work.service';
@@ -19,6 +19,8 @@ export class SplitComponent implements OnInit {
   private workService = inject(WorkService);
   private volumeService = inject(VolumeService);
   private splitService = inject(SplitService);
+
+  @ViewChild('textareaRef') textareaElement!: ElementRef<HTMLTextAreaElement>;
 
   works = signal<Work[]>([]);
   volumes = signal<Volume[]>([]);
@@ -103,10 +105,6 @@ export class SplitComponent implements OnInit {
     });
   }
 
-  getCursorPosition(textarea: HTMLTextAreaElement): number {
-    return textarea.selectionStart;
-  }
-
   openTypeModal(): void {
     this.selectedBlockType.set('Chapter');
     this.blockTitle.set('');
@@ -117,8 +115,11 @@ export class SplitComponent implements OnInit {
     this.showTypeModal.set(false);
   }
 
-  insertStartMarker(textarea: HTMLTextAreaElement): void {
-    const position = this.getCursorPosition(textarea);
+  insertStartMarker(): void {
+    const textarea = this.textareaElement?.nativeElement;
+    if (!textarea) return;
+
+    const position = textarea.selectionStart;
     const type = this.selectedBlockType();
     const title = this.blockTitle();
 
@@ -141,8 +142,11 @@ export class SplitComponent implements OnInit {
     }, 0);
   }
 
-  insertEndMarker(textarea: HTMLTextAreaElement): void {
-    const position = this.getCursorPosition(textarea);
+  insertEndMarker(): void {
+    const textarea = this.textareaElement?.nativeElement;
+    if (!textarea) return;
+
+    const position = textarea.selectionStart;
     const marker = '\n[===End Block===]\n';
 
     const currentText = this.volumeText();
