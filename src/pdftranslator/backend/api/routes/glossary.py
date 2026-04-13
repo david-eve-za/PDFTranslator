@@ -55,8 +55,11 @@ async def create_glossary_term(
         work_id=data.work_id,
         term=data.term,
         translation=data.translation,
-        notes=data.notes,
+        entity_type=data.entity_type,
+        context=data.context,
         is_proper_noun=data.is_proper_noun,
+        source_lang=data.source_lang,
+        target_lang=data.target_lang,
     )
     created = repo.create(entry)
     return _entry_to_response(created)
@@ -84,10 +87,14 @@ async def update_glossary_term(
     if not entry:
         raise HTTPException(status_code=404, detail="Glossary term not found")
 
+    if data.term is not None:
+        entry.term = data.term
     if data.translation is not None:
         entry.translation = data.translation
-    if data.notes is not None:
-        entry.notes = data.notes
+    if data.context is not None:
+        entry.context = data.context
+    if data.is_proper_noun is not None:
+        entry.is_proper_noun = data.is_proper_noun
 
     updated = repo.update(entry)
     if not updated:
@@ -113,9 +120,14 @@ def _entry_to_response(entry) -> dict:
         "work_id": entry.work_id,
         "term": entry.term,
         "translation": entry.translation,
-        "notes": entry.notes,
+        "entity_type": entry.entity_type,
+        "context": entry.context,
         "is_proper_noun": entry.is_proper_noun,
+        "frequency": entry.frequency,
+        "source_lang": entry.source_lang,
+        "target_lang": entry.target_lang,
         "created_at": entry.created_at.isoformat()
         if entry.created_at
         else datetime.now().isoformat(),
+        "updated_at": entry.updated_at.isoformat() if entry.updated_at else None,
     }

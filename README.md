@@ -222,10 +222,28 @@ Access the web UI at: `http://localhost:5173`
 #### Features:
 
 - **Dashboard**: Upload files, view processing status, track task progress
-- **Split Chapters**: Review and adjust chapter boundaries
+- **Split Chapters**: Review and adjust chapter boundaries with interactive marker insertion
 - **Glossary**: Manage terminology with search and filter
 - **Translation**: View original vs translated text side-by-side
 - **Audio**: Generate and download audiobooks
+
+### Split Chapters Feature
+
+The Split Chapters web UI allows you to divide volume text into chapters using an interactive interface:
+
+1. **Select Work & Volume**: Choose a work and volume from your library
+2. **Mark Blocks**: Use the interactive editor to insert block markers:
+   - `[===Type="Prologue"===]` - Start of a prologue
+   - `[===Type="Chapter" Title="Chapter Name"===]` - Start of a chapter
+   - `[===Type="Epilogue"===]` - Start of an epilogue
+   - `[===End Block===]` - End of any block
+3. **Preview**: Preview detected blocks before saving
+4. **Process**: Confirm to create chapters in the database
+
+#### API Endpoints
+
+- `POST /api/split/preview` - Preview parsed blocks from text
+- `POST /api/split/process` - Process text and create chapters
 
 ### Examples
 

@@ -1,94 +1,185 @@
-<div class="split">
-  <header class="split-header">
-    <h1>Split Chapters</h1>
-    <p class="subtitle">Divide volumes into chapters</p>
+<div class="split-container">
+  <header class="page-header">
+    <h1 class="page-title">Split Chapters</h1>
+    <p class="page-description">
+      Divide volume text into chapters using block markers
+    </p>
   </header>
 
-  <div class="split-content">
-    <section class="selectors">
+  <main class="split-content">
+    <section class="selectors-section">
       <div class="selector-group">
-        <label for="work-select">Select Work:</label>
-        <select 
-          id="work-select" 
-          class="select-input"
+        <label class="form-label" for="work-select">Select Work</label>
+        <select
+          id="work-select"
+          class="form-select"
           (change)="onWorkSelect($any($event.target).value)">
           <option value="">Choose a work...</option>
-          @for (work of works; track work.id) {
+          @for (work of works(); track work.id) {
             <option [value]="work.id">{{ work.title }}</option>
           }
         </select>
       </div>
 
-      @if (selectedWork) {
+      @if (selectedWorkId()) {
         <div class="selector-group">
-          <label for="volume-select">Select Volume:</label>
-          <select 
-            id="volume-select" 
-            class="select-input"
+          <label class="form-label" for="volume-select">Select Volume</label>
+          <select
+            id="volume-select"
+            class="form-select"
             (change)="onVolumeSelect($any($event.target).value)">
             <option value="">Choose a volume...</option>
-            <option value="1">Volume 1</option>
-            <option value="2">Volume 2</option>
+            @for (volume of volumes(); track volume.id) {
+              <option [value]="volume.id">Volume {{ volume.volume_number }}</option>
+            }
           </select>
         </div>
       }
     </section>
 
-    @if (selectedVolume && volumeText) {
-      <section class="text-editor">
+    @if (selectedVolumeId()) {
+      <section class="editor-section">
         <div class="editor-header">
           <h3>Volume Text</h3>
           <div class="format-help">
-            <p>Use these markers to define blocks:</p>
+            <p>Markers:</p>
             <code>[===Type="Prologue"===]</code>
-            <code>[===Type="Chapter"===]</code>
+            <code>[===Type="Chapter" Title="..."===]</code>
             <code>[===Type="Epilogue"===]</code>
             <code>[===End Block===]</code>
           </div>
         </div>
-        
-        <textarea 
-          class="text-area"
-          [(ngModel)]="volumeText"
-          rows="15">
-        </textarea>
 
         <div class="editor-actions">
-          <button class="btn btn-primary" (click)="parseChapters()" [disabled]="isParsing">
-            @if (isParsing) {
-              Parsing...
+          <button class="btn btn-primary" (click)="openTypeModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Add Start Marker
+          </button>
+          <button class="btn btn-secondary" (click)="insertEndMarker(textareaRef)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            </svg>
+            Add End Marker
+          </button>
+        </div>
+
+        <textarea
+          #textareaRef
+          class="text-editor"
+          [(ngModel)]="volumeText"
+          rows="20"
+          placeholder="Volume text will appear here...">
+        </textarea>
+
+        <div class="process-actions">
+          <button
+            class="btn btn-outline"
+            (click)="previewBlocks()"
+            [disabled]="isLoading() || !volumeText()">
+            @if (isLoading()) {
+              Previewing...
             } @else {
-              Parse Chapters
+              Preview Blocks
             }
           </button>
         </div>
       </section>
     }
 
-    @if (parsedChapters.length > 0) {
-      <section class="parsed-chapters">
-        <h3>Parsed Chapters ({{ parsedChapters.length }})</h3>
-        
-        <div class="chapters-list">
-          @for (chapter of parsedChapters; track chapter.title; let i = $index) {
-            <div class="chapter-item">
-              <div class="chapter-icon">
-                {{ getChapterTypeIcon(chapter.type) }}
+    @if (parsedBlocks().length > 0) {
+      <section class="preview-section">
+        <div class="preview-header">
+          <h3>Detected Blocks ({{ parsedBlocks().length }})</h3>
+          <button class="btn btn-ghost" (click)="clearPreview()">Clear</button>
+        </div>
+
+        <div class="blocks-list">
+          @for (block of parsedBlocks(); track $index) {
+            <div class="block-item">
+              <div class="block-icon">{{ getBlockTypeIcon(block.block_type) }}</div>
+              <div class="block-info">
+                <h4>{{ block.title || block.block_type }}</h4>
+                <p class="block-type">{{ block.block_type }}</p>
+                <p class="block-lines">Lines {{ block.start_line }} - {{ block.end_line }}</p>
               </div>
-              <div class="chapter-info">
-                <h4>{{ chapter.title }}</h4>
-                <p class="chapter-type">{{ chapter.type | titlecase }}</p>
-              </div>
-              <span class="chapter-number">#{{ i + 1 }}</span>
+              <span class="block-number">#{{ $index + 1 }}</span>
             </div>
           }
         </div>
 
         <div class="confirm-actions">
-          <button class="btn btn-success">Confirm & Save</button>
-          <button class="btn btn-secondary" (click)="parsedChapters = []">Cancel</button>
+          <button
+            class="btn btn-success"
+            (click)="processAndSave()"
+            [disabled]="isProcessing()">
+            @if (isProcessing()) {
+              Processing...
+            } @else {
+              Confirm & Save
+            }
+          </button>
+          <button class="btn btn-secondary" (click)="clearPreview()">Cancel</button>
         </div>
       </section>
     }
-  </div>
+
+    @if (errorMessage()) {
+      <div class="error-message">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+
+    @if (successMessage()) {
+      <div class="success-message">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M9 12l2 2 4-4"/>
+        </svg>
+        <span>{{ successMessage() }}</span>
+      </div>
+    }
+  </main>
+
+  @if (showTypeModal()) {
+    <div class="modal-overlay" (click)="cancelTypeModal()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Add Block Start Marker</h3>
+          <button class="modal-close" (click)="cancelTypeModal()">x</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Block Type</label>
+            <select class="form-select" [(ngModel)]="selectedBlockType">
+              <option value="Prologue">Prologue</option>
+              <option value="Chapter">Chapter</option>
+              <option value="Epilogue">Epilogue</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Title (Optional)</label>
+            <input
+              type="text"
+              class="form-input"
+              [(ngModel)]="blockTitle"
+              placeholder="Chapter title..." />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" (click)="cancelTypeModal()">Cancel</button>
+          <button class="btn btn-primary" (click)="insertStartMarker(textareaRef)">
+            Insert Marker
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 </div>

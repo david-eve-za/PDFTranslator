@@ -18,9 +18,15 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
             id=row[0],
             work_id=row[1],
             term=row[2],
-            translation=row[3] if len(row) > 3 else None,
-            notes=row[4] if len(row) > 4 else None,
-            is_proper_noun=row[5] if len(row) > 5 else False,
+            translation=row[3] if len(row) > 3 and row[3] else None,
+            entity_type=row[4] if len(row) > 4 and row[4] else "other",
+            context=row[5] if len(row) > 5 and row[5] else None,
+            is_proper_noun=row[6] if len(row) > 6 else False,
+            frequency=row[7] if len(row) > 7 else 0,
+            source_lang=row[8] if len(row) > 8 and row[8] else "en",
+            target_lang=row[9] if len(row) > 9 and row[9] else "es",
+            created_at=row[10] if len(row) > 10 else None,
+            updated_at=row[11] if len(row) > 11 else None,
         )
 
     def _row_to_term_context(self, row: tuple) -> TermContext:
@@ -48,7 +54,9 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT id, work_id, term, translation, notes, is_proper_noun
+                    SELECT id, work_id, term, translation, entity_type, context,
+                           is_proper_noun, frequency, source_lang, target_lang,
+                           created_at, updated_at
                     FROM glossary_terms
                     WHERE id = %s
                     """,
@@ -65,7 +73,9 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT id, work_id, term, translation, notes, is_proper_noun
+                    SELECT id, work_id, term, translation, entity_type, context,
+                           is_proper_noun, frequency, source_lang, target_lang,
+                           created_at, updated_at
                     FROM glossary_terms
                     ORDER BY term
                     """
@@ -79,16 +89,24 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    INSERT INTO glossary_terms (work_id, term, translation, notes, is_proper_noun)
-                    VALUES (%s, %s, %s, %s, %s)
-                    RETURNING id, work_id, term, translation, notes, is_proper_noun
+                    INSERT INTO glossary_terms (work_id, term, translation, entity_type,
+                                                context, is_proper_noun, frequency,
+                                                source_lang, target_lang)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id, work_id, term, translation, entity_type, context,
+                              is_proper_noun, frequency, source_lang, target_lang,
+                              created_at, updated_at
                     """,
                     (
                         entity.work_id,
                         entity.term,
                         entity.translation,
-                        entity.notes,
+                        entity.entity_type,
+                        entity.context,
                         entity.is_proper_noun,
+                        entity.frequency,
+                        entity.source_lang,
+                        entity.target_lang,
                     ),
                 )
                 row = cur.fetchone()
@@ -101,17 +119,24 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                 cur.execute(
                     """
                     UPDATE glossary_terms
-                    SET work_id = %s, term = %s, translation = %s,
-                        notes = %s, is_proper_noun = %s
+                    SET work_id = %s, term = %s, translation = %s, entity_type = %s,
+                        context = %s, is_proper_noun = %s, frequency = %s,
+                        source_lang = %s, target_lang = %s
                     WHERE id = %s
-                    RETURNING id, work_id, term, translation, notes, is_proper_noun
+                    RETURNING id, work_id, term, translation, entity_type, context,
+                              is_proper_noun, frequency, source_lang, target_lang,
+                              created_at, updated_at
                     """,
                     (
                         entity.work_id,
                         entity.term,
                         entity.translation,
-                        entity.notes,
+                        entity.entity_type,
+                        entity.context,
                         entity.is_proper_noun,
+                        entity.frequency,
+                        entity.source_lang,
+                        entity.target_lang,
                         entity.id,
                     ),
                 )
@@ -133,7 +158,9 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT id, work_id, term, translation, notes, is_proper_noun
+                    SELECT id, work_id, term, translation, entity_type, context,
+                           is_proper_noun, frequency, source_lang, target_lang,
+                           created_at, updated_at
                     FROM glossary_terms
                     WHERE work_id = %s
                     ORDER BY term
@@ -147,14 +174,19 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
         self, term: str, work_id: Optional[int] = None, fuzzy: bool = False
     ) -> List[GlossaryEntry]:
         pool = self._pool.get_sync_pool()
+        base_query = """
+            SELECT id, work_id, term, translation, entity_type, context,
+                   is_proper_noun, frequency, source_lang, target_lang,
+                   created_at, updated_at
+            FROM glossary_terms
+        """
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 if fuzzy:
                     if work_id is not None:
                         cur.execute(
-                            """
-                            SELECT id, work_id, term, translation, notes, is_proper_noun
-                            FROM glossary_terms
+                            f"""
+                            {base_query}
                             WHERE work_id = %s AND term % %s
                             ORDER BY similarity(term, %s) DESC
                             """,
@@ -162,9 +194,8 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                         )
                     else:
                         cur.execute(
-                            """
-                            SELECT id, work_id, term, translation, notes, is_proper_noun
-                            FROM glossary_terms
+                            f"""
+                            {base_query}
                             WHERE term % %s
                             ORDER BY similarity(term, %s) DESC
                             """,
@@ -173,18 +204,16 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                 else:
                     if work_id is not None:
                         cur.execute(
-                            """
-                            SELECT id, work_id, term, translation, notes, is_proper_noun
-                            FROM glossary_terms
+                            f"""
+                            {base_query}
                             WHERE work_id = %s AND term = %s
                             """,
                             (work_id, term),
                         )
                     else:
                         cur.execute(
-                            """
-                            SELECT id, work_id, term, translation, notes, is_proper_noun
-                            FROM glossary_terms
+                            f"""
+                            {base_query}
                             WHERE term = %s
                             """,
                             (term,),
@@ -199,15 +228,19 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
         limit: int = 10,
         threshold: float = 0.8,
     ) -> List[GlossaryEntry]:
-        """Find similar terms using vector embeddings."""
         pool = self._pool.get_sync_pool()
+        base_query = """
+            SELECT id, work_id, term, translation, entity_type, context,
+                   is_proper_noun, frequency, source_lang, target_lang,
+                   created_at, updated_at
+            FROM glossary_terms
+        """
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 if work_id:
                     cur.execute(
-                        """
-                        SELECT id, work_id, term, translation, notes, is_proper_noun
-                        FROM glossary_terms
+                        f"""
+                        {base_query}
                         WHERE work_id = %s
                         ORDER BY embedding <=> %s
                         LIMIT %s
@@ -216,9 +249,8 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                     )
                 else:
                     cur.execute(
-                        """
-                        SELECT id, work_id, term, translation, notes, is_proper_noun
-                        FROM glossary_terms
+                        f"""
+                        {base_query}
                         ORDER BY embedding <=> %s
                         LIMIT %s
                         """,

@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Split Chapters Web UI (2026-04-13)
+
+#### Backend API
+- **New split endpoints**:
+  - `POST /api/split/preview` - Preview parsed blocks from text
+  - `POST /api/split/process` - Process text and create chapters in database
+- Reuses existing `parse_blocks()` logic from CLI `split_text.py`
+- Handles block types: Prologue, Chapter, Epilogue
+
+#### Frontend Components
+- **SplitComponent** with interactive block marker insertion:
+  - Work and volume selection dropdowns
+  - Text editor with cursor position tracking
+  - Modal for selecting block type (Prologue, Chapter, Epilogue)
+  - Optional title input for chapters
+  - Preview of detected blocks before saving
+- **SplitService** for API communication
+- Uses existing WorkService and VolumeService
+
+#### Features
+- Insert start marker at cursor position with type selection
+- Insert end marker at cursor position
+- Preview parsed blocks with line numbers
+- Confirm and save to create chapters in database
+- Error handling with user-friendly messages
+
+### Added - Glossary Backend Schema Update (2026-04-13)
+
+#### Database Schema
+- New migration: `011_glossary_frontend_compat.sql`
+- Added columns: `entity_type`, `context`, `frequency`, `source_lang`, `target_lang`, `updated_at`
+- Renamed: `notes` → `context`, `source_language` → `source_lang`, `target_language` → `target_lang`
+- Auto-update trigger for `updated_at`
+
+#### Backend Updates
+- `GlossaryEntry` model updated with new fields
+- `GlossaryRepository` updated to map all new fields
+- `GlossaryEntryResponse`, `GlossaryCreate`, `GlossaryUpdateRequest` schemas updated
+- Backend routes updated to use new fields
+
 ### Fixed - Database Configuration (2026-04-12)
 
 #### Environment Variable Loading

@@ -107,17 +107,24 @@ class GlossaryEntryResponse(BaseModel):
     id: int
     work_id: int
     term: str
-    translation: str | None
-    notes: str | None
-    is_proper_noun: bool
+    translation: str | None = None
+    entity_type: str = "other"
+    context: str | None = None
+    is_proper_noun: bool = False
+    frequency: int = 0
+    source_lang: str = "en"
+    target_lang: str = "es"
     created_at: datetime
+    updated_at: datetime | None = None
 
 
 class GlossaryUpdateRequest(BaseModel):
     """Glossary update request schema."""
 
+    term: str | None = None
     translation: str | None = None
-    notes: str | None = None
+    context: str | None = None
+    is_proper_noun: bool | None = None
 
 
 class TranslationChunkResponse(BaseModel):
@@ -268,13 +275,47 @@ class GlossaryCreate(BaseModel):
     work_id: int
     term: str
     translation: str | None = None
-    notes: str | None = None
+    entity_type: str = "other"
+    context: str | None = None
     is_proper_noun: bool = False
+    source_lang: str = "en"
+    target_lang: str = "es"
 
 
 class GlossaryUpdateRequestNew(BaseModel):
     """Glossary update request schema (new)."""
 
+    term: str | None = None
     translation: str | None = None
-    notes: str | None = None
+    context: str | None = None
     is_proper_noun: bool | None = None
+
+
+class SplitPreviewRequest(BaseModel):
+    """Request schema for split preview."""
+
+    text: str
+
+
+class SplitPreviewResponse(BaseModel):
+    """Response schema for split preview."""
+
+    blocks: list[dict]
+    has_errors: bool = False
+    error_message: str | None = None
+
+
+class SplitProcessRequest(BaseModel):
+    """Request schema for split processing."""
+
+    volume_id: int
+    text: str
+
+
+class SplitProcessResponse(BaseModel):
+    """Response schema for split processing."""
+
+    success: bool
+    chapters_created: int = 0
+    blocks: list[dict] = []
+    error_message: str | None = None

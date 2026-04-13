@@ -7,6 +7,7 @@ from pdftranslator.backend.api.routes import (
     works,
     volumes,
     chapters,
+    split,
 )
 
-__all__ = ["files", "glossary", "translation", "works", "volumes", "chapters"]
+__all__ = ["files", "glossary", "translation", "works", "volumes", "chapters", "split"]

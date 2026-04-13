@@ -1,6 +1,12 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { WorkService, WorkListResponse } from '../../core/services/work.service';
+import { VolumeService, VolumeListResponse } from '../../core/services/volume.service';
+import { SplitService, ParsedBlock } from '../../core/services/split.service';
+import { Work, Volume } from '../../core/models';
+
+type BlockType = 'Prologue' | 'Chapter' | 'Epilogue';
 
 @Component({
   selector: 'app-split',
@@ -9,78 +15,206 @@ import { FormsModule } from '@angular/forms';
   templateUrl: './split.component.html',
   styleUrl: './split.component.scss'
 })
-export class SplitComponent {
-  selectedWork: string | null = null;
-  selectedVolume: string | null = null;
-  volumeText = '';
-  parsedChapters: any[] = [];
-  isParsing = false;
+export class SplitComponent implements OnInit {
+  private workService = inject(WorkService);
+  private volumeService = inject(VolumeService);
+  private splitService = inject(SplitService);
 
-  works = [
-    { id: 1, title: 'The Great Adventure', volumes: 2 },
-    { id: 2, title: 'Mystery of the Ancients', volumes: 1 },
-    { id: 3, title: 'Dragon\'s Legacy', volumes: 2 }
-  ];
+  works = signal<Work[]>([]);
+  volumes = signal<Volume[]>([]);
+  selectedWorkId = signal<number | null>(null);
+  selectedVolumeId = signal<number | null>(null);
+  volumeText = signal('');
+  parsedBlocks = signal<ParsedBlock[]>([]);
+
+  isLoading = signal(false);
+  isProcessing = signal(false);
+  errorMessage = signal<string | null>(null);
+  successMessage = signal<string | null>(null);
+
+  showTypeModal = signal(false);
+  selectedBlockType = signal<BlockType>('Chapter');
+  blockTitle = signal('');
+
+  ngOnInit(): void {
+    this.loadWorks();
+  }
+
+  private loadWorks(): void {
+    this.isLoading.set(true);
+    this.workService.getAll(1, 100).subscribe({
+      next: (response: WorkListResponse) => {
+        this.works.set(response.items);
+        this.isLoading.set(false);
+      },
+      error: (err) => {
+        this.errorMessage.set('Failed to load works');
+        this.isLoading.set(false);
+        console.error('Failed to load works:', err);
+      }
+    });
+  }
 
   onWorkSelect(workId: string): void {
-    this.selectedWork = workId;
-    this.selectedVolume = null;
-    this.volumeText = '';
-    this.parsedChapters = [];
+    const id = parseInt(workId, 10);
+    if (isNaN(id)) {
+      this.selectedWorkId.set(null);
+      this.volumes.set([]);
+      return;
+    }
+
+    this.selectedWorkId.set(id);
+    this.selectedVolumeId.set(null);
+    this.volumeText.set('');
+    this.parsedBlocks.set([]);
+    this.errorMessage.set(null);
+
+    this.volumeService.getByWorkId(id).subscribe({
+      next: (response: VolumeListResponse) => {
+        this.volumes.set(response.items.sort((a, b) => a.volume_number - b.volume_number));
+      },
+      error: (err) => {
+        this.errorMessage.set('Failed to load volumes');
+        console.error('Failed to load volumes:', err);
+      }
+    });
   }
 
   onVolumeSelect(volumeId: string): void {
-    this.selectedVolume = volumeId;
-    this.volumeText = this.getMockVolumeText();
-    this.parsedChapters = [];
+    const id = parseInt(volumeId, 10);
+    if (isNaN(id)) {
+      this.selectedVolumeId.set(null);
+      this.volumeText.set('');
+      return;
+    }
+
+    this.selectedVolumeId.set(id);
+    this.parsedBlocks.set([]);
+    this.errorMessage.set(null);
+
+    this.volumeService.getById(id).subscribe({
+      next: (volume) => {
+        this.volumeText.set(volume.full_text || '');
+      },
+      error: (err) => {
+        this.errorMessage.set('Failed to load volume text');
+        console.error('Failed to load volume:', err);
+      }
+    });
   }
 
-  parseChapters(): void {
-    this.isParsing = true;
-    
-    // Simulate parsing
+  getCursorPosition(textarea: HTMLTextAreaElement): number {
+    return textarea.selectionStart;
+  }
+
+  openTypeModal(): void {
+    this.selectedBlockType.set('Chapter');
+    this.blockTitle.set('');
+    this.showTypeModal.set(true);
+  }
+
+  cancelTypeModal(): void {
+    this.showTypeModal.set(false);
+  }
+
+  insertStartMarker(textarea: HTMLTextAreaElement): void {
+    const position = this.getCursorPosition(textarea);
+    const type = this.selectedBlockType();
+    const title = this.blockTitle();
+
+    let marker = `[===Type="${type}"`;
+    if (title.trim()) {
+      marker += ` Title="${title.trim()}"`;
+    }
+    marker += `===]\n`;
+
+    const currentText = this.volumeText();
+    const newText = currentText.slice(0, position) + marker + currentText.slice(position);
+    this.volumeText.set(newText);
+
+    this.showTypeModal.set(false);
+
     setTimeout(() => {
-      this.parsedChapters = [
-        { type: 'prologue', title: 'Prologue', content: 'In the beginning...' },
-        { type: 'chapter', title: 'Chapter 1: The Journey Begins', content: 'Chapter 1 content...' },
-        { type: 'chapter', title: 'Chapter 2: Into the Forest', content: 'Chapter 2 content...' },
-        { type: 'epilogue', title: 'Epilogue', content: 'The end...' }
-      ];
-      this.isParsing = false;
-    }, 1000);
+      textarea.focus();
+      const newPosition = position + marker.length;
+      textarea.setSelectionRange(newPosition, newPosition);
+    }, 0);
   }
 
-  private getMockVolumeText(): string {
-    return `[===Type="Prologue"===]
-In the beginning, there was only darkness...
+  insertEndMarker(textarea: HTMLTextAreaElement): void {
+    const position = this.getCursorPosition(textarea);
+    const marker = '\n[===End Block===]\n';
 
-[===End Block===]
+    const currentText = this.volumeText();
+    const newText = currentText.slice(0, position) + marker + currentText.slice(position);
+    this.volumeText.set(newText);
 
-[===Type="Chapter"===]
-Chapter 1: The Journey Begins
-
-Our hero embarks on a great adventure...
-
-[===End Block===]
-
-[===Type="Chapter"===]
-Chapter 2: Into the Forest
-
-The ancient forest loomed ahead...
-
-[===End Block===]
-
-[===Type="Epilogue"===]
-And so the story ends, but the legend lives on...
-
-[===End Block===]`;
+    setTimeout(() => {
+      textarea.focus();
+      const newPosition = position + marker.length;
+      textarea.setSelectionRange(newPosition, newPosition);
+    }, 0);
   }
 
-  getChapterTypeIcon(type: string): string {
+  previewBlocks(): void {
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+
+    this.splitService.preview(this.volumeText()).subscribe({
+      next: (response) => {
+        if (response.has_errors) {
+          this.errorMessage.set(response.error_message || 'Parse error');
+        } else {
+          this.parsedBlocks.set(response.blocks);
+        }
+        this.isLoading.set(false);
+      },
+      error: (err) => {
+        this.errorMessage.set('Failed to preview blocks');
+        this.isLoading.set(false);
+        console.error('Preview error:', err);
+      }
+    });
+  }
+
+  processAndSave(): void {
+    const volumeId = this.selectedVolumeId();
+    if (!volumeId) {
+      this.errorMessage.set('No volume selected');
+      return;
+    }
+
+    this.isProcessing.set(true);
+    this.errorMessage.set(null);
+
+    this.splitService.process(volumeId, this.volumeText()).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.successMessage.set(`Successfully created ${response.chapters_created} chapter(s)`);
+          this.parsedBlocks.set([]);
+          setTimeout(() => this.successMessage.set(null), 5000);
+        } else {
+          this.errorMessage.set(response.error_message || 'Failed to process');
+        }
+        this.isProcessing.set(false);
+      },
+      error: (err) => {
+        this.errorMessage.set('Failed to process split');
+        this.isProcessing.set(false);
+        console.error('Process error:', err);
+      }
+    });
+  }
+
+  clearPreview(): void {
+    this.parsedBlocks.set([]);
+  }
+
+  getBlockTypeIcon(type: string): string {
     const icons: Record<string, string> = {
-      prologue: '📜',
-      chapter: '📖',
-      epilogue: '🏁'
+      Prologue: '📜',
+      Chapter: '📖',
+      Epilogue: '🏁'
     };
     return icons[type] || '📄';
   }

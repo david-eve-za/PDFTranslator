@@ -68,10 +68,15 @@ class GlossaryEntry:
     work_id: Optional[int] = None
     term: str = ""
     translation: Optional[str] = None
-    notes: Optional[str] = None
+    entity_type: str = "other"
+    context: Optional[str] = None
     is_proper_noun: bool = False
+    frequency: int = 0
+    source_lang: str = "en"
+    target_lang: str = "es"
     embedding: Optional[list] = None
     created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     def __repr__(self) -> str:
         return f"GlossaryEntry(id={self.id}, '{self.term}' -> '{self.translation}')"
