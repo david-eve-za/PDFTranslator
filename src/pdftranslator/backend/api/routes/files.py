@@ -1,7 +1,7 @@
 """File upload and management routes."""
 
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 
@@ -56,8 +56,12 @@ def _processing_result_to_response(
 @router.post("/upload", response_model=FileUploadResponse)
 async def upload_file(
     file: Annotated[UploadFile, File()],
-    source_lang: str = Query(default="en", description="Source language code"),
-    target_lang: str = Query(default="es", description="Target language code"),
+    source_lang: Optional[str] = Query(
+        default=None, description="Source language code (optional)"
+    ),
+    target_lang: Optional[str] = Query(
+        default=None, description="Target language code (optional)"
+    ),
     service: FileService = Depends(get_file_service),
 ):
     """Upload a file for processing. Extracts text and creates Work/Volume."""
