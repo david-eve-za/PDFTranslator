@@ -37,6 +37,11 @@ export const routes: Routes = [
       import('./features/split-chapters/split.component').then(m => m.SplitComponent)
   },
   {
+    path: 'settings',
+    loadComponent: () =>
+      import('./features/settings/settings.component').then(m => m.SettingsComponent)
+  },
+  {
     path: '**',
     redirectTo: '/dashboard'
   }

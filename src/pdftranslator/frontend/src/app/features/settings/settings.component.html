@@ -1,0 +1,499 @@
+<div class="settings-container">
+  <div class="settings-header">
+    <h1>Settings</h1>
+  </div>
+
+  @if (isLoading() && !settings()) {
+    <div class="loading-overlay">
+      <div class="spinner"></div>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="alert alert-error">
+      <span>⚠️</span>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  @if (successMessage()) {
+    <div class="alert alert-success">
+      <span>✓</span>
+      <span>{{ successMessage() }}</span>
+    </div>
+  }
+
+  @if (restartRequired()) {
+    <div class="alert alert-warning">
+      <span>⚠️</span>
+      <span>Restart required to apply changes.</span>
+      <button class="btn btn-primary btn-sm" (click)="restartBackend()">Restart Now</button>
+    </div>
+  }
+
+  <div class="tabs-container">
+    @for (tab of tabs; track tab.key) {
+      <button
+        class="tab-button"
+        [class.active]="activeTab() === tab.key"
+        (click)="setActiveTab(tab.key)"
+      >
+        <span class="tab-icon">{{ tab.icon }}</span>
+        <span>{{ tab.label }}</span>
+      </button>
+    }
+  </div>
+
+  <div class="content-card">
+    @if (settings()) {
+      @switch (activeTab()) {
+        @case ('llm') {
+          <div class="settings-section">
+            <h3 class="section-title">LLM Configuration</h3>
+            <div class="settings-grid">
+              <div class="form-group">
+                <label for="agent">Active Provider</label>
+                <select
+                  id="agent"
+                  [ngModel]="settings()!.llm.agent"
+                  (ngModelChange)="settings()!.llm.agent = $event"
+                >
+                  <option value="nvidia">NVIDIA</option>
+                  <option value="gemini">Gemini</option>
+                  <option value="ollama">Ollama</option>
+                </select>
+              </div>
+            </div>
+
+            <h4 style="margin: 1.5rem 0 1rem; font-size: 0.9rem; color: var(--text-secondary);">
+              NVIDIA Settings
+            </h4>
+            <div class="settings-grid">
+              <div class="form-group">
+                <label for="nvidia-model">Model Name</label>
+                <input
+                  id="nvidia-model"
+                  type="text"
+                  [ngModel]="settings()!.llm.nvidia.model_name"
+                  (ngModelChange)="settings()!.llm.nvidia.model_name = $event"
+                />
+              </div>
+              <div class="form-group">
+                <label for="nvidia-temp">Temperature</label>
+                <input
+                  id="nvidia-temp"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="2"
+                  [ngModel]="settings()!.llm.nvidia.temperature"
+                  (ngModelChange)="settings()!.llm.nvidia.temperature = $event"
+                />
+              </div>
+              <div class="form-group">
+                <label for="nvidia-top-p">Top P</label>
+                <input
+                  id="nvidia-top-p"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="1"
+                  [ngModel]="settings()!.llm.nvidia.top_p"
+                  (ngModelChange)="settings()!.llm.nvidia.top_p = $event"
+                />
+              </div>
+              <div class="form-group">
+                <label for="nvidia-tokens">Max Output Tokens</label>
+                <input
+                  id="nvidia-tokens"
+                  type="number"
+                  [ngModel]="settings()!.llm.nvidia.max_output_tokens"
+                  (ngModelChange)="settings()!.llm.nvidia.max_output_tokens = $event"
+                />
+              </div>
+              <div class="form-group">
+                <label for="nvidia-key">API Key</label>
+                <input
+                  id="nvidia-key"
+                  type="password"
+                  [ngModel]="settings()!.llm.nvidia_api_key"
+                  (ngModelChange)="settings()!.llm.nvidia_api_key = $event"
+                  placeholder="nvapi-..."
+                />
+              </div>
+            </div>
+
+            <h4 style="margin: 1.5rem 0 1rem; font-size: 0.9rem; color: var(--text-secondary);">
+              Gemini Settings
+            </h4>
+            <div class="settings-grid">
+              <div class="form-group">
+                <label for="gemini-temp">Temperature</label>
+                <input
+                  id="gemini-temp"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="2"
+                  [ngModel]="settings()!.llm.gemini.temperature"
+                  (ngModelChange)="settings()!.llm.gemini.temperature = $event"
+                />
+              </div>
+              <div class="form-group">
+                <label for="gemini-top-p">Top P</label>
+                <input
+                  id="gemini-top-p"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="1"
+                  [ngModel]="settings()!.llm.gemini.top_p"
+                  (ngModelChange)="settings()!.llm.gemini.top_p = $event"
+                />
+              </div>
+              <div class="form-group">
+                <label for="gemini-key">API Key</label>
+                <input
+                  id="gemini-key"
+                  type="password"
+                  [ngModel]="settings()!.llm.google_api_key"
+                  (ngModelChange)="settings()!.llm.google_api_key = $event"
+                  placeholder="AIza..."
+                />
+              </div>
+            </div>
+          </div>
+        }
+
+        @case ('database') {
+          <div class="settings-section">
+            <h3 class="section-title">Database Configuration</h3>
+            <div class="settings-grid">
+              <div class="form-group">
+                <label for="db-host">Host</label>
+                <input
+                  id="db-host"
+                  type="text"
+                  [ngModel]="settings()!.database.host"
+                  (ngModelChange)="settings()!.database.host = $event"
+                />
+              </div>
+              <div class="form-group">
+                <label for="db-port">Port</label>
+                <input
+                  id="db-port"
+                  type="number"
+                  [ngModel]="settings()!.database.port"
+                  (ngModelChange)="settings()!.database.port = $event"
+                />
+              </div>
+              <div class="form-group">
+                <label for="db-name">Database Name</label>
+                <input
+                  id="db-name"
+                  type="text"
+                  [ngModel]="settings()!.database.name"
+                  (ngModelChange)="settings()!.database.name = $event"
+                />
+              </div>
+              <div class="form-group">
+                <label for="db-user">User</label>
+                <input
+                  id="db-user"
+                  type="text"
+                  [ngModel]="settings()!.database.user"
+                  (ngModelChange)="settings()!.database.user = $event"
+                />
+              </div>
+              <div class="form-group">
+                <label for="db-password">Password</label>
+                <input
+                  id="db-password"
+                  type="password"
+                  [ngModel]="settings()!.database.password"
+                  (ngModelChange)="settings()!.database.password = $event"
+                />
+              </div>
+              <div class="form-group">
+                <label for="db-min-conn">Min Connections</label>
+                <input
+                  id="db-min-conn"
+                  type="number"
+                  [ngModel]="settings()!.database.min_connections"
+                  (ngModelChange)="settings()!.database.min_connections = $event"
+                />
+              </div>
+              <div class="form-group">
+                <label for="db-max-conn">Max Connections</label>
+                <input
+                  id="db-max-conn"
+                  type="number"
+                  [ngModel]="settings()!.database.max_connections"
+                  (ngModelChange)="settings()!.database.max_connections = $event"
+                />
+              </div>
+            </div>
+          </div>
+        }
+
+        @case ('document') {
+          <div class="settings-section">
+            <h3 class="section-title">Document Processing</h3>
+            <div class="settings-grid">
+              <div class="form-group">
+                <div class="checkbox-group">
+                  <input
+                    id="enable-ocr"
+                    type="checkbox"
+                    [ngModel]="settings()!.document.enable_ocr"
+                    (ngModelChange)="settings()!.document.enable_ocr = $event"
+                  />
+                  <label for="enable-ocr">Enable OCR</label>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="ocr-langs">OCR Languages (comma-separated)</label>
+                <input
+                  id="ocr-langs"
+                  type="text"
+                  [ngModel]="settings()!.document.ocr_languages.join(', ')"
+                  (ngModelChange)="settings()!.document.ocr_languages = $event.split(',').map((s: string) => s.trim())"
+                />
+              </div>
+              <div class="form-group">
+                <label for="accelerator">Accelerator Device</label>
+                <select
+                  id="accelerator"
+                  [ngModel]="settings()!.document.accelerator_device"
+                  (ngModelChange)="settings()!.document.accelerator_device = $event"
+                >
+                  <option value="cpu">CPU</option>
+                  <option value="cuda">CUDA (NVIDIA GPU)</option>
+                  <option value="mps">MPS (Apple Silicon)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <div class="checkbox-group">
+                  <input
+                    id="table-structure"
+                    type="checkbox"
+                    [ngModel]="settings()!.document.do_table_structure"
+                    (ngModelChange)="settings()!.document.do_table_structure = $event"
+                  />
+                  <label for="table-structure">Enable Table Structure</label>
+                </div>
+              </div>
+              <div class="form-group">
+                <div class="checkbox-group">
+                  <input
+                    id="page-images"
+                    type="checkbox"
+                    [ngModel]="settings()!.document.generate_page_images"
+                    (ngModelChange)="settings()!.document.generate_page_images = $event"
+                  />
+                  <label for="page-images">Generate Page Images</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        @case ('nlp') {
+          <div class="settings-section">
+            <h3 class="section-title">NLP Settings</h3>
+            <div class="settings-grid">
+              <div class="form-group">
+                <label for="sentence-model">Sentence Model</label>
+                <input
+                  id="sentence-model"
+                  type="text"
+                  [ngModel]="settings()!.nlp.sentence_model"
+                  (ngModelChange)="settings()!.nlp.sentence_model = $event"
+                />
+              </div>
+            </div>
+          </div>
+        }
+
+        @case ('paths') {
+          <div class="settings-section">
+            <h3 class="section-title">Path Configuration</h3>
+            <div class="settings-grid">
+              <div class="form-group">
+                <label for="prompt-path">Translation Prompt Path</label>
+                <input
+                  id="prompt-path"
+                  type="text"
+                  [ngModel]="settings()!.paths.translation_prompt_path"
+                  (ngModelChange)="settings()!.paths.translation_prompt_path = $event"
+                />
+              </div>
+              <div class="form-group">
+                <label for="output-dir">Output Directory</label>
+                <input
+                  id="output-dir"
+                  type="text"
+                  [ngModel]="settings()!.paths.output_dir"
+                  (ngModelChange)="settings()!.paths.output_dir = $event"
+                />
+              </div>
+            </div>
+          </div>
+        }
+
+        @case ('rules') {
+          <div class="settings-section">
+            <h3 class="section-title">Substitution Rules</h3>
+
+            <div class="new-rule-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="rule-name">Name</label>
+                  <input
+                    id="rule-name"
+                    type="text"
+                    [(ngModel)]="newRule.name"
+                    placeholder="Rule name"
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="rule-pattern">Pattern (Regex)</label>
+                  <input
+                    id="rule-pattern"
+                    type="text"
+                    [(ngModel)]="newRule.pattern"
+                    placeholder="regex pattern"
+                  />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="rule-replacement">Replacement</label>
+                  <input
+                    id="rule-replacement"
+                    type="text"
+                    [(ngModel)]="newRule.replacement"
+                    placeholder="replacement text"
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="rule-desc">Description</label>
+                  <input
+                    id="rule-desc"
+                    type="text"
+                    [(ngModel)]="newRule.description"
+                    placeholder="optional description"
+                  />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <div class="checkbox-group">
+                    <input
+                      id="rule-active"
+                      type="checkbox"
+                      [(ngModel)]="newRule.is_active"
+                    />
+                    <label for="rule-active">Active</label>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <div class="checkbox-group">
+                    <input
+                      id="rule-extract"
+                      type="checkbox"
+                      [(ngModel)]="newRule.apply_on_extract"
+                    />
+                    <label for="rule-extract">Apply on Extract</label>
+                  </div>
+                </div>
+              </div>
+              <button class="btn btn-primary" (click)="addRule()" [disabled]="isLoading()">
+                Add Rule
+              </button>
+            </div>
+
+            <div class="rules-list" @listAnimation>
+              @for (rule of rules(); track rule.id) {
+                <div class="rule-item">
+                  @if (editingRule()?.id === rule.id) {
+                    <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                      <input
+                        type="text"
+                        [(ngModel)]="editingRule()!.name"
+                        placeholder="Name"
+                      />
+                      <input
+                        type="text"
+                        [(ngModel)]="editingRule()!.pattern"
+                        placeholder="Pattern"
+                      />
+                      <input
+                        type="text"
+                        [(ngModel)]="editingRule()!.replacement"
+                        placeholder="Replacement"
+                      />
+                      <input
+                        type="text"
+                        [(ngModel)]="editingRule()!.description"
+                        placeholder="Description"
+                      />
+                    </div>
+                    <div class="rule-actions">
+                      <button class="btn btn-primary btn-sm" (click)="saveRuleEdit()">Save</button>
+                      <button class="btn btn-secondary btn-sm" (click)="cancelEditRule()">Cancel</button>
+                    </div>
+                  } @else {
+                    <div class="rule-info">
+                      <div class="rule-name">{{ rule.name }}</div>
+                      <div class="rule-pattern">
+                        <code>{{ rule.pattern }}</code> → <code>{{ rule.replacement || '(empty)' }}</code>
+                      </div>
+                      @if (rule.description) {
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                          {{ rule.description }}
+                        </div>
+                      }
+                    </div>
+                    <div class="rule-actions">
+                      <label class="toggle-switch">
+                        <input
+                          type="checkbox"
+                          [checked]="rule.is_active"
+                          (change)="toggleRuleActive(rule)"
+                        />
+                        <span class="toggle-slider"></span>
+                      </label>
+                      <button class="btn btn-secondary btn-sm" (click)="startEditRule(rule)">Edit</button>
+                      <button class="btn btn-danger btn-sm" (click)="deleteRule(rule.id)">Delete</button>
+                    </div>
+                  }
+                </div>
+              } @empty {
+                <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                  No substitution rules configured.
+                </div>
+              }
+            </div>
+          </div>
+        }
+      }
+
+      @if (activeTab() !== 'rules') {
+        <div class="action-buttons">
+          <button
+            class="btn btn-primary"
+            (click)="saveSettings()"
+            [disabled]="isSaving()"
+          >
+            @if (isSaving()) {
+              Saving...
+            } @else {
+              Save Settings
+            }
+          </button>
+        </div>
+      }
+    }
+  </div>
+</div>

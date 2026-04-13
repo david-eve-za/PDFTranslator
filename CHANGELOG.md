@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Settings UI + Text Substitution Rules (2026-04-13)
+
+#### Backend API
+- **New settings endpoints**:
+  - `GET /api/settings` - Get current configuration (secrets masked)
+  - `PUT /api/settings` - Update settings and write to .env file
+  - `POST /api/settings/restart` - Request backend restart signal
+- **New substitution rules endpoints**:
+  - `GET /api/substitution-rules` - List all rules (optional `active_only` filter)
+  - `GET /api/substitution-rules/{id}` - Get rule by ID
+  - `POST /api/substitution-rules` - Create new rule
+  - `PUT /api/substitution-rules/{id}` - Update rule
+  - `DELETE /api/substitution-rules/{id}` - Delete rule
+  - `POST /api/substitution-rules/apply/{volume_id}` - Apply rules to volume text
+
+#### Database
+- New migration: `013_substitution_rules.sql`
+- Table: `text_substitution_rules` with columns:
+  - `id`, `name`, `pattern`, `replacement`, `description`
+  - `is_active`, `apply_on_extract`, `created_at`, `updated_at`
+- Indexes on `is_active` and `apply_on_extract`
+
+#### Services
+- **TextSubstitutionService** for applying regex rules to text
+- Supports applying specific rules or all active rules
+- Can apply to volume's full_text with change tracking
+
+#### Frontend Components
+- **SettingsComponent** with tabbed interface:
+  - LLM tab: Provider selection, NVIDIA/Gemini/Ollama configs, API keys
+  - Database tab: Connection settings (host, port, name, user, password, pool size)
+  - Document tab: OCR settings, accelerator device, table structure, page images
+  - NLP tab: Sentence model configuration
+  - Paths tab: Translation prompt path, output directory
+  - Rules tab: CRUD for substitution rules with toggle switches
+- **SettingsService** and **SubstitutionRuleService** for API communication
+- Navigation link added to app sidebar
+
+#### Features
+- View and edit all backend configuration from UI
+- Secrets (API keys, passwords) displayed as `***`
+- Settings saved to `.env` file with proper key flattening
+- Restart reminder after settings update
+- Create, edit, delete, toggle substitution rules
+- Inline editing for rules with real-time updates
+
 ### Added - Split Chapters Web UI (2026-04-13)
 
 #### Backend API

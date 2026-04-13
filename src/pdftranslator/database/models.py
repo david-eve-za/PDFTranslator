@@ -106,6 +106,21 @@ class BuildResult:
     entities_by_type: dict[str, int] = field(default_factory=dict)
 
 
+@dataclass
+class SubstitutionRule:
+    """Text substitution rule with regex pattern."""
+
+    id: int | None = None
+    name: str = ""
+    pattern: str = ""
+    replacement: str = ""
+    description: str | None = None
+    is_active: bool = True
+    apply_on_extract: bool = True
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
 __all__ = [
     # From models.work (backward compatibility)
     "Work",
@@ -120,4 +135,5 @@ __all__ = [
     "FantasyTerm",
     "EntityCandidate",
     "BuildResult",
+    "SubstitutionRule",
 ]

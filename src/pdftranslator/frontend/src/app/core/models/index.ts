@@ -5,3 +5,5 @@ export * from './glossary-term.model';
 export * from './translation-progress.model';
 export * from './dashboard.model';
 export * from './file.model';
+export * from './substitution-rule.model';
+export * from './settings.model';

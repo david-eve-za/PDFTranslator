@@ -38,6 +38,8 @@ from pdftranslator.backend.api.routes import (
     volumes,
     chapters,
     split,
+    settings,
+    substitution_rules,
 )
 
 app.include_router(files.router)
@@ -47,6 +49,8 @@ app.include_router(works.router)
 app.include_router(volumes.router)
 app.include_router(chapters.router)
 app.include_router(split.router)
+app.include_router(settings.router)
+app.include_router(substitution_rules.router)
 
 if __name__ == "__main__":
     import uvicorn

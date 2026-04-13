@@ -320,3 +320,65 @@ class SplitProcessResponse(BaseModel):
     chapters_created: int = 0
     blocks: list[dict] = []
     error_message: str | None = None
+
+
+class SubstitutionRuleResponse(BaseModel):
+    """Substitution rule response schema."""
+
+    id: int
+    name: str
+    pattern: str
+    replacement: str
+    description: str | None = None
+    is_active: bool = True
+    apply_on_extract: bool = True
+    created_at: str
+    updated_at: str | None = None
+
+
+class SubstitutionRuleCreate(BaseModel):
+    """Substitution rule create request schema."""
+
+    name: str
+    pattern: str
+    replacement: str
+    description: str | None = None
+    is_active: bool = True
+    apply_on_extract: bool = True
+
+
+class SubstitutionRuleUpdate(BaseModel):
+    """Substitution rule update request schema."""
+
+    name: str | None = None
+    pattern: str | None = None
+    replacement: str | None = None
+    description: str | None = None
+    is_active: bool | None = None
+    apply_on_extract: bool | None = None
+
+
+class SettingsResponse(BaseModel):
+    """Settings response schema (secrets masked)."""
+
+    llm: dict
+    database: dict
+    document: dict
+    nlp: dict
+    paths: dict
+
+
+class SettingsUpdateRequest(BaseModel):
+    """Settings update request schema."""
+
+    llm: dict | None = None
+    database: dict | None = None
+    document: dict | None = None
+    nlp: dict | None = None
+    paths: dict | None = None
+
+
+class ApplyRulesRequest(BaseModel):
+    """Request to apply rules to a volume."""
+
+    rule_ids: list[int] | None = None
