@@ -21,10 +21,8 @@ class UploadedFileRepository:
             volume_id=row[8],
             status=row[9],
             error_message=row[10],
-            source_lang=row[11],
-            target_lang=row[12],
-            created_at=row[13],
-            updated_at=row[14],
+            created_at=row[11],
+            updated_at=row[12],
         )
 
     def get_by_id(self, id: int) -> UploadedFile | None:
@@ -32,12 +30,12 @@ class UploadedFileRepository:
         with pool.connection() as conn, conn.cursor() as cur:
             cur.execute(
                 """
-                    SELECT id, filename, original_name, file_path, file_size, file_type,
-                           mime_type, work_id, volume_id, status, error_message,
-                           source_lang, target_lang, created_at, updated_at
-                    FROM uploaded_files
-                    WHERE id = %s
-                    """,
+                SELECT id, filename, original_name, file_path, file_size, file_type,
+                       mime_type, work_id, volume_id, status, error_message,
+                       created_at, updated_at
+                FROM uploaded_files
+                WHERE id = %s
+                """,
                 (id,),
             )
             row = cur.fetchone()
@@ -50,13 +48,13 @@ class UploadedFileRepository:
         with pool.connection() as conn, conn.cursor() as cur:
             cur.execute(
                 """
-                    SELECT id, filename, original_name, file_path, file_size, file_type,
-                           mime_type, work_id, volume_id, status, error_message,
-                           source_lang, target_lang, created_at, updated_at
-                    FROM uploaded_files
-                    ORDER BY created_at DESC
-                    LIMIT %s OFFSET %s
-                    """,
+                SELECT id, filename, original_name, file_path, file_size, file_type,
+                       mime_type, work_id, volume_id, status, error_message,
+                       created_at, updated_at
+                FROM uploaded_files
+                ORDER BY created_at DESC
+                LIMIT %s OFFSET %s
+                """,
                 (limit, offset),
             )
             rows = cur.fetchall()
@@ -75,13 +73,12 @@ class UploadedFileRepository:
                 """
                 INSERT INTO uploaded_files (
                     filename, original_name, file_path, file_size, file_type,
-                    mime_type, work_id, volume_id, status, error_message,
-                    source_lang, target_lang
+                    mime_type, work_id, volume_id, status, error_message
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id, filename, original_name, file_path, file_size, file_type,
                           mime_type, work_id, volume_id, status, error_message,
-                          source_lang, target_lang, created_at, updated_at
+                          created_at, updated_at
                 """,
                 (
                     entity.filename,
@@ -94,8 +91,6 @@ class UploadedFileRepository:
                     entity.volume_id,
                     entity.status,
                     entity.error_message,
-                    entity.source_lang,
-                    entity.target_lang,
                 ),
             )
             row = cur.fetchone()
@@ -109,12 +104,11 @@ class UploadedFileRepository:
                 UPDATE uploaded_files
                 SET filename = %s, original_name = %s, file_path = %s, file_size = %s,
                     file_type = %s, mime_type = %s, work_id = %s, volume_id = %s,
-                    status = %s, error_message = %s, source_lang = %s, target_lang = %s,
-                    updated_at = NOW()
+                    status = %s, error_message = %s, updated_at = NOW()
                 WHERE id = %s
                 RETURNING id, filename, original_name, file_path, file_size, file_type,
                           mime_type, work_id, volume_id, status, error_message,
-                          source_lang, target_lang, created_at, updated_at
+                          created_at, updated_at
                 """,
                 (
                     entity.filename,
@@ -127,8 +121,6 @@ class UploadedFileRepository:
                     entity.volume_id,
                     entity.status,
                     entity.error_message,
-                    entity.source_lang,
-                    entity.target_lang,
                     entity.id,
                 ),
             )
