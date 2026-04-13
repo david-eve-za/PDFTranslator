@@ -236,6 +236,7 @@ class VolumeResponse(BaseModel):
     work_id: int
     volume_number: int
     title: str | None = None
+    full_text: str | None = None
     chapters: list[dict] = []
     created_at: str
 

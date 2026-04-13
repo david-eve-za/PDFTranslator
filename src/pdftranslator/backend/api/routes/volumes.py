@@ -83,6 +83,7 @@ def _volume_to_response(volume, include_chapters: bool = False) -> dict:
         "work_id": volume.work_id,
         "volume_number": volume.volume_number,
         "title": volume.title,
+        "full_text": volume.full_text,
         "chapters": chapters,
         "created_at": volume.created_at.isoformat()
         if volume.created_at
