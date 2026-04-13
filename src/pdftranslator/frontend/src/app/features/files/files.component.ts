@@ -1,14 +1,13 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+
 import { Subject, takeUntil } from 'rxjs';
 import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
 import { FileService, UploadProgress } from '../../core/services/file.service';
 import { NotificationService } from '../../shared/services/notification.service';
 import {
   FileUploadResponse,
-  FileUploadQuery,
   FileStatus,
   getFileStatusColor,
   getFileStatusIcon,
@@ -20,7 +19,7 @@ type FileStatusType = 'pending' | 'processing' | 'done' | 'error';
 @Component({
   selector: 'app-files',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './files.component.html',
   styleUrl: './files.component.scss',
   animations: [
@@ -60,11 +59,6 @@ export class FilesComponent implements OnInit, OnDestroy {
   pageSize = 20;
   totalFiles = 0;
   totalPages = 0;
-
-  uploadConfig: FileUploadQuery = {
-    source_lang: 'en',
-    target_lang: 'es',
-  };
 
   isDragOver = false;
   selectedFile: File | null = null;
@@ -149,7 +143,7 @@ export class FilesComponent implements OnInit, OnDestroy {
     this.isUploading = true;
     this.uploadProgress = null;
 
-    this.fileService.uploadFile(file, this.uploadConfig, (progress) => {
+    this.fileService.uploadFile(file, {}, (progress) => {
       this.uploadProgress = progress;
     })
       .pipe(takeUntil(this.destroy$))
