@@ -34,8 +34,6 @@ class UploadedFile:
     volume_id: int | None = None
     status: str = "uploaded"
     error_message: str | None = None
-    source_lang: str = "en"
-    target_lang: str = "es"
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
