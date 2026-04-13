@@ -19,8 +19,7 @@ router = APIRouter(prefix="/api/works", tags=["works"])
 
 def get_work_repository() -> BookRepository:
     """Get work repository instance."""
-    pool = DatabasePool.get_instance().get_pool()
-    return BookRepository(pool)
+    return BookRepository(DatabasePool.get_instance())
 
 
 @router.get("/", response_model=WorkListResponse)
@@ -106,8 +105,7 @@ async def delete_work(
 
 def _work_to_response(work, include_volumes: bool = False) -> dict:
     """Convert work to response dict."""
-    pool = DatabasePool.get_instance().get_pool()
-    volume_repo = VolumeRepository(pool)
+    volume_repo = VolumeRepository(DatabasePool.get_instance())
     volumes = []
     if include_volumes:
         volumes = [

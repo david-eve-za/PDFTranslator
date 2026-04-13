@@ -17,8 +17,7 @@ router = APIRouter(prefix="/api/glossary", tags=["glossary"])
 
 def get_glossary_repository() -> GlossaryRepository:
     """Get glossary repository instance."""
-    pool = DatabasePool.get_instance().get_pool()
-    return GlossaryRepository(pool)
+    return GlossaryRepository(DatabasePool.get_instance())
 
 
 @router.get("/", response_model=list[GlossaryEntryResponse])

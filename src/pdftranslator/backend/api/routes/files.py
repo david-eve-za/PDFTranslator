@@ -86,8 +86,6 @@ async def upload_file(
             file_content=file_content,
             original_filename=file.filename,
             content_type=file.content_type,
-            source_lang=source_lang,
-            target_lang=target_lang,
         )
 
         result = service.process_file(uploaded_file)

@@ -101,8 +101,6 @@ class FileService:
         file_content: bytes,
         original_filename: str,
         content_type: str | None,
-        source_lang: str | None = None,
-        target_lang: str | None = None,
     ) -> UploadedFile:
         unique_filename = self.generate_unique_filename(original_filename)
         file_path = self._upload_dir / unique_filename

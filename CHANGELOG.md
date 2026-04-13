@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - Database Configuration (2026-04-12)
+
+#### Environment Variable Loading
+- **DatabaseSettings now reads from .env file**:
+- Changed base class from `pydantic.BaseModel` to `pydantic_settings.BaseSettings`
+- Added environment variable aliases: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_MIN_CONNECTIONS`, `DB_MAX_CONNECTIONS`
+- Configured `env_file=".env"` for automatic .env loading
+- Fixed "password authentication failed for user translator_user" error
+
+#### API Route Fixes
+- **Fixed AttributeError in backend routes**:
+- Changed `get_pool()` to `get_sync_pool()` in `works.py` (lines 22, 109)
+- Changed `get_pool()` to `get_sync_pool()` in `glossary.py` (line 20)
+- Fixed "AttributeError: 'DatabasePool' object has no attribute 'get_pool'" error
+
+#### Files Modified
+- `src/pdftranslator/core/config/database.py` - DatabaseSettings now extends BaseSettings
+- `src/pdftranslator/backend/api/routes/works.py` - Fixed pool method calls
+- `src/pdftranslator/backend/api/routes/glossary.py` - Fixed pool method calls
+
 ### Added - Frontend Mock Data Integration (2026-04-11)
 
 #### Architecture

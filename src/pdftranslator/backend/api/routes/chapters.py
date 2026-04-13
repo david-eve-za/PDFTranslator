@@ -17,8 +17,7 @@ router = APIRouter(prefix="/api/chapters", tags=["chapters"])
 
 def get_chapter_repository() -> ChapterRepository:
     """Get chapter repository instance."""
-    pool = DatabasePool.get_instance().get_pool()
-    return ChapterRepository(pool)
+    return ChapterRepository(DatabasePool.get_instance())
 
 
 @router.get("/", response_model=ChapterListResponse)

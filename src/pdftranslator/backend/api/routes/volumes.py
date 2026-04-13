@@ -18,8 +18,7 @@ router = APIRouter(prefix="/api/volumes", tags=["volumes"])
 
 def get_volume_repository() -> VolumeRepository:
     """Get volume repository instance."""
-    pool = DatabasePool.get_instance().get_pool()
-    return VolumeRepository(pool)
+    return VolumeRepository(DatabasePool.get_instance())
 
 
 @router.get("/", response_model=VolumeListResponse)
@@ -72,8 +71,7 @@ async def delete_volume(
 
 def _volume_to_response(volume, include_chapters: bool = False) -> dict:
     """Convert volume to response dict."""
-    pool = DatabasePool.get_instance().get_pool()
-    chapter_repo = ChapterRepository(pool)
+    chapter_repo = ChapterRepository(DatabasePool.get_instance())
     chapters = []
     if include_chapters:
         chapters = [
