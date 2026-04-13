@@ -101,8 +101,8 @@ class FileService:
         file_content: bytes,
         original_filename: str,
         content_type: str | None,
-        source_lang: str = "en",
-        target_lang: str = "es",
+        source_lang: str | None = None,
+        target_lang: str | None = None,
     ) -> UploadedFile:
         unique_filename = self.generate_unique_filename(original_filename)
         file_path = self._upload_dir / unique_filename
@@ -121,8 +121,6 @@ class FileService:
             file_type=file_type,
             mime_type=content_type,
             status="uploaded",
-            source_lang=source_lang,
-            target_lang=target_lang,
         )
 
         return self._file_repo.create(uploaded_file)
