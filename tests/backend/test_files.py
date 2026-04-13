@@ -69,7 +69,6 @@ class TestFileUpload:
             response = client.post(
                 "/api/files/upload",
                 files={"file": ("test - Volume 1.pdf", f, "application/pdf")},
-                params={"source_lang": "en", "target_lang": "es"},
             )
 
         assert response.status_code == 200

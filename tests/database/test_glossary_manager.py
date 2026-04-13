@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import Mock, patch, MagicMock
-from database.services.glossary_manager import GlossaryManager
-from database.models import EntityCandidate, BuildResult
-from database.connection import DatabasePool
+from pdftranslator.database.services.glossary_manager import GlossaryManager
+from pdftranslator.database.models import EntityCandidate, BuildResult
+from pdftranslator.database.connection import DatabasePool
 
 
 @pytest.fixture
@@ -35,13 +35,13 @@ class TestGlossaryManager:
         mock_connection[1].fetchone.return_value = None
 
         with patch(
-            "database.services.glossary_manager.EntityExtractor"
+            "pdftranslator.database.services.glossary_manager.EntityExtractor"
         ) as mock_extractor_cls:
             with patch(
-                "database.services.glossary_manager.GlossaryRepository"
+                "pdftranslator.database.services.glossary_manager.GlossaryRepository"
             ) as mock_glossary_cls:
                 with patch(
-                    "database.services.glossary_manager.VectorStoreService"
+                    "pdftranslator.database.services.glossary_manager.VectorStoreService"
                 ) as mock_vector_cls:
                     mock_extractor = MagicMock()
                     mock_extractor.extract.return_value = [
@@ -73,12 +73,13 @@ class TestGlossaryManager:
                     assert hasattr(result, "skipped")
                     assert hasattr(result, "entities_by_type")
 
-    @patch("database.services.glossary_manager.NvidiaLLM")
+    @patch("pdftranslator.database.services.glossary_manager.NvidiaLLM")
     def test_suggest_translations_returns_dict(
         self, mock_llm_class, mock_pool, mock_connection
     ):
         mock_llm = Mock()
         mock_llm.call_model.return_value = '{"Alice": "Alicia"}'
+        mock_llm._settings.llm.nvidia.max_output_tokens = 4096
         mock_llm_class.return_value = mock_llm
 
         mock_pool.get_sync_pool.return_value.connection.return_value.__enter__ = (
@@ -86,13 +87,13 @@ class TestGlossaryManager:
         )
 
         with patch(
-            "database.services.glossary_manager.EntityExtractor"
+            "pdftranslator.database.services.glossary_manager.EntityExtractor"
         ) as mock_extractor_cls:
             with patch(
-                "database.services.glossary_manager.GlossaryRepository"
+                "pdftranslator.database.services.glossary_manager.GlossaryRepository"
             ) as mock_glossary_cls:
                 with patch(
-                    "database.services.glossary_manager.VectorStoreService"
+                    "pdftranslator.database.services.glossary_manager.VectorStoreService"
                 ) as mock_vector_cls:
                     mock_extractor = MagicMock()
                     mock_extractor.extract.return_value = []
@@ -109,8 +110,6 @@ class TestGlossaryManager:
                     manager = GlossaryManager(mock_pool)
                     manager._llm_client = mock_llm
 
-                    from database.models import EntityCandidate
-
                     entities = [
                         EntityCandidate(
                             text="Alice", entity_type="character", frequency=2
@@ -126,7 +125,7 @@ class TestGlossaryManager:
         )
 
         with patch(
-            "database.services.glossary_manager.GlossaryRepository"
+            "pdftranslator.database.services.glossary_manager.GlossaryRepository"
         ) as mock_glossary_cls:
             mock_glossary = MagicMock()
             mock_glossary.get_by_work.return_value = []
@@ -143,13 +142,13 @@ class TestGlossaryManager:
         )
 
         with patch(
-            "database.services.glossary_manager.EntityExtractor"
+            "pdftranslator.database.services.glossary_manager.EntityExtractor"
         ) as mock_extractor_cls:
             with patch(
-                "database.services.glossary_manager.GlossaryRepository"
+                "pdftranslator.database.services.glossary_manager.GlossaryRepository"
             ) as mock_glossary_cls:
                 with patch(
-                    "database.services.glossary_manager.VectorStoreService"
+                    "pdftranslator.database.services.glossary_manager.VectorStoreService"
                 ) as mock_vector_cls:
                     mock_extractor = MagicMock()
                     mock_extractor.extract.return_value = []

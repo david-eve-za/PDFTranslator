@@ -1,9 +1,9 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from database.repositories.book_repository import BookRepository
-from database.models import Work, Volume
-from database.exceptions import EntityNotFoundError
-from database.connection import DatabasePool
+from pdftranslator.database.repositories.book_repository import BookRepository
+from pdftranslator.database.models import Work, Volume
+from pdftranslator.database.exceptions import EntityNotFoundError
+from pdftranslator.database.connection import DatabasePool
 
 
 @pytest.fixture
@@ -28,7 +28,7 @@ def reset_database_pool():
 
 
 def test_book_repository_inherits_from_base():
-    from database.repositories.base import BaseRepository
+    from pdftranslator.database.repositories.base import BaseRepository
 
     assert issubclass(BookRepository, BaseRepository)
 
@@ -61,8 +61,10 @@ def test_get_by_id_returns_work(mock_pool, mock_connection):
     mock_connection[1].fetchone.return_value = (
         1,
         "Test Novel",
+        None,
         "en",
         "es",
+        None,
     )
     repo = BookRepository(pool=mock_pool)
     result = repo.get_by_id(1)
@@ -88,11 +90,13 @@ def test_create_work(mock_pool, mock_connection):
     mock_connection[1].fetchone.return_value = (
         1,
         "New Novel",
+        None,
         "en",
         "es",
+        "Test Author",
     )
     repo = BookRepository(pool=mock_pool)
-    work = Work(id=None, title="New Novel", source_lang="en", target_lang="es")
+    work = Work(id=None, title="New Novel", author="Test Author")
     result = repo.create(work)
     assert result.id == 1
     assert result.title == "New Novel"
@@ -109,21 +113,23 @@ def test_find_by_title_exact(mock_pool, mock_connection):
     mock_pool.get_sync_pool.return_value.connection.return_value.__enter__ = MagicMock(
         return_value=mock_connection[0]
     )
-    mock_connection[1].fetchall.return_value = [(1, "Test Novel", "en", "es")]
+    mock_connection[1].fetchall.return_value = [
+        (1, "Test Novel", None, "en", "es", None)
+    ]
     repo = BookRepository(pool=mock_pool)
     result = repo.find_by_title("Test Novel", fuzzy=False)
     assert len(result) == 1
     assert result[0].title == "Test Novel"
 
 
-@patch("database.repositories.book_repository.VectorStoreService")
+@patch("pdftranslator.database.repositories.book_repository.VectorStoreService")
 def test_find_similar_works(mock_vector_service, mock_pool, mock_connection):
     mock_pool.get_sync_pool.return_value.connection.return_value.__enter__ = MagicMock(
         return_value=mock_connection[0]
     )
     mock_connection[1].fetchall.return_value = [
-        (1, "Dragon Novel", "en", "es"),
-        (2, "Magic World", "en", "es"),
+        (1, "Dragon Novel", None, "en", "es", None),
+        (2, "Magic World", None, "en", "es", None),
     ]
     mock_vs = MagicMock()
     mock_vs.embed_query.return_value = [0.1, 0.2]
