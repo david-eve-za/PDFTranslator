@@ -6,6 +6,8 @@ export interface Work {
   volumes: Volume[];
   total_chapters: number;
   translated_chapters: number;
+  source_lang: string;
+  target_lang: string;
   created_at: Date;
   updated_at: Date;
 }

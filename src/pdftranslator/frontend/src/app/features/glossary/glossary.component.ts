@@ -1,13 +1,15 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration } from 'chart.js';
 import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
 import { GlossaryService } from '../../core/services/glossary.service';
+import { WorkService, WorkListResponse } from '../../core/services/work.service';
 import { TranslationConfigService } from '../../core/services/translation-config.service';
 import { ThemeService } from '../../core/services/theme.service';
-import { GlossaryTerm, EntityType } from '../../core/models';
+import { GlossaryTerm, EntityType, Work } from '../../core/models';
 
 @Component({
   selector: 'app-glossary',
@@ -30,32 +32,43 @@ import { GlossaryTerm, EntityType } from '../../core/models';
 })
 export class GlossaryComponent implements OnInit {
   private glossaryService = inject(GlossaryService);
+  private workService = inject(WorkService);
   private configService = inject(TranslationConfigService);
   private themeService = inject(ThemeService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   terms = signal<GlossaryTerm[]>([]);
+  works = signal<Work[]>([]);
   languages = signal<{code: string, name: string}[]>([]);
+
+  selectedWorkId = signal<number | null>(null);
+  searchTerm = signal('');
+  selectedEntityType = signal<EntityType | ''>('');
+  isLoading = signal(false);
+  isLoadingWorks = signal(true);
+  errorMessage = signal<string | null>(null);
+  successMessage = signal<string | null>(null);
 
   newTerm = {
     term: '',
     translation: '',
     entity_type: 'other' as EntityType,
     context: '',
-    is_proper_noun: false
+    is_proper_noun: false,
+    do_not_translate: false
   };
 
   editingTerm = signal<GlossaryTerm | null>(null);
-  searchTerm = signal('');
-  selectedWorkId = signal<number | null>(null);
-  selectedEntityType = signal<EntityType | ''>('');
-  isLoading = signal(false);
-  errorMessage = signal<string | null>(null);
-  successMessage = signal<string | null>(null);
   termTouched = false;
 
   entityTypes: EntityType[] = ['character', 'place', 'skill', 'item', 'spell', 'faction', 'title', 'race', 'other'];
 
-  // Chart data
+  selectedWork = computed(() => {
+    const id = this.selectedWorkId();
+    return this.works().find(w => w.id === id) || null;
+  });
+
   entityChartData: ChartConfiguration<'doughnut'>['data'] = {
     labels: [],
     datasets: [{
@@ -82,8 +95,35 @@ export class GlossaryComponent implements OnInit {
   };
 
   ngOnInit(): void {
+    this.loadWorks();
     this.loadLanguages();
-    this.loadTerms();
+  }
+
+  private loadWorks(): void {
+    this.isLoadingWorks.set(true);
+    this.workService.getAll(1, 100).subscribe({
+      next: (response: WorkListResponse) => {
+        this.works.set(response.items);
+        this.isLoadingWorks.set(false);
+        this.checkQueryParam();
+      },
+      error: (err) => {
+        console.error('Failed to load works:', err);
+        this.isLoadingWorks.set(false);
+        this.errorMessage.set('Failed to load works');
+      }
+    });
+  }
+
+  private checkQueryParam(): void {
+    const workIdParam = this.route.snapshot.queryParamMap.get('workId');
+    if (workIdParam) {
+      const workId = parseInt(workIdParam, 10);
+      if (!isNaN(workId) && this.works().some(w => w.id === workId)) {
+        this.selectedWorkId.set(workId);
+        this.loadTerms();
+      }
+    }
   }
 
   private loadLanguages(): void {
@@ -94,8 +134,14 @@ export class GlossaryComponent implements OnInit {
   }
 
   private loadTerms(): void {
+    const workId = this.selectedWorkId();
+    if (!workId) {
+      this.terms.set([]);
+      return;
+    }
+
     this.isLoading.set(true);
-    this.glossaryService.getAll().subscribe({
+    this.glossaryService.getAll(workId).subscribe({
       next: (terms) => {
         this.terms.set(terms);
         this.updateChartData(terms);
@@ -107,6 +153,27 @@ export class GlossaryComponent implements OnInit {
         console.error('Failed to load terms:', err);
       },
     });
+  }
+
+  onWorkChange(workId: string): void {
+    const id = workId ? parseInt(workId, 10) : null;
+    this.selectedWorkId.set(id);
+    this.editingTerm.set(null);
+
+    if (id) {
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { workId: id },
+        queryParamsHandling: 'merge'
+      });
+      this.loadTerms();
+    } else {
+      this.terms.set([]);
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: {}
+      });
+    }
   }
 
   private updateChartData(terms: GlossaryTerm[]): void {
@@ -146,10 +213,6 @@ export class GlossaryComponent implements OnInit {
   get filteredTerms(): GlossaryTerm[] {
     const search = this.searchTerm().toLowerCase();
     let filtered = this.terms();
-
-    if (this.selectedWorkId()) {
-      filtered = filtered.filter(t => t.work_id === this.selectedWorkId());
-    }
 
     if (this.selectedEntityType()) {
       filtered = filtered.filter(t => t.entity_type === this.selectedEntityType());
@@ -196,6 +259,10 @@ export class GlossaryComponent implements OnInit {
     return colors[type] || '#6b7280';
   }
 
+  getConfidencePercent(confidence: number): number {
+    return Math.round(confidence * 100);
+  }
+
   addTerm(): void {
     this.termTouched = true;
 
@@ -204,19 +271,26 @@ export class GlossaryComponent implements OnInit {
       return;
     }
 
+    const workId = this.selectedWorkId();
+    if (!workId) {
+      this.errorMessage.set('Please select a work first');
+      return;
+    }
+
     this.isLoading.set(true);
     this.errorMessage.set(null);
     this.successMessage.set(null);
 
+    const selectedWork = this.selectedWork();
     const termToAdd = {
-      work_id: 1,
+      work_id: workId,
       term: this.newTerm.term,
       translation: this.newTerm.translation || undefined,
       entity_type: this.newTerm.entity_type,
       context: this.newTerm.context || undefined,
       is_proper_noun: this.newTerm.is_proper_noun,
-      source_lang: 'en',
-      target_lang: 'es'
+      source_lang: selectedWork?.source_lang || 'en',
+      target_lang: selectedWork?.target_lang || 'es'
     };
 
     this.glossaryService.create(termToAdd).subscribe({
@@ -228,7 +302,8 @@ export class GlossaryComponent implements OnInit {
           translation: '',
           entity_type: 'other',
           context: '',
-          is_proper_noun: false
+          is_proper_noun: false,
+          do_not_translate: false
         };
         this.termTouched = false;
         this.successMessage.set('Term added successfully!');
@@ -262,7 +337,9 @@ export class GlossaryComponent implements OnInit {
       term: term.term,
       translation: term.translation,
       context: term.context,
-      is_proper_noun: term.is_proper_noun
+      is_proper_noun: term.is_proper_noun,
+      do_not_translate: term.do_not_translate,
+      is_verified: term.is_verified
     }).subscribe({
       next: (updatedTerm) => {
         this.terms.update((terms) =>
@@ -292,6 +369,7 @@ export class GlossaryComponent implements OnInit {
     this.glossaryService.delete(id).subscribe({
       next: () => {
         this.terms.update((terms) => terms.filter((t) => t.id !== id));
+        this.updateChartData(this.terms());
         this.successMessage.set('Term deleted successfully!');
         this.isLoading.set(false);
         setTimeout(() => this.successMessage.set(null), 3000);
@@ -306,7 +384,6 @@ export class GlossaryComponent implements OnInit {
 
   clearFilters(): void {
     this.searchTerm.set('');
-    this.selectedWorkId.set(null);
     this.selectedEntityType.set('');
   }
 

@@ -251,15 +251,15 @@
                   <label for="enable-ocr">Enable OCR</label>
                 </div>
               </div>
-              <div class="form-group">
-                <label for="ocr-langs">OCR Languages (comma-separated)</label>
-                <input
-                  id="ocr-langs"
-                  type="text"
-                  [ngModel]="settings()!.document.ocr_languages.join(', ')"
-                  (ngModelChange)="settings()!.document.ocr_languages = $event.split(',').map((s: string) => s.trim())"
-                />
-              </div>
+<div class="form-group">
+      <label for="ocr-langs">OCR Languages (comma-separated)</label>
+      <input
+        id="ocr-langs"
+        type="text"
+        [ngModel]="settings()!.document.ocr_languages.join(', ')"
+        (ngModelChange)="updateOcrLanguages($event)"
+      />
+    </div>
               <div class="form-group">
                 <label for="accelerator">Accelerator Device</label>
                 <select
@@ -298,48 +298,96 @@
           </div>
         }
 
-        @case ('nlp') {
-          <div class="settings-section">
-            <h3 class="section-title">NLP Settings</h3>
-            <div class="settings-grid">
-              <div class="form-group">
-                <label for="sentence-model">Sentence Model</label>
-                <input
-                  id="sentence-model"
-                  type="text"
-                  [ngModel]="settings()!.nlp.sentence_model"
-                  (ngModelChange)="settings()!.nlp.sentence_model = $event"
-                />
-              </div>
-            </div>
-          </div>
-        }
+@case ('nlp') {
+  <div class="settings-section">
+    <h3 class="section-title">NLP Settings</h3>
+    <div class="settings-grid">
+      <div class="form-group">
+        <label for="ner-model">NER Model</label>
+        <input
+          id="ner-model"
+          type="text"
+          [ngModel]="settings()!.nlp.ner_model"
+          (ngModelChange)="settings()!.nlp.ner_model = $event"
+        />
+      </div>
+      <div class="form-group">
+        <label for="entity-types">Entity Types (comma-separated)</label>
+        <input
+          id="entity-types"
+          type="text"
+          [ngModel]="settings()!.nlp.entity_types.join(', ')"
+          (ngModelChange)="updateEntityTypes($event)"
+        />
+      </div>
+      <div class="form-group">
+        <label for="min-entity-length">Min Entity Length</label>
+        <input
+          id="min-entity-length"
+          type="number"
+          [ngModel]="settings()!.nlp.min_entity_length"
+          (ngModelChange)="settings()!.nlp.min_entity_length = $event"
+        />
+      </div>
+      <div class="form-group">
+        <label for="max-entity-length">Max Entity Length</label>
+        <input
+          id="max-entity-length"
+          type="number"
+          [ngModel]="settings()!.nlp.max_entity_length"
+          (ngModelChange)="settings()!.nlp.max_entity_length = $event"
+        />
+      </div>
+      <div class="form-group">
+        <label for="confidence-threshold">Confidence Threshold</label>
+        <input
+          id="confidence-threshold"
+          type="number"
+          step="0.1"
+          min="0"
+          max="1"
+          [ngModel]="settings()!.nlp.confidence_threshold"
+          (ngModelChange)="settings()!.nlp.confidence_threshold = $event"
+        />
+      </div>
+    </div>
+  </div>
+}
 
-        @case ('paths') {
-          <div class="settings-section">
-            <h3 class="section-title">Path Configuration</h3>
-            <div class="settings-grid">
-              <div class="form-group">
-                <label for="prompt-path">Translation Prompt Path</label>
-                <input
-                  id="prompt-path"
-                  type="text"
-                  [ngModel]="settings()!.paths.translation_prompt_path"
-                  (ngModelChange)="settings()!.paths.translation_prompt_path = $event"
-                />
-              </div>
-              <div class="form-group">
-                <label for="output-dir">Output Directory</label>
-                <input
-                  id="output-dir"
-                  type="text"
-                  [ngModel]="settings()!.paths.output_dir"
-                  (ngModelChange)="settings()!.paths.output_dir = $event"
-                />
-              </div>
-            </div>
-          </div>
-        }
+@case ('paths') {
+  <div class="settings-section">
+    <h3 class="section-title">Path Configuration</h3>
+    <div class="settings-grid">
+      <div class="form-group">
+        <label for="prompt-path">Translation Prompt Path</label>
+        <input
+          id="prompt-path"
+          type="text"
+          [ngModel]="settings()!.paths.translation_prompt_path"
+          (ngModelChange)="settings()!.paths.translation_prompt_path = $event"
+        />
+      </div>
+      <div class="form-group">
+        <label for="audiobooks-dir">Audiobooks Directory</label>
+        <input
+          id="audiobooks-dir"
+          type="text"
+          [ngModel]="settings()!.paths.audiobooks_dir"
+          (ngModelChange)="settings()!.paths.audiobooks_dir = $event"
+        />
+      </div>
+      <div class="form-group">
+        <label for="videos-dir">Videos Directory</label>
+        <input
+          id="videos-dir"
+          type="text"
+          [ngModel]="settings()!.paths.videos_dir"
+          (ngModelChange)="settings()!.paths.videos_dir = $event"
+        />
+      </div>
+    </div>
+  </div>
+}
 
         @case ('rules') {
           <div class="settings-section">

@@ -38,12 +38,17 @@ export interface DocumentSettings {
 }
 
 export interface NLPSettings {
-  sentence_model: string;
+  ner_model: string;
+  entity_types: string[];
+  min_entity_length: number;
+  max_entity_length: number;
+  confidence_threshold: number;
 }
 
 export interface PathSettings {
   translation_prompt_path: string;
-  output_dir: string;
+  audiobooks_dir: string;
+  videos_dir: string;
 }
 
 export interface Settings {

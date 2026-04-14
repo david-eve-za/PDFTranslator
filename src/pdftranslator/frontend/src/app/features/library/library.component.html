@@ -4,19 +4,34 @@
     <p class="subtitle">Manage your translated works</p>
   </header>
 
+  @if (successMessage()) {
+    <div class="alert alert-success">
+      <span>✓</span>
+      <span>{{ successMessage() }}</span>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="alert alert-error">
+      <span>⚠️</span>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
   <div class="search-bar">
-    <input 
-      type="text" 
-      placeholder="Search works by title or author..." 
-      [(ngModel)]="searchTerm"
+    <input
+      type="text"
+      placeholder="Search works by title or author..."
+      [ngModel]="searchTerm()"
+      (ngModelChange)="onSearchChange($event)"
       class="search-input">
   </div>
 
-@if (isLoading) {
-  <div class="loading">Loading works...</div>
-} @else {
-  <div class="works-grid" [@cardAnimation]>
-    @for (work of filteredWorks; track work.id) {
+  @if (isLoading()) {
+    <div class="loading">Loading works...</div>
+  } @else {
+    <div class="works-grid" [@cardAnimation]>
+      @for (work of filteredWorks(); track work.id) {
         <div class="work-card" [class]="getProgressClass(work)">
           <div class="work-card-header">
             <h3 class="work-title">{{ work.title }}</h3>
@@ -24,7 +39,7 @@
               <p class="work-title-translated">{{ work.title_translated }}</p>
             }
           </div>
-          
+
           <div class="work-card-body">
             <p class="work-author">by {{ work.author }}</p>
             <div class="work-stats">
@@ -35,10 +50,10 @@
                 <strong>{{ work.translated_chapters }}</strong> translated
               </span>
             </div>
-            
+
             <div class="progress-bar">
-              <div 
-                class="progress-fill" 
+              <div
+                class="progress-fill"
                 [style.width.%]="getProgressPercentage(work)">
               </div>
             </div>
@@ -46,27 +61,51 @@
           </div>
 
           <div class="work-card-actions">
-            <button class="btn btn-primary" [routerLink]="['/translate']">
+            <button 
+              class="btn btn-secondary" 
+              (click)="onSplit(work.id)"
+              [disabled]="isCleaning(work.id)"
+              title="Split volumes into chapters">
+              📄 Split
+            </button>
+            <button 
+              class="btn btn-primary" 
+              [routerLink]="['/translate']"
+              [disabled]="isCleaning(work.id)">
               Translate
             </button>
-            <button class="btn btn-secondary" [routerLink]="['/glossary']">
+            <button 
+              class="btn btn-secondary" 
+              [routerLink]="['/glossary']"
+              [disabled]="isCleaning(work.id)">
               Glossary
+            </button>
+            <button 
+              class="btn btn-warning" 
+              (click)="onClean(work)"
+              [disabled]="isCleaning(work.id)"
+              title="Apply substitution rules to all volumes">
+              @if (isCleaning(work.id)) {
+                <span>⏳ Cleaning...</span>
+              } @else {
+                <span>🧹 Clean</span>
+              }
             </button>
           </div>
         </div>
-        } @empty {
-          <div class="empty-state">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-17A2.5 2.5 0 0 1 6.5 2z"/>
-            </svg>
-            <p>No works found</p>
-            <span class="empty-hint">Import a PDF or EPUB to start translating</span>
-            <button class="btn btn-primary" [routerLink]="['/split']">
-              Add New Work
-            </button>
-          </div>
-        }
+      } @empty {
+        <div class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-17A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          <p>No works found</p>
+          <span class="empty-hint">Import a PDF or EPUB to start translating</span>
+          <button class="btn btn-primary" [routerLink]="['/split']">
+            Add New Work
+          </button>
+        </div>
+      }
     </div>
   }
 </div>

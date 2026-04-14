@@ -8,6 +8,9 @@ export interface GlossaryTerm {
   entity_type: EntityType;
   context?: string;
   is_proper_noun: boolean;
+  do_not_translate: boolean;
+  is_verified: boolean;
+  confidence: number;
   frequency: number;
   source_lang: string;
   target_lang: string;
@@ -32,4 +35,6 @@ export interface GlossaryTermUpdate {
   entity_type?: EntityType;
   context?: string;
   is_proper_noun?: boolean;
+  do_not_translate?: boolean;
+  is_verified?: boolean;
 }

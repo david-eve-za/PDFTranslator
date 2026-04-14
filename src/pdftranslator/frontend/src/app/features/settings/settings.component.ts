@@ -29,35 +29,35 @@ export class SettingsComponent implements OnInit {
   private settingsService = inject(SettingsService);
   private ruleService = inject(SubstitutionRuleService);
 
-  activeTab = signal<'llm' | 'database' | 'document' | 'nlp' | 'paths' | 'rules'>('llm');
-  settings = signal<Settings | null>(null);
-  rules = signal<SubstitutionRule[]>([]);
+activeTab = signal<'llm' | 'database' | 'document' | 'nlp' | 'paths' | 'rules'>('llm');
+settings = signal<Settings | null>(null);
+rules = signal<SubstitutionRule[]>([]);
 
-  isLoading = signal(false);
-  isSaving = signal(false);
-  errorMessage = signal<string | null>(null);
-  successMessage = signal<string | null>(null);
-  restartRequired = signal(false);
+isLoading = signal(false);
+isSaving = signal(false);
+errorMessage = signal<string | null>(null);
+successMessage = signal<string | null>(null);
+restartRequired = signal(false);
 
-  newRule: SubstitutionRuleCreate = {
-    name: '',
-    pattern: '',
-    replacement: '',
-    description: '',
-    is_active: true,
-    apply_on_extract: true,
-  };
+newRule: SubstitutionRuleCreate = {
+  name: '',
+  pattern: '',
+  replacement: '',
+  description: '',
+  is_active: true,
+  apply_on_extract: true,
+};
 
-  editingRule = signal<SubstitutionRule | null>(null);
+editingRule = signal<SubstitutionRule | null>(null);
 
-  tabs: { key: typeof this.activeTab extends { (): infer T } ? T : never; label: string; icon: string }[] = [
-    { key: 'llm', label: 'LLM', icon: '🤖' },
-    { key: 'database', label: 'Database', icon: '🗄️' },
-    { key: 'document', label: 'Document', icon: '📄' },
-    { key: 'nlp', label: 'NLP', icon: '🧠' },
-    { key: 'paths', label: 'Paths', icon: '📁' },
-    { key: 'rules', label: 'Rules', icon: '🔄' },
-  ];
+readonly tabs = [
+  { key: 'llm' as const, label: 'LLM', icon: '🤖' },
+  { key: 'database' as const, label: 'Database', icon: '🗄️' },
+  { key: 'document' as const, label: 'Document', icon: '📄' },
+  { key: 'nlp' as const, label: 'NLP', icon: '🧠' },
+  { key: 'paths' as const, label: 'Paths', icon: '📁' },
+  { key: 'rules' as const, label: 'Rules', icon: '🔄' },
+];
 
   ngOnInit(): void {
     this.loadSettings();
@@ -86,8 +86,22 @@ export class SettingsComponent implements OnInit {
     });
   }
 
-  setActiveTab(tab: typeof this.activeTab extends { (): infer T } ? T : never): void {
+  setActiveTab(tab: 'llm' | 'database' | 'document' | 'nlp' | 'paths' | 'rules'): void {
     this.activeTab.set(tab);
+  }
+
+  updateOcrLanguages(value: string): void {
+    const current = this.settings();
+    if (current) {
+      current.document.ocr_languages = value.split(',').map((s) => s.trim());
+    }
+  }
+
+  updateEntityTypes(value: string): void {
+    const current = this.settings();
+    if (current) {
+      current.nlp.entity_types = value.split(',').map((s) => s.trim());
+    }
   }
 
   saveSettings(): void {

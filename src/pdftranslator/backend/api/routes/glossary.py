@@ -95,6 +95,10 @@ async def update_glossary_term(
         entry.context = data.context
     if data.is_proper_noun is not None:
         entry.is_proper_noun = data.is_proper_noun
+    if data.do_not_translate is not None:
+        entry.do_not_translate = data.do_not_translate
+    if data.is_verified is not None:
+        entry.is_verified = data.is_verified
 
     updated = repo.update(entry)
     if not updated:
@@ -123,6 +127,9 @@ def _entry_to_response(entry) -> dict:
         "entity_type": entry.entity_type,
         "context": entry.context,
         "is_proper_noun": entry.is_proper_noun,
+        "do_not_translate": getattr(entry, "do_not_translate", False),
+        "is_verified": getattr(entry, "is_verified", False),
+        "confidence": getattr(entry, "confidence", 0.0),
         "frequency": entry.frequency,
         "source_lang": entry.source_lang,
         "target_lang": entry.target_lang,

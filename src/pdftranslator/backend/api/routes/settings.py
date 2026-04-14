@@ -93,11 +93,16 @@ def _settings_to_response(settings) -> dict:
             "generate_page_images": settings.document.generate_page_images,
         },
         "nlp": {
-            "sentence_model": settings.nlp.sentence_model,
+            "ner_model": settings.nlp.ner_model,
+            "entity_types": settings.nlp.entity_types,
+            "min_entity_length": settings.nlp.min_entity_length,
+            "max_entity_length": settings.nlp.max_entity_length,
+            "confidence_threshold": settings.nlp.confidence_threshold,
         },
         "paths": {
             "translation_prompt_path": str(settings.paths.translation_prompt_path),
-            "output_dir": str(settings.paths.output_dir),
+            "audiobooks_dir": str(settings.paths.audiobooks_dir),
+            "videos_dir": str(settings.paths.videos_dir),
         },
     }
 

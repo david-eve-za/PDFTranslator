@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, inject, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { WorkService, WorkListResponse } from '../../core/services/work.service';
 import { VolumeService, VolumeListResponse } from '../../core/services/volume.service';
 import { SplitService, ParsedBlock } from '../../core/services/split.service';
@@ -19,6 +20,7 @@ export class SplitComponent implements OnInit {
   private workService = inject(WorkService);
   private volumeService = inject(VolumeService);
   private splitService = inject(SplitService);
+  private route = inject(ActivatedRoute);
 
   @ViewChild('textareaRef') textareaElement!: ElementRef<HTMLTextAreaElement>;
 
@@ -48,6 +50,7 @@ export class SplitComponent implements OnInit {
       next: (response: WorkListResponse) => {
         this.works.set(response.items);
         this.isLoading.set(false);
+        this.checkQueryParam();
       },
       error: (err) => {
         this.errorMessage.set('Failed to load works');
@@ -55,6 +58,16 @@ export class SplitComponent implements OnInit {
         console.error('Failed to load works:', err);
       }
     });
+  }
+
+  private checkQueryParam(): void {
+    const workIdParam = this.route.snapshot.queryParamMap.get('workId');
+    if (workIdParam) {
+      const workId = parseInt(workIdParam, 10);
+      if (!isNaN(workId)) {
+        this.onWorkSelect(workId.toString());
+      }
+    }
   }
 
   onWorkSelect(workId: string): void {

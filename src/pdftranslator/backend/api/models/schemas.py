@@ -125,6 +125,8 @@ class GlossaryUpdateRequest(BaseModel):
     translation: str | None = None
     context: str | None = None
     is_proper_noun: bool | None = None
+    do_not_translate: bool | None = None
+    is_verified: bool | None = None
 
 
 class TranslationChunkResponse(BaseModel):
@@ -188,6 +190,8 @@ class WorkResponse(BaseModel):
     source_lang: str = "en"
     target_lang: str = "es"
     volumes: list[dict] = []
+    total_chapters: int = 0
+    translated_chapters: int = 0
     created_at: str
     updated_at: str
 

@@ -106,12 +106,21 @@ async def delete_work(
 def _work_to_response(work, include_volumes: bool = False) -> dict:
     """Convert work to response dict."""
     volume_repo = VolumeRepository(DatabasePool.get_instance())
+    from pdftranslator.database.repositories.chapter_repository import ChapterRepository
+
     volumes = []
-    if include_volumes:
-        volumes = [
-            {"id": v.id, "volume_number": v.volume_number}
-            for v in volume_repo.get_by_work_id(work.id)
-        ]
+    total_chapters = 0
+    translated_chapters = 0
+
+    work_volumes = volume_repo.get_by_work_id(work.id)
+    for v in work_volumes:
+        if include_volumes:
+            volumes.append({"id": v.id, "volume_number": v.volume_number})
+        chapter_repo = ChapterRepository(DatabasePool.get_instance())
+        chapters = chapter_repo.get_by_volume(v.id)
+        total_chapters += len(chapters)
+        translated_chapters += sum(1 for c in chapters if c.translated_text)
+
     return {
         "id": work.id,
         "title": work.title,
@@ -120,6 +129,8 @@ def _work_to_response(work, include_volumes: bool = False) -> dict:
         "source_lang": work.source_lang or "en",
         "target_lang": work.target_lang or "es",
         "volumes": volumes,
+        "total_chapters": total_chapters,
+        "translated_chapters": translated_chapters,
         "created_at": work.created_at.isoformat()
         if work.created_at
         else datetime.now().isoformat(),
