@@ -150,3 +150,96 @@ class TestGlossaryManagerProgress:
 
         # Verify cleanup was called
         mock_dependencies["progress"].cleanup_completed.assert_called_once_with(1)
+
+    def test_resume_from_validation_phase(self, mock_dependencies):
+        """Test resuming from validation phase."""
+        manager = GlossaryManager(mock_dependencies["pool"])
+
+        # Mock resume point detection
+        mock_dependencies["progress"].get_resume_point.return_value = ("validated", 2)
+
+        # Mock pending entities
+        mock_progress = MagicMock()
+        mock_progress.id = 1
+        mock_progress.entity_text = "Harry"
+        mock_progress.entity_type = "character"
+        mock_progress.frequency = 5
+        mock_progress.contexts = []
+        mock_progress.translation = None
+        mock_dependencies["progress"].get_pending_for_phase.return_value = [
+            mock_progress
+        ]
+
+        # Mock embedding and save
+        mock_dependencies["vector"].embed_entities_for_glossary.return_value = [
+            (
+                EntityCandidate(text="Harry", entity_type="character", frequency=5),
+                [0.1] * 1024,
+            )
+        ]
+        mock_dependencies["glossary"].batch_create_with_embeddings.return_value = []
+
+        # Call with resume=True
+        result = manager.build_from_text(
+            text="Test",
+            work_id=1,
+            volume_id=1,
+            resume=True,
+            suggest_translations=False,
+        )
+
+        # Should not call extractor when resuming
+        mock_dependencies["extractor"].extract.assert_not_called()
+
+        # Should have called get_pending_for_phase with "extracted" phase
+        mock_dependencies["progress"].get_pending_for_phase.assert_called()
+
+        # Should have called batch_update_phase with "saved"
+        mock_dependencies["progress"].batch_update_phase.assert_called()
+
+    def test_resume_from_translated_phase(self, mock_dependencies):
+        """Test resuming from translation phase."""
+        manager = GlossaryManager(mock_dependencies["pool"])
+
+        # Mock resume point detection - translation already done
+        mock_dependencies["progress"].get_resume_point.return_value = ("translated", 3)
+
+        # Mock pending entities with translations
+        mock_progress = MagicMock()
+        mock_progress.id = 1
+        mock_progress.entity_text = "Harry"
+        mock_progress.entity_type = "character"
+        mock_progress.frequency = 5
+        mock_progress.contexts = []
+        mock_progress.translation = "Harry"
+        mock_dependencies["progress"].get_pending_for_phase.return_value = [
+            mock_progress
+        ]
+
+        # Mock embedding and save
+        mock_dependencies["vector"].embed_entities_for_glossary.return_value = [
+            (
+                EntityCandidate(
+                    text="Harry",
+                    entity_type="character",
+                    frequency=5,
+                    translation="Harry",
+                ),
+                [0.1] * 1024,
+            )
+        ]
+        mock_dependencies["glossary"].batch_create_with_embeddings.return_value = []
+
+        result = manager.build_from_text(
+            text="Test",
+            work_id=1,
+            volume_id=1,
+            resume=True,
+            suggest_translations=False,
+        )
+
+        # Should not call extractor when resuming
+        mock_dependencies["extractor"].extract.assert_not_called()
+
+        # Should have saved the entities
+        mock_dependencies["glossary"].batch_create_with_embeddings.assert_called_once()

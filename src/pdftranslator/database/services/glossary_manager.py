@@ -239,6 +239,8 @@ Respond ONLY as JSON (no explanation):
         7. Save to database
         8. Cleanup progress (NEW)
 
+        NEW: Supports resume from last checkpoint when resume=True.
+
         Args:
             text: Source text to analyze
             work_id: Work ID for glossary association
@@ -246,11 +248,29 @@ Respond ONLY as JSON (no explanation):
             source_lang: Source language code
             target_lang: Target language code
             suggest_translations: Whether to validate and suggest translations with LLM
-            resume: Whether to resume from previous progress (not implemented yet)
+            resume: Whether to resume from previous progress
 
         Returns:
             BuildResult with extraction statistics
         """
+        # Track entities by type
+        entities_by_type: Dict[str, int] = {}
+
+        # Check for resume
+        if resume:
+            phase, batch_num = self._progress_repo.get_resume_point(work_id, volume_id)
+            if phase != "extracted":
+                logger.info(f"Resuming from phase '{phase}' (batch {batch_num})")
+                return self._resume_from_phase(
+                    work_id,
+                    volume_id,
+                    phase,
+                    batch_num,
+                    source_lang,
+                    target_lang,
+                    suggest_translations,
+                )
+
         # Track progress records for cleanup
         progress_records: List[GlossaryBuildProgress] = []
 
@@ -289,8 +309,10 @@ Respond ONLY as JSON (no explanation):
             validation_batches = 0
             if suggest_translations:
                 logger.info(f"Validating {len(new_entities)} entities with LLM...")
-                validated_entities, validation_batches = self._validate_with_llm_tracked(
-                    new_entities, source_lang, work_id, volume_id
+                validated_entities, validation_batches = (
+                    self._validate_with_llm_tracked(
+                        new_entities, source_lang, work_id, volume_id
+                    )
                 )
 
             # Update entities_by_type with validated types
@@ -557,3 +579,141 @@ Response format: {{"original_term": "translation"}}"""
     def get_glossary_for_work(self, work_id: int) -> List[GlossaryEntry]:
         """Get all glossary entries for a work."""
         return self._glossary_repo.get_by_work(work_id)
+
+    def _resume_from_phase(
+        self,
+        work_id: int,
+        volume_id: int,
+        phase: str,
+        batch_num: Optional[int],
+        source_lang: str,
+        target_lang: str,
+        suggest_translations: bool,
+    ) -> BuildResult:
+        """Resume pipeline from a specific phase."""
+        entities_by_type: Dict[str, int] = {}
+
+        if phase == "validated":
+            # Resume from validation
+            pending = self._progress_repo.get_pending_for_phase(
+                work_id, volume_id, "extracted"
+            )
+            entities = [
+                EntityCandidate(
+                    text=p.entity_text,
+                    entity_type=p.entity_type or "other",
+                    frequency=p.frequency,
+                    contexts=p.contexts,
+                )
+                for p in pending
+            ]
+
+            if not entities:
+                return BuildResult(extracted=0, new=0, skipped=0, entities_by_type={})
+
+            validated_entities, _ = self._validate_with_llm_tracked(
+                entities, source_lang, work_id, volume_id
+            )
+
+            # Continue with embeddings and translation
+            entity_embeddings = self._vector_service.embed_entities_for_glossary(
+                validated_entities
+            )
+
+            translations = {}
+            if suggest_translations and entity_embeddings:
+                translations, _ = self._suggest_translations_tracked(
+                    validated_entities,
+                    source_lang,
+                    target_lang,
+                    work_id,
+                    volume_id,
+                )
+
+            saved = self._save_entities(
+                entity_embeddings,
+                translations,
+                work_id,
+                source_lang,
+                target_lang,
+            )
+
+            # Update progress and cleanup
+            progress_ids = [p.id for p in pending if p.id]
+            if progress_ids:
+                self._progress_repo.batch_update_phase(progress_ids, "saved")
+                self._progress_repo.cleanup_completed(volume_id)
+
+            for e in validated_entities:
+                entities_by_type[e.entity_type] = (
+                    entities_by_type.get(e.entity_type, 0) + 1
+                )
+
+            return BuildResult(
+                extracted=len(entities),
+                new=len(saved),
+                skipped=len(entities) - len(validated_entities),
+                entities_by_type=entities_by_type,
+            )
+
+        elif phase == "translated":
+            # Resume from translation
+            pending = self._progress_repo.get_pending_for_phase(
+                work_id, volume_id, "validated"
+            )
+            entities = [
+                EntityCandidate(
+                    text=p.entity_text,
+                    entity_type=p.entity_type or "other",
+                    frequency=p.frequency,
+                    contexts=p.contexts,
+                    translation=p.translation,
+                )
+                for p in pending
+            ]
+
+            if not entities:
+                return BuildResult(extracted=0, new=0, skipped=0, entities_by_type={})
+
+            # Need to regenerate embeddings
+            entity_embeddings = self._vector_service.embed_entities_for_glossary(
+                entities
+            )
+
+            translations = {}
+            if suggest_translations and entity_embeddings:
+                translations, _ = self._suggest_translations_tracked(
+                    entities,
+                    source_lang,
+                    target_lang,
+                    work_id,
+                    volume_id,
+                )
+
+            saved = self._save_entities(
+                entity_embeddings,
+                translations,
+                work_id,
+                source_lang,
+                target_lang,
+            )
+
+            progress_ids = [p.id for p in pending if p.id]
+            if progress_ids:
+                self._progress_repo.batch_update_phase(progress_ids, "saved")
+                self._progress_repo.cleanup_completed(volume_id)
+
+            for e in entities:
+                entities_by_type[e.entity_type] = (
+                    entities_by_type.get(e.entity_type, 0) + 1
+                )
+
+            return BuildResult(
+                extracted=len(entities),
+                new=len(saved),
+                skipped=0,
+                entities_by_type=entities_by_type,
+            )
+
+        # Default: start fresh
+        return BuildResult(extracted=0, new=0, skipped=0, entities_by_type={})
