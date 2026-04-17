@@ -19,6 +19,9 @@ class VolumeRepository(BaseRepository[Volume]):
             translated_text=row[5],
             glossary_built_at=row[6] if len(row) > 6 else None,
             created_at=row[7] if len(row) > 7 else None,
+            glossary_build_status=row[8] if len(row) > 8 else "pending",
+            glossary_error_message=row[9] if len(row) > 9 else None,
+            glossary_resume_phase=row[10] if len(row) > 10 else None,
         )
 
     def get_by_id(self, id: int) -> Optional[Volume]:
@@ -173,3 +176,66 @@ class VolumeRepository(BaseRepository[Volume]):
                     (volume_id,),
                 )
                 return cur.rowcount > 0
+
+    def update_build_status(
+        self,
+        volume_id: int,
+        status: str,
+        error_message: str | None = None,
+        resume_phase: str | None = None,
+    ) -> bool:
+        """Update the glossary build status of a volume.
+
+        Args:
+            volume_id: ID of the volume to update
+            status: Build status (pending, in_progress, completed, failed)
+            error_message: Optional error message for failed builds
+            resume_phase: Optional phase to resume from after failure
+
+        Returns:
+            True if the volume was updated, False if no volume was found
+        """
+        pool = self._pool.get_sync_pool()
+        with pool.connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE volumes
+                    SET glossary_build_status = %s,
+                        glossary_error_message = %s,
+                        glossary_resume_phase = %s
+                    WHERE id = %s
+                    """,
+                    (status, error_message, resume_phase, volume_id),
+                )
+                return cur.rowcount > 0
+
+    def get_volumes_by_status(
+        self,
+        work_id: int,
+        status: str,
+    ) -> list[Volume]:
+        """Get all volumes with a specific build status.
+
+        Args:
+            work_id: ID of the work to filter by
+            status: Build status to filter by
+
+        Returns:
+            List of volumes matching the status, ordered by volume_number
+        """
+        pool = self._pool.get_sync_pool()
+        with pool.connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT id, work_id, volume_number, title, full_text, translated_text,
+                           glossary_built_at, created_at
+                    FROM volumes
+                    WHERE work_id = %s AND glossary_build_status = %s
+                    ORDER BY volume_number
+                    """,
+                    (work_id, status),
+                )
+                rows = cur.fetchall()
+                return [self._row_to_volume(row) for row in rows]

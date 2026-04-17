@@ -35,6 +35,9 @@ class Volume:
     embedding: Optional[list] = None
     glossary_built_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
+    glossary_build_status: str = "pending"
+    glossary_error_message: Optional[str] = None
+    glossary_resume_phase: Optional[str] = None
 
     def __repr__(self) -> str:
         return f"Volume(id={self.id}, number={self.volume_number})"
