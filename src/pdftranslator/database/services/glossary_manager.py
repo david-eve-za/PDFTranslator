@@ -16,7 +16,15 @@ import logging
 from typing import Dict, List, Optional
 
 from pdftranslator.database.connection import DatabasePool
-from pdftranslator.database.models import EntityCandidate, BuildResult, GlossaryEntry
+from pdftranslator.database.models import (
+    BuildResult,
+    EntityCandidate,
+    GlossaryBuildProgress,
+    GlossaryEntry,
+)
+from pdftranslator.database.repositories.glossary_build_progress_repository import (
+    GlossaryBuildProgressRepository,
+)
 from pdftranslator.database.repositories.glossary_repository import GlossaryRepository
 from pdftranslator.database.services.entity_extractor import EntityExtractor
 from pdftranslator.database.services.vector_store import VectorStoreService
@@ -30,6 +38,7 @@ class GlossaryManager:
         self._pool = pool or DatabasePool.get_instance()
         self._extractor = EntityExtractor(pool)
         self._glossary_repo = GlossaryRepository(pool)
+        self._progress_repo = GlossaryBuildProgressRepository(pool)
         self._vector_service = VectorStoreService()
         self._llm_client: Optional[NvidiaLLM] = None
 
@@ -171,9 +180,11 @@ Respond ONLY as JSON (no explanation):
         self,
         text: str,
         work_id: int,
+        volume_id: int,
         source_lang: str = "en",
         target_lang: str = "es",
         suggest_translations: bool = True,
+        resume: bool = False,
     ) -> BuildResult:
         """
         Build glossary from text with full pipeline.
@@ -181,45 +192,63 @@ Respond ONLY as JSON (no explanation):
         Pipeline:
         1. Extract entities with NLTK
         2. Filter duplicates
-        3. Validate with LLM (NEW)
-        4. Generate embeddings
-        5. Suggest translations with batching (IMPROVED)
-        6. Save to database
+        3. Save progress (NEW)
+        4. Validate with LLM
+        5. Generate embeddings
+        6. Suggest translations with batching
+        7. Save to database
+        8. Cleanup progress (NEW)
 
         Args:
             text: Source text to analyze
             work_id: Work ID for glossary association
+            volume_id: Volume ID for progress tracking
             source_lang: Source language code
             target_lang: Target language code
             suggest_translations: Whether to validate and suggest translations with LLM
+            resume: Whether to resume from previous progress (not implemented yet)
 
         Returns:
             BuildResult with extraction statistics
         """
-        # 1. Extract entities with NLTK
-        candidates = self._extractor.extract(text, source_lang)
+        # Track progress records for cleanup
+        progress_records: List[GlossaryBuildProgress] = []
 
-        # Track entities by type
-        entities_by_type: Dict[str, int] = {}
-        for c in candidates:
-            entities_by_type[c.entity_type] = entities_by_type.get(c.entity_type, 0) + 1
+        try:
+            # 1. Extract entities with NLTK
+            candidates = self._extractor.extract(text, source_lang)
 
-        # 2. Filter duplicates against existing glossary
-        new_entities = self._glossary_repo.filter_new_entities(candidates, work_id)
+            # Track entities by type
+            entities_by_type: Dict[str, int] = {}
+            for c in candidates:
+                entities_by_type[c.entity_type] = (
+                    entities_by_type.get(c.entity_type, 0) + 1
+                )
 
-        if not new_entities:
-            return BuildResult(
-                extracted=len(candidates),
-                new=0,
-                skipped=len(candidates),
-                entities_by_type=entities_by_type,
+            # 2. Filter duplicates against existing glossary
+            new_entities = self._glossary_repo.filter_new_entities(candidates, work_id)
+
+            if not new_entities:
+                # Cleanup any existing progress for this volume
+                self._progress_repo.cleanup_completed(volume_id)
+                return BuildResult(
+                    extracted=len(candidates),
+                    new=0,
+                    skipped=len(candidates),
+                    entities_by_type=entities_by_type,
+                )
+
+            # 3. Save extracted entities to progress table (NEW)
+            progress_records = self._progress_repo.save_extracted(
+                work_id, volume_id, new_entities
             )
+            logger.info(f"Saved {len(progress_records)} entities to progress table")
 
-        # 3. Validate with LLM (NEW)
-        validated_entities = new_entities
-        if suggest_translations:
-            logger.info(f"Validating {len(new_entities)} entities with LLM...")
-            validated_entities = self._validate_with_llm(new_entities, source_lang)
+            # 4. Validate with LLM
+            validated_entities = new_entities
+            if suggest_translations:
+                logger.info(f"Validating {len(new_entities)} entities with LLM...")
+                validated_entities = self._validate_with_llm(new_entities, source_lang)
 
             # Update entities_by_type with validated types
             entities_by_type = {}
@@ -232,33 +261,46 @@ Respond ONLY as JSON (no explanation):
                 f"Validated entities: {len(validated_entities)}/{len(new_entities)}"
             )
 
-        # 4. Generate embeddings
-        entity_embeddings = self._vector_service.embed_entities_for_glossary(
-            validated_entities
-        )
-
-        # 5. Suggest translations with batching (IMPROVED)
-        translations: Dict[str, str] = {}
-        if suggest_translations and entity_embeddings:
-            translations = self._suggest_translations(
-                validated_entities, source_lang, target_lang
+            # 5. Generate embeddings
+            entity_embeddings = self._vector_service.embed_entities_for_glossary(
+                validated_entities
             )
 
-        # 6. Save to database
-        saved = self._save_entities(
-            entity_embeddings,
-            translations,
-            work_id,
-            source_lang,
-            target_lang,
-        )
+            # 6. Suggest translations with batching
+            translations: Dict[str, str] = {}
+            if suggest_translations and entity_embeddings:
+                translations = self._suggest_translations(
+                    validated_entities, source_lang, target_lang
+                )
 
-        return BuildResult(
-            extracted=len(candidates),
-            new=len(saved),
-            skipped=len(candidates) - len(validated_entities),
-            entities_by_type=entities_by_type,
-        )
+            # 7. Save to database
+            saved = self._save_entities(
+                entity_embeddings,
+                translations,
+                work_id,
+                source_lang,
+                target_lang,
+            )
+
+            # 8. Update progress to 'saved' and cleanup (NEW)
+            if progress_records:
+                progress_ids = [p.id for p in progress_records if p.id]
+                if progress_ids:
+                    self._progress_repo.batch_update_phase(progress_ids, "saved")
+
+            self._progress_repo.cleanup_completed(volume_id)
+
+            return BuildResult(
+                extracted=len(candidates),
+                new=len(saved),
+                skipped=len(candidates) - len(validated_entities),
+                entities_by_type=entities_by_type,
+            )
+
+        except Exception as e:
+            logger.error(f"Error building glossary: {e}")
+            # Progress remains for resume on error
+            raise
 
     def _suggest_translations(
         self,

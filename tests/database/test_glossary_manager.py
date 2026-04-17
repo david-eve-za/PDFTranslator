@@ -41,37 +41,44 @@ class TestGlossaryManager:
                 "pdftranslator.database.services.glossary_manager.GlossaryRepository"
             ) as mock_glossary_cls:
                 with patch(
-                    "pdftranslator.database.services.glossary_manager.VectorStoreService"
-                ) as mock_vector_cls:
-                    mock_extractor = MagicMock()
-                    mock_extractor.extract.return_value = [
-                        EntityCandidate(
-                            text="Alice", entity_type="character", frequency=2
+                    "pdftranslator.database.services.glossary_manager.GlossaryBuildProgressRepository"
+                ) as mock_progress_cls:
+                    with patch(
+                        "pdftranslator.database.services.glossary_manager.VectorStoreService"
+                    ) as mock_vector_cls:
+                        mock_extractor = MagicMock()
+                        mock_extractor.extract.return_value = [
+                            EntityCandidate(
+                                text="Alice", entity_type="character", frequency=2
+                            )
+                        ]
+                        mock_extractor_cls.return_value = mock_extractor
+
+                        mock_glossary = MagicMock()
+                        mock_glossary.filter_new_entities.return_value = []
+                        mock_glossary_cls.return_value = mock_glossary
+
+                        mock_progress = MagicMock()
+                        mock_progress_cls.return_value = mock_progress
+
+                        mock_vector = MagicMock()
+                        mock_vector.embed_entities_for_glossary.return_value = []
+                        mock_vector_cls.return_value = mock_vector
+
+                        manager = GlossaryManager(mock_pool)
+                        result = manager.build_from_text(
+                            text="Alice went to Wonderland. Alice met the Queen. The Queen was angry.",
+                            work_id=1,
+                            volume_id=1,
+                            source_lang="en",
+                            target_lang="es",
+                            suggest_translations=False,
                         )
-                    ]
-                    mock_extractor_cls.return_value = mock_extractor
 
-                    mock_glossary = MagicMock()
-                    mock_glossary.filter_new_entities.return_value = []
-                    mock_glossary_cls.return_value = mock_glossary
-
-                    mock_vector = MagicMock()
-                    mock_vector.embed_entities_for_glossary.return_value = []
-                    mock_vector_cls.return_value = mock_vector
-
-                    manager = GlossaryManager(mock_pool)
-                    result = manager.build_from_text(
-                        text="Alice went to Wonderland. Alice met the Queen. The Queen was angry.",
-                        work_id=1,
-                        source_lang="en",
-                        target_lang="es",
-                        suggest_translations=False,
-                    )
-
-                    assert result.extracted > 0
-                    assert hasattr(result, "new")
-                    assert hasattr(result, "skipped")
-                    assert hasattr(result, "entities_by_type")
+                        assert result.extracted > 0
+                        assert hasattr(result, "new")
+                        assert hasattr(result, "skipped")
+                        assert hasattr(result, "entities_by_type")
 
     @patch("pdftranslator.database.services.glossary_manager.NvidiaLLM")
     def test_suggest_translations_returns_dict(
@@ -93,31 +100,39 @@ class TestGlossaryManager:
                 "pdftranslator.database.services.glossary_manager.GlossaryRepository"
             ) as mock_glossary_cls:
                 with patch(
-                    "pdftranslator.database.services.glossary_manager.VectorStoreService"
-                ) as mock_vector_cls:
-                    mock_extractor = MagicMock()
-                    mock_extractor.extract.return_value = []
-                    mock_extractor_cls.return_value = mock_extractor
+                    "pdftranslator.database.services.glossary_manager.GlossaryBuildProgressRepository"
+                ) as mock_progress_cls:
+                    with patch(
+                        "pdftranslator.database.services.glossary_manager.VectorStoreService"
+                    ) as mock_vector_cls:
+                        mock_extractor = MagicMock()
+                        mock_extractor.extract.return_value = []
+                        mock_extractor_cls.return_value = mock_extractor
 
-                    mock_glossary = MagicMock()
-                    mock_glossary.filter_new_entities.return_value = []
-                    mock_glossary_cls.return_value = mock_glossary
+                        mock_glossary = MagicMock()
+                        mock_glossary.filter_new_entities.return_value = []
+                        mock_glossary_cls.return_value = mock_glossary
 
-                    mock_vector = MagicMock()
-                    mock_vector.embed_entities_for_glossary.return_value = []
-                    mock_vector_cls.return_value = mock_vector
+                        mock_progress = MagicMock()
+                        mock_progress_cls.return_value = mock_progress
 
-                    manager = GlossaryManager(mock_pool)
-                    manager._llm_client = mock_llm
+                        mock_vector = MagicMock()
+                        mock_vector.embed_entities_for_glossary.return_value = []
+                        mock_vector_cls.return_value = mock_vector
 
-                    entities = [
-                        EntityCandidate(
-                            text="Alice", entity_type="character", frequency=2
+                        manager = GlossaryManager(mock_pool)
+                        manager._llm_client = mock_llm
+
+                        entities = [
+                            EntityCandidate(
+                                text="Alice", entity_type="character", frequency=2
+                            )
+                        ]
+                        translations = manager._suggest_translations(
+                            entities, "en", "es"
                         )
-                    ]
-                    translations = manager._suggest_translations(entities, "en", "es")
 
-                    assert isinstance(translations, dict)
+                        assert isinstance(translations, dict)
 
     def test_get_glossary_for_work(self, mock_pool, mock_connection):
         mock_pool.get_sync_pool.return_value.connection.return_value.__enter__ = (
@@ -148,26 +163,33 @@ class TestGlossaryManager:
                 "pdftranslator.database.services.glossary_manager.GlossaryRepository"
             ) as mock_glossary_cls:
                 with patch(
-                    "pdftranslator.database.services.glossary_manager.VectorStoreService"
-                ) as mock_vector_cls:
-                    mock_extractor = MagicMock()
-                    mock_extractor.extract.return_value = []
-                    mock_extractor_cls.return_value = mock_extractor
+                    "pdftranslator.database.services.glossary_manager.GlossaryBuildProgressRepository"
+                ) as mock_progress_cls:
+                    with patch(
+                        "pdftranslator.database.services.glossary_manager.VectorStoreService"
+                    ) as mock_vector_cls:
+                        mock_extractor = MagicMock()
+                        mock_extractor.extract.return_value = []
+                        mock_extractor_cls.return_value = mock_extractor
 
-                    mock_glossary = MagicMock()
-                    mock_glossary_cls.return_value = mock_glossary
+                        mock_glossary = MagicMock()
+                        mock_glossary_cls.return_value = mock_glossary
 
-                    mock_vector = MagicMock()
-                    mock_vector_cls.return_value = mock_vector
+                        mock_progress = MagicMock()
+                        mock_progress_cls.return_value = mock_progress
 
-                    manager = GlossaryManager(mock_pool)
-                    result = manager.build_from_text(
-                        text="Simple text.",
-                        work_id=1,
-                        source_lang="en",
-                        target_lang="es",
-                        suggest_translations=False,
-                    )
+                        mock_vector = MagicMock()
+                        mock_vector_cls.return_value = mock_vector
 
-                    assert result.extracted == 0
-                    assert result.new == 0
+                        manager = GlossaryManager(mock_pool)
+                        result = manager.build_from_text(
+                            text="Simple text.",
+                            work_id=1,
+                            volume_id=1,
+                            source_lang="en",
+                            target_lang="es",
+                            suggest_translations=False,
+                        )
+
+                        assert result.extracted == 0
+                        assert result.new == 0
