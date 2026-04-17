@@ -107,6 +107,38 @@ class BuildResult:
 
 
 @dataclass
+class GlossaryBuildProgress:
+    """Tracks progress of glossary build pipeline for a single entity."""
+
+    id: int | None = None
+    work_id: int = 0
+    volume_id: int = 0
+    entity_text: str = ""
+    phase: str = "extracted"
+    entity_type: str | None = None
+    frequency: int = 1
+    contexts: list[str] = field(default_factory=list)
+    translation: str | None = None
+    embedding: list[float] | None = None
+    validation_batch: int | None = None
+    translation_batch: int | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+    def is_complete(self) -> bool:
+        """Check if the entity has completed all pipeline phases."""
+        return self.phase == "saved"
+
+    def next_phase(self) -> str | None:
+        """Get the next phase in the pipeline, or None if complete."""
+        phases = ["extracted", "validated", "translated", "saved"]
+        if self.phase in phases:
+            idx = phases.index(self.phase)
+            return phases[idx + 1] if idx < len(phases) - 1 else None
+        return None
+
+
+@dataclass
 class SubstitutionRule:
     """Text substitution rule with regex pattern."""
 
@@ -135,5 +167,6 @@ __all__ = [
     "FantasyTerm",
     "EntityCandidate",
     "BuildResult",
+    "GlossaryBuildProgress",
     "SubstitutionRule",
 ]
