@@ -115,9 +115,12 @@ class TestVolumeRepositoryStatus:
         sync_pool.connection.return_value.__exit__ = MagicMock(return_value=None)
         sync_pool.cursor.return_value.__enter__ = MagicMock(return_value=cursor)
         sync_pool.cursor.return_value.__exit__ = MagicMock(return_value=None)
+        # Mock data with all 11 columns: id, work_id, volume_number, title, full_text,
+        # translated_text, glossary_built_at, created_at, glossary_build_status,
+        # glossary_error_message, glossary_resume_phase
         cursor.fetchall.return_value = [
-            (1, 1, 1, "Volume 1", None, None, None, None),
-            (2, 1, 2, "Volume 2", None, None, None, None),
+            (1, 1, 1, "Volume 1", None, None, None, None, "pending", None, None),
+            (2, 1, 2, "Volume 2", None, None, None, None, "pending", None, None),
         ]
 
         repo = VolumeRepository(pool)

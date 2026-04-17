@@ -31,7 +31,8 @@ class VolumeRepository(BaseRepository[Volume]):
                 cur.execute(
                     """
                     SELECT id, work_id, volume_number, title, full_text, translated_text,
-                           glossary_built_at, created_at
+                    glossary_built_at, created_at, glossary_build_status,
+                    glossary_error_message, glossary_resume_phase
                     FROM volumes
                     WHERE id = %s
                     """,
@@ -48,7 +49,9 @@ class VolumeRepository(BaseRepository[Volume]):
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT id, work_id, volume_number, title, full_text, translated_text
+                    SELECT id, work_id, volume_number, title, full_text, translated_text,
+                    glossary_built_at, created_at, glossary_build_status,
+                    glossary_error_message, glossary_resume_phase
                     FROM volumes
                     ORDER BY work_id, volume_number
                     """
@@ -117,7 +120,8 @@ class VolumeRepository(BaseRepository[Volume]):
                 cur.execute(
                     """
                     SELECT id, work_id, volume_number, title, full_text, translated_text,
-                           glossary_built_at, created_at
+                    glossary_built_at, created_at, glossary_build_status,
+                    glossary_error_message, glossary_resume_phase
                     FROM volumes
                     WHERE work_id = %s
                     ORDER BY volume_number
@@ -136,7 +140,9 @@ class VolumeRepository(BaseRepository[Volume]):
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT id, work_id, volume_number, title, full_text, translated_text
+                    SELECT id, work_id, volume_number, title, full_text, translated_text,
+                    glossary_built_at, created_at, glossary_build_status,
+                    glossary_error_message, glossary_resume_phase
                     FROM volumes
                     WHERE work_id = %s AND volume_number = %s
                     """,
@@ -230,7 +236,8 @@ class VolumeRepository(BaseRepository[Volume]):
                 cur.execute(
                     """
                     SELECT id, work_id, volume_number, title, full_text, translated_text,
-                           glossary_built_at, created_at
+                    glossary_built_at, created_at, glossary_build_status,
+                    glossary_error_message, glossary_resume_phase
                     FROM volumes
                     WHERE work_id = %s AND glossary_build_status = %s
                     ORDER BY volume_number
