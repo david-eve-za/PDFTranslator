@@ -232,6 +232,21 @@
   z-index: 1;
 }
 
+.route-animation {
+  animation: routeFadeIn 300ms ease-out;
+}
+
+@keyframes routeFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .app-footer {
   background: linear-gradient(180deg, var(--surface-elevated) 0%, var(--surface) 100%);
   border-top: 3px double var(--border-strong);

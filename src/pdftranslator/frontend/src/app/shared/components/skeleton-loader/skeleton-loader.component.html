@@ -1,4 +1,4 @@
-@if (variant === 'card') {
+@if (variant() === 'card') {
   @for (item of items; track $index) {
     <div class="skeleton-card">
       <div class="skeleton-header"></div>
@@ -14,7 +14,7 @@
   }
 }
 
-@if (variant === 'list') {
+@if (variant() === 'list') {
   @for (item of items; track $index) {
     <div class="skeleton-list-item">
       <div class="skeleton-avatar"></div>
@@ -26,7 +26,7 @@
   }
 }
 
-@if (variant === 'grid') {
+@if (variant() === 'grid') {
   <div class="skeleton-grid">
     @for (item of items; track $index) {
       <div class="skeleton-card">
@@ -40,7 +40,7 @@
   </div>
 }
 
-@if (variant === 'stat') {
+@if (variant() === 'stat') {
   <div class="skeleton-stats">
     @for (item of items; track $index) {
       <div class="skeleton-stat-card">
@@ -54,7 +54,7 @@
   </div>
 }
 
-@if (variant === 'text') {
+@if (variant() === 'text') {
   <div class="skeleton-text-block">
     @for (row of textRows; track $index) {
       <div class="skeleton-line" [style.width.%]="100 - ($index * 10)"></div>

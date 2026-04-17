@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export type SkeletonVariant = 'card' | 'list' | 'grid' | 'text' | 'stat';
@@ -8,18 +8,18 @@ export type SkeletonVariant = 'card' | 'list' | 'grid' | 'text' | 'stat';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './skeleton-loader.component.html',
-  styleUrls: ['./skeleton-loader.component.scss'],
+  styleUrl: './skeleton-loader.component.scss',
 })
 export class SkeletonLoaderComponent {
-  @Input() variant: SkeletonVariant = 'card';
-  @Input() count: number = 1;
-  @Input() rows: number = 3;
+  variant = input<SkeletonVariant>('card');
+  count = input(1);
+  rows = input(3);
 
   get items(): number[] {
-    return Array(this.count).fill(0);
+    return Array(this.count()).fill(0);
   }
 
   get textRows(): number[] {
-    return Array(this.rows).fill(0);
+    return Array(this.rows()).fill(0);
   }
 }

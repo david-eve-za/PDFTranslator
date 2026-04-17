@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 
 import { Subject, takeUntil } from 'rxjs';
-import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
 import { FileService, UploadProgress } from '../../core/services/file.service';
 import { NotificationService } from '../../shared/services/notification.service';
 import {
@@ -22,28 +21,6 @@ type FileStatusType = 'pending' | 'processing' | 'done' | 'error';
   imports: [CommonModule, RouterModule],
   templateUrl: './files.component.html',
   styleUrl: './files.component.scss',
-  animations: [
-    trigger('fileListAnimation', [
-      transition('* => *', [
-        query(':enter', [
-          style({ opacity: 0, transform: 'translateY(20px)' }),
-          stagger('80ms', [
-            animate('250ms ease-out', style({ opacity: 1, transform: 'translateY(0)' })),
-          ]),
-        ], { optional: true }),
-      ]),
-    ]),
-    trigger('uploadAnimation', [
-      transition(':enter', [
-        style({ opacity: 0, transform: 'scale(0.95)' }),
-        animate('200ms ease-out', style({ opacity: 1, transform: 'scale(1)' })),
-      ]),
-      transition(':leave', [
-        style({ opacity: 1, transform: 'scale(1)' }),
-        animate('150ms ease-in', style({ opacity: 0, transform: 'scale(0.95)' })),
-      ]),
-    ]),
-  ],
 })
 export class FilesComponent implements OnInit, OnDestroy {
   private fileService = inject(FileService);

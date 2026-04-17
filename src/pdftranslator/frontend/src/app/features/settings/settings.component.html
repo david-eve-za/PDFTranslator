@@ -461,7 +461,7 @@
               </button>
             </div>
 
-            <div class="rules-list" @listAnimation>
+            <div class="rules-list list-animation">
               @for (rule of rules(); track rule.id) {
                 <div class="rule-item">
                   @if (editingRule()?.id === rule.id) {

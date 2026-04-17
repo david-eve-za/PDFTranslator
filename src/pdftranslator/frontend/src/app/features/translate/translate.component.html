@@ -37,7 +37,7 @@
         <app-language-selector
           [label]="'Source Language'"
           [languages]="languages()"
-          [selectedLanguage]="sourceLanguage()"
+          [(selectedLanguage)]="sourceLanguage"
           (languageChange)="onSourceLanguageChange($event)">
         </app-language-selector>
 
@@ -57,7 +57,7 @@
         <app-language-selector
           [label]="'Target Language'"
           [languages]="languages()"
-          [selectedLanguage]="targetLanguage()"
+          [(selectedLanguage)]="targetLanguage"
           (languageChange)="onTargetLanguageChange($event)">
         </app-language-selector>
       </div>
@@ -78,9 +78,9 @@
 
     <section class="progress-section" *ngIf="progressStatus() !== 'idle'">
       <app-progress-indicator
-        [progress]="progressValue"
-        [status]="progressStatus"
-        [message]="progressMessage">
+        [progress]="progressValue()"
+        [status]="progressStatus()"
+        [message]="progressMessage()">
       </app-progress-indicator>
     </section>
 

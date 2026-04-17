@@ -5,14 +5,13 @@
   </header>
 
   <div class="upload-section">
-    <div 
-      class="upload-zone"
-      [class.drag-over]="isDragOver"
-      (dragover)="onDragOver($event)"
-      (dragleave)="onDragLeave($event)"
-      (dragenter)="onDragEnter($event)"
-      (drop)="onDrop($event)"
-      [@uploadAnimation]
+<div
+    class="upload-zone"
+    [class.drag-over]="isDragOver"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    (dragenter)="onDragEnter($event)"
+    (drop)="onDrop($event)"
     >
       <div class="upload-zone-content">
         <div class="upload-icon">
@@ -39,7 +38,7 @@
   </div>
 
   @if (isUploading && uploadProgress) {
-    <div class="upload-progress" [@uploadAnimation]>
+    <div class="upload-progress upload-animation">
       <div class="progress-bar">
         <div class="progress-fill" [style.width.%]="uploadProgress.percentage"></div>
       </div>
@@ -60,7 +59,7 @@
       </div>
 
       @if (files.length > 0) {
-        <div class="files-grid" [@fileListAnimation]>
+        <div class="files-grid file-list-animation">
           @for (file of files; track file.id) {
             <div class="file-card" [class]="'status-' + file.status">
               <div class="file-card-header">

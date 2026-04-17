@@ -50,7 +50,7 @@ PDFTranslator is a comprehensive document processing tool that combines:
 ✅ **Glossary-Aware Translation**: Consistent terminology using semantic search  
 ✅ **Parallel Processing**: Handle multiple files efficiently  
 ✅ **Progress Tracking**: Real-time task status with retry capabilities  
-✅ **Web UI**: Modern React dashboard for document workflow management  
+✅ **Web UI**: Modern Angular dashboard for document workflow management  
 ✅ **CLI Interface**: Powerful terminal commands for automation  
 
 ### Built With
@@ -63,11 +63,10 @@ PDFTranslator is a comprehensive document processing tool that combines:
 - ![Pydantic](https://img.shields.io/badge/Pydantic-2.0+-red)
 
 **Frontend:**
-- ![React](https://img.shields.io/badge/React-18-blue?logo=react&logoColor=white)
+- ![Angular](https://img.shields.io/badge/Angular-17+-red?logo=angular&logoColor=white)
 - ![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue?logo=typescript&logoColor=white)
-- ![Vite](https://img.shields.io/badge/Vite-5.0+-purple?logo=vite&logoColor=white)
-- ![Zustand](https://img.shields.io/badge/Zustand-5.0+-brown)
-- ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.0+-cyan?logo=tailwindcss&logoColor=white)
+- ![SCSS](https://img.shields.io/badge/SCSS-Styles-pink)
+- ![ng2-charts](https://img.shields.io/badge/ng2--charts-Chart.js-orange)
 
 **AI/ML:**
 - ![NVIDIA NIM](https://img.shields.io/badge/NVIDIA_NIM-API-green?logo=nvidia&logoColor=white)
@@ -221,11 +220,12 @@ Access the web UI at: `http://localhost:5173`
 
 #### Features:
 
-- **Dashboard**: Upload files, view processing status, track task progress
+- **Dashboard**: Upload files, view processing status, track task progress, see translation statistics
+- **Library**: Browse works with volume/chapter progress indicators, apply substitution rules
 - **Split Chapters**: Review and adjust chapter boundaries with interactive marker insertion
-- **Glossary**: Manage terminology with search and filter
-- **Translation**: View original vs translated text side-by-side
-- **Audio**: Generate and download audiobooks
+- **Glossary**: Manage terminology with AI-powered entity extraction, search, filter, and chart visualization
+- **Settings**: Configure LLM providers, database, document processing, and text substitution rules
+- **Translate**: View original vs translated text side-by-side
 
 ### Split Chapters Feature
 
@@ -280,6 +280,41 @@ python PDFAgent.py process novel.epub \
 
 ### Project Structure
 
+```
+PDFTranslator/
+├── src/pdftranslator/     # Main package
+│   ├── backend/           # FastAPI backend
+│   │   ├── api/           # API routes and schemas
+│   │   └── services/      # Business logic
+│   ├── cli/               # CLI commands (Typer)
+│   │   ├── commands/      # Individual commands
+│   │   └── services/      # CLI-specific services
+│   ├── core/              # Shared core
+│   │   ├── config/        # Configuration (Pydantic Settings)
+│   │   └── models/        # Domain models
+│   ├── database/          # Database layer
+│   │   ├── repositories/  # Repository pattern
+│   │   ├── schemas/       # SQL migrations
+│   │   └── services/      # Database services
+│   ├── infrastructure/    # External integrations
+│   │   ├── llm/           # LLM clients (NVIDIA, Gemini, Ollama)
+│   │   └── document/      # Document extractors (Docling)
+│   ├── services/          # Business logic
+│   └── frontend/          # Angular web application
+│       ├── src/
+│       │   ├── app/
+│       │   │   ├── core/     # Services, models, interceptors
+│       │   │   ├── features/ # Feature components
+│       │   │   └── shared/   # Shared components
+│       │   └── styles.scss   # Global styles & design system
+│       └── package.json
+├── tests/                 # Test suite (mirrors src/)
+├── docs/                  # Documentation
+├── PDFAgent.py            # Main entry point / orchestrator
+├── pyproject.toml         # Project configuration
+├── CHANGELOG.md
+├── README.md
+└── AGENTS.md
 ```
 PDFTranslator/
 ├── frontend/              # React web application
@@ -366,12 +401,14 @@ See the [open issues](https://github.com/yourusername/PDFTranslator/issues) for 
 
 ### Current Phase: Web UI Development
 
-- [x] Frontend project setup (React + TypeScript + Vite)
+- [x] Frontend project setup (Angular 17+ with standalone components)
 - [x] Backend API (FastAPI)
 - [x] File upload with drag & drop
-- [x] Dashboard with task tracking
+- [x] Dashboard with task tracking and charts
 - [x] Split Chapters screen
-- [x] Glossary management screen
+- [x] Glossary management with AI entity extraction
+- [x] Settings screen with LLM/database configuration
+- [x] Text substitution rules management
 - [ ] Translated screen (side-by-side view)
 - [ ] Audio generation screen
 - [ ] Inline editing capabilities
@@ -432,6 +469,8 @@ Contributions are what make the open source community such an amazing place to l
 - Use double quotes for strings
 - Type hints required for all functions
 - Follow existing import order: stdlib → third-party → local
+- **Frontend**: Use Angular signals for reactive state, SCSS with design system variables
+- See `AGENTS.md` for detailed style guidelines and frontend architecture
 
 ---
 
@@ -462,8 +501,9 @@ Distributed under the MIT License. See `LICENSE` for more information.
 - **[Docling](https://github.com/DS4SD/docling)** - Advanced document parsing
 - **[Typer](https://typer.tiangolo.com/)** - CLI framework with Rich integration
 - **[FastAPI](https://fastapi.tiangolo.com/)** - Modern Python web framework
-- **[React](https://react.dev/)** - UI component library
-- **[shadcn/ui](https://ui.shadcn.com/)** - Beautiful component collection
+- **[Angular](https://angular.dev/)** - Web application framework
+- **[Angular Material](https://material.angular.io/)** - UI component library
+- **[ng2-charts](https://valor-software.com/ng2-charts/)** - Chart.js wrapper for Angular
 - **[pgvector](https://github.com/pgvector/pgvector)** - Vector similarity search
 
 ### AI Backends

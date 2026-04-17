@@ -33,6 +33,7 @@ class Volume:
     full_text: Optional[str] = None
     translated_text: Optional[str] = None
     embedding: Optional[list] = None
+    glossary_built_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
 
     def __repr__(self) -> str:

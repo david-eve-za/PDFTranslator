@@ -9,8 +9,8 @@
     (dragover)="onDragOver($event)"
     (dragleave)="onDragLeave($event)"
     (drop)="onDrop($event)"
-    (keydown.enter)="fileInputRef.nativeElement.click()"
-    (keydown.space)="$event.preventDefault(); fileInputRef.nativeElement.click()">
+    (keydown.enter)="fileInputRef()!.nativeElement.click()"
+    (keydown.space)="$event.preventDefault(); fileInputRef()!.nativeElement.click()">
 
     @if (!selectedFile()) {
       <div class="drop-zone-content">

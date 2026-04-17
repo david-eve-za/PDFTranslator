@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject, model } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslationConfigService, Language, Provider } from '../../core/services/translation-config.service';
@@ -18,7 +18,7 @@ import { ProgressIndicatorComponent, ProgressStatus } from '../../shared/compone
     ProgressIndicatorComponent,
   ],
   templateUrl: './translate.component.html',
-  styleUrls: ['./translate.component.scss'],
+  styleUrl: './translate.component.scss',
 })
 export class TranslateComponent implements OnInit {
   private configService = inject(TranslationConfigService);
@@ -26,16 +26,16 @@ export class TranslateComponent implements OnInit {
 
   languages = signal<Language[]>([]);
   providers = signal<Provider[]>([]);
-  
+
   selectedFile = signal<File | null>(null);
-  sourceLanguage = signal('en');
-  targetLanguage = signal('es');
+  sourceLanguage = model('en');
+  targetLanguage = model('es');
   selectedProvider = signal<string>('');
 
   progressStatus = signal<ProgressStatus>('idle');
   progressValue = signal(0);
   progressMessage = signal<string | null>(null);
-  
+
   downloadUrl = signal<string | null>(null);
   errorMessage = signal<string | null>(null);
 
@@ -102,20 +102,18 @@ export class TranslateComponent implements OnInit {
       return;
     }
 
-    // Simulate translation with mock data
     this.progressStatus.set('uploading');
     this.progressValue.set(0);
     this.progressMessage.set('Preparing file for upload...');
     this.errorMessage.set(null);
     this.downloadUrl.set(null);
 
-    // Simulate upload progress
     let progress = 0;
     const uploadInterval = setInterval(() => {
       progress += 10;
       this.progressValue.set(progress);
       this.progressMessage.set(`Uploading... ${progress}%`);
-      
+
       if (progress >= 100) {
         clearInterval(uploadInterval);
         this.simulateProcessing();
@@ -133,7 +131,7 @@ export class TranslateComponent implements OnInit {
       progress += 5;
       this.progressValue.set(progress);
       this.progressMessage.set(`Translating... ${progress}%`);
-      
+
       if (progress >= 100) {
         clearInterval(processInterval);
         this.progressStatus.set('completed');

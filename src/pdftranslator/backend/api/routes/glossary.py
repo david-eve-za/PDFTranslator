@@ -1,18 +1,27 @@
 """Glossary management routes."""
 
 from datetime import datetime
+import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 
 from pdftranslator.backend.api.models.schemas import (
     GlossaryCreate,
     GlossaryEntryResponse,
     GlossaryUpdateRequest,
+    GlossaryBuildRequest,
+    GlossaryBuildResponse,
+    GlossaryBuildVolumeResult,
 )
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.glossary_repository import GlossaryRepository
+from pdftranslator.database.repositories.volume_repository import VolumeRepository
+from pdftranslator.database.repositories.chapter_repository import ChapterRepository
+from pdftranslator.database.repositories.book_repository import BookRepository
+from pdftranslator.database.services.glossary_manager import GlossaryManager
 
 router = APIRouter(prefix="/api/glossary", tags=["glossary"])
+logger = logging.getLogger(__name__)
 
 
 def get_glossary_repository() -> GlossaryRepository:
@@ -138,3 +147,121 @@ def _entry_to_response(entry) -> dict:
         else datetime.now().isoformat(),
         "updated_at": entry.updated_at.isoformat() if entry.updated_at else None,
     }
+
+
+@router.post("/build", response_model=GlossaryBuildResponse)
+async def build_glossary(
+    data: GlossaryBuildRequest,
+    background_tasks: BackgroundTasks = None,
+):
+    """
+    Build glossary from work volumes using NER + LLM.
+
+    Processes each volume that hasn't been analyzed yet, extracting entities
+    and suggesting translations. Volumes with glossary_built_at set are skipped.
+    """
+    pool = DatabasePool.get_instance()
+    work_repo = BookRepository(pool)
+    volume_repo = VolumeRepository(pool)
+    chapter_repo = ChapterRepository(pool)
+
+    work = work_repo.get_by_id(data.work_id)
+    if not work:
+        raise HTTPException(status_code=404, detail="Work not found")
+
+    volumes = volume_repo.get_by_work_id(data.work_id)
+    if not volumes:
+        raise HTTPException(status_code=404, detail="No volumes found for this work")
+
+    source_lang = data.source_lang or work.source_lang or "en"
+    target_lang = data.target_lang or work.target_lang or "es"
+
+    manager = GlossaryManager(pool)
+
+    total_extracted = 0
+    total_new = 0
+    total_skipped = 0
+    volumes_processed = 0
+    volumes_skipped = 0
+    all_entities_by_type = {}
+    volume_results = []
+
+    for volume in sorted(volumes, key=lambda v: v.volume_number):
+        if volume.glossary_built_at:
+            logger.info(
+                f"Volume {volume.volume_number} already processed at {volume.glossary_built_at}, skipping"
+            )
+            volumes_skipped += 1
+            volume_results.append(
+                GlossaryBuildVolumeResult(
+                    volume_id=volume.id,
+                    volume_number=volume.volume_number,
+                    extracted=0,
+                    new=0,
+                    skipped=0,
+                    entities_by_type={},
+                )
+            )
+            continue
+
+        chapters = chapter_repo.get_by_volume(volume.id)
+        texts = [ch.original_text for ch in chapters if ch.original_text]
+
+        if not texts:
+            logger.info(f"Volume {volume.volume_number} has no text content, skipping")
+            volumes_skipped += 1
+            volume_results.append(
+                GlossaryBuildVolumeResult(
+                    volume_id=volume.id,
+                    volume_number=volume.volume_number,
+                    extracted=0,
+                    new=0,
+                    skipped=0,
+                    entities_by_type={},
+                )
+            )
+            continue
+
+        consolidated_text = "\n\n".join(texts)
+        logger.info(
+            f"Processing Volume {volume.volume_number} ({len(consolidated_text)} chars)"
+        )
+
+        result = manager.build_from_text(
+            text=consolidated_text,
+            work_id=data.work_id,
+            source_lang=source_lang,
+            target_lang=target_lang,
+            suggest_translations=True,
+        )
+
+        volume_repo.mark_glossary_built(volume.id)
+
+        total_extracted += result.extracted
+        total_new += result.new
+        total_skipped += result.skipped
+        volumes_processed += 1
+
+        for etype, count in result.entities_by_type.items():
+            all_entities_by_type[etype] = all_entities_by_type.get(etype, 0) + count
+
+        volume_results.append(
+            GlossaryBuildVolumeResult(
+                volume_id=volume.id,
+                volume_number=volume.volume_number,
+                extracted=result.extracted,
+                new=result.new,
+                skipped=result.skipped,
+                entities_by_type=result.entities_by_type,
+            )
+        )
+
+    return GlossaryBuildResponse(
+        total_extracted=total_extracted,
+        total_new=total_new,
+        total_skipped=total_skipped,
+        volumes_processed=volumes_processed,
+        volumes_skipped=volumes_skipped,
+        entities_by_type=all_entities_by_type,
+        volume_results=volume_results,
+    )

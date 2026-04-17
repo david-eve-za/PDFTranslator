@@ -1,8 +1,8 @@
-<span 
-  class="status-badge" 
+<span
+  class="status-badge"
   [ngClass]="[getStatusClass(), getSizeClass()]">
-  @if (icon) {
-    <span class="badge-icon">{{ icon }}</span>
+  @if (icon()) {
+    <span class="badge-icon">{{ icon() }}</span>
   }
-  <span class="badge-text">{{ text }}</span>
+  <span class="badge-text">{{ text() }}</span>
 </span>

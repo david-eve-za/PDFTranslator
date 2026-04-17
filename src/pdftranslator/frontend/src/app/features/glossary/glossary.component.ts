@@ -1,11 +1,10 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration } from 'chart.js';
-import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
-import { GlossaryService } from '../../core/services/glossary.service';
+import { GlossaryService, GlossaryBuildResponse } from '../../core/services/glossary.service';
 import { WorkService, WorkListResponse } from '../../core/services/work.service';
 import { TranslationConfigService } from '../../core/services/translation-config.service';
 import { ThemeService } from '../../core/services/theme.service';
@@ -16,27 +15,17 @@ import { GlossaryTerm, EntityType, Work } from '../../core/models';
   standalone: true,
   imports: [CommonModule, FormsModule, BaseChartDirective],
   templateUrl: './glossary.component.html',
-  styleUrls: ['./glossary.component.scss'],
-  animations: [
-    trigger('listAnimation', [
-      transition('* => *', [
-        query(':enter', [
-          style({ opacity: 0, transform: 'translateY(10px)' }),
-          stagger('50ms', [
-            animate('200ms ease-out', style({ opacity: 1, transform: 'translateY(0)' })),
-          ]),
-        ], { optional: true }),
-      ]),
-    ]),
-  ],
+  styleUrl: './glossary.component.scss',
 })
-export class GlossaryComponent implements OnInit {
+export class GlossaryComponent implements OnInit, OnDestroy {
   private glossaryService = inject(GlossaryService);
   private workService = inject(WorkService);
   private configService = inject(TranslationConfigService);
   private themeService = inject(ThemeService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+
+  private messageTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   terms = signal<GlossaryTerm[]>([]);
   works = signal<Work[]>([]);
@@ -47,6 +36,7 @@ export class GlossaryComponent implements OnInit {
   selectedEntityType = signal<EntityType | ''>('');
   isLoading = signal(false);
   isLoadingWorks = signal(true);
+  isBuildingGlossary = signal(false);
   errorMessage = signal<string | null>(null);
   successMessage = signal<string | null>(null);
 
@@ -99,6 +89,39 @@ export class GlossaryComponent implements OnInit {
     this.loadLanguages();
   }
 
+  ngOnDestroy(): void {
+    this.clearMessageTimeout();
+  }
+
+  private clearMessageTimeout(): void {
+    if (this.messageTimeoutId) {
+      clearTimeout(this.messageTimeoutId);
+      this.messageTimeoutId = null;
+    }
+  }
+
+  private showSuccess(message: string, duration: number = 3000): void {
+    this.clearMessageTimeout();
+    this.errorMessage.set(null);
+    this.successMessage.set(message);
+    this.messageTimeoutId = setTimeout(() => {
+      this.successMessage.set(null);
+      this.messageTimeoutId = null;
+    }, duration);
+  }
+
+  private showError(message: string): void {
+    this.clearMessageTimeout();
+    this.successMessage.set(null);
+    this.errorMessage.set(message);
+  }
+
+  private clearMessages(): void {
+    this.clearMessageTimeout();
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+  }
+
   private loadWorks(): void {
     this.isLoadingWorks.set(true);
     this.workService.getAll(1, 100).subscribe({
@@ -110,7 +133,7 @@ export class GlossaryComponent implements OnInit {
       error: (err) => {
         console.error('Failed to load works:', err);
         this.isLoadingWorks.set(false);
-        this.errorMessage.set('Failed to load works');
+        this.showError('Failed to load works');
       }
     });
   }
@@ -148,7 +171,7 @@ export class GlossaryComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (err) => {
-        this.errorMessage.set('Failed to load glossary terms');
+        this.showError('Failed to load glossary terms');
         this.isLoading.set(false);
         console.error('Failed to load terms:', err);
       },
@@ -267,19 +290,18 @@ export class GlossaryComponent implements OnInit {
     this.termTouched = true;
 
     if (!this.newTerm.term.trim()) {
-      this.errorMessage.set('Term is required');
+      this.showError('Term is required');
       return;
     }
 
     const workId = this.selectedWorkId();
     if (!workId) {
-      this.errorMessage.set('Please select a work first');
+      this.showError('Please select a work first');
       return;
     }
 
     this.isLoading.set(true);
-    this.errorMessage.set(null);
-    this.successMessage.set(null);
+    this.clearMessages();
 
     const selectedWork = this.selectedWork();
     const termToAdd = {
@@ -306,12 +328,11 @@ export class GlossaryComponent implements OnInit {
           do_not_translate: false
         };
         this.termTouched = false;
-        this.successMessage.set('Term added successfully!');
         this.isLoading.set(false);
-        setTimeout(() => this.successMessage.set(null), 3000);
+        this.showSuccess('Term added successfully!');
       },
       error: (err) => {
-        this.errorMessage.set('Failed to add term');
+        this.showError('Failed to add term');
         this.isLoading.set(false);
         console.error('Failed to add term:', err);
       },
@@ -331,7 +352,7 @@ export class GlossaryComponent implements OnInit {
     if (!term) return;
 
     this.isLoading.set(true);
-    this.errorMessage.set(null);
+    this.clearMessages();
 
     this.glossaryService.update(term.id, {
       term: term.term,
@@ -346,12 +367,11 @@ export class GlossaryComponent implements OnInit {
           terms.map((t) => (t.id === updatedTerm.id ? updatedTerm : t))
         );
         this.editingTerm.set(null);
-        this.successMessage.set('Term updated successfully!');
         this.isLoading.set(false);
-        setTimeout(() => this.successMessage.set(null), 3000);
+        this.showSuccess('Term updated successfully!');
       },
       error: (err) => {
-        this.errorMessage.set('Failed to update term');
+        this.showError('Failed to update term');
         this.isLoading.set(false);
         console.error('Failed to update term:', err);
       },
@@ -364,18 +384,17 @@ export class GlossaryComponent implements OnInit {
     }
 
     this.isLoading.set(true);
-    this.errorMessage.set(null);
+    this.clearMessages();
 
     this.glossaryService.delete(id).subscribe({
       next: () => {
         this.terms.update((terms) => terms.filter((t) => t.id !== id));
         this.updateChartData(this.terms());
-        this.successMessage.set('Term deleted successfully!');
         this.isLoading.set(false);
-        setTimeout(() => this.successMessage.set(null), 3000);
+        this.showSuccess('Term deleted successfully!');
       },
       error: (err) => {
-        this.errorMessage.set('Failed to delete term');
+        this.showError('Failed to delete term');
         this.isLoading.set(false);
         console.error('Failed to delete term:', err);
       },
@@ -389,6 +408,53 @@ export class GlossaryComponent implements OnInit {
 
   toggleTheme(): void {
     this.themeService.toggle();
+  }
+
+buildGlossary(): void {
+    const workId = this.selectedWorkId();
+    const work = this.selectedWork();
+    if (!workId || !work) {
+      this.showError('Please select a work first');
+      return;
+    }
+
+    if (!confirm(`Build glossary for "${work.title}"?\n\nThis will analyze all volumes and extract entities using AI. Volumes that have already been processed will be skipped.`)) {
+      return;
+    }
+
+    this.isBuildingGlossary.set(true);
+    this.clearMessages();
+
+    this.glossaryService.build({
+      work_id: workId,
+      source_lang: work.source_lang,
+      target_lang: work.target_lang
+    }).subscribe({
+      next: (response: GlossaryBuildResponse) => {
+        this.isBuildingGlossary.set(false);
+
+        if (response.volumes_processed === 0 && response.volumes_skipped > 0) {
+          this.showSuccess(`All ${response.volumes_skipped} volume(s) already processed. No new analysis needed.`, 5000);
+        } else if (response.total_new > 0) {
+          this.showSuccess(
+            `Glossary built successfully! ${response.total_new} new terms extracted from ${response.volumes_processed} volume(s).`,
+            5000
+          );
+        } else {
+          this.showSuccess(
+            `Analysis complete. ${response.total_extracted} entities found, ${response.total_skipped} duplicates skipped.`,
+            5000
+          );
+        }
+
+        this.loadTerms();
+      },
+      error: (err) => {
+        this.isBuildingGlossary.set(false);
+        this.showError('Failed to build glossary. Please try again.');
+        console.error('Failed to build glossary:', err);
+      }
+    });
   }
 
   get currentTheme() {

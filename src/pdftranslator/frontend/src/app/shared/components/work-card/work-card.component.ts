@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Work } from '../../../core/models';
 
@@ -10,14 +10,14 @@ import { Work } from '../../../core/models';
   styleUrl: './work-card.component.scss'
 })
 export class WorkCardComponent {
-  @Input() work!: Work;
-  @Output() translate = new EventEmitter<number>();
-  @Output() glossary = new EventEmitter<number>();
-  @Output() view = new EventEmitter<number>();
+  work = input.required<Work>();
+  translate = output<number>();
+  glossary = output<number>();
+  view = output<number>();
 
   getProgressPercentage(): number {
-    return this.work.total_chapters > 0
-      ? Math.round((this.work.translated_chapters / this.work.total_chapters) * 100)
+    return this.work().total_chapters > 0
+      ? Math.round((this.work().translated_chapters / this.work().total_chapters) * 100)
       : 0;
   }
 
@@ -29,14 +29,14 @@ export class WorkCardComponent {
   }
 
   onTranslate(): void {
-    this.translate.emit(this.work.id);
+    this.translate.emit(this.work().id);
   }
 
   onGlossary(): void {
-    this.glossary.emit(this.work.id);
+    this.glossary.emit(this.work().id);
   }
 
   onView(): void {
-    this.view.emit(this.work.id);
+    this.view.emit(this.work().id);
   }
 }

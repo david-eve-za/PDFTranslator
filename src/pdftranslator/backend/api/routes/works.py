@@ -114,12 +114,20 @@ def _work_to_response(work, include_volumes: bool = False) -> dict:
 
     work_volumes = volume_repo.get_by_work_id(work.id)
     for v in work_volumes:
-        if include_volumes:
-            volumes.append({"id": v.id, "volume_number": v.volume_number})
         chapter_repo = ChapterRepository(DatabasePool.get_instance())
         chapters = chapter_repo.get_by_volume(v.id)
         total_chapters += len(chapters)
-        translated_chapters += sum(1 for c in chapters if c.translated_text)
+        vol_translated = sum(1 for c in chapters if c.translated_text)
+        translated_chapters += vol_translated
+
+        volumes.append(
+            {
+                "id": v.id,
+                "volume_number": v.volume_number,
+                "total_chapters": len(chapters),
+                "translated_chapters": vol_translated,
+            }
+        )
 
     return {
         "id": work.id,
@@ -129,6 +137,7 @@ def _work_to_response(work, include_volumes: bool = False) -> dict:
         "source_lang": work.source_lang or "en",
         "target_lang": work.target_lang or "es",
         "volumes": volumes,
+        "total_volumes": len(volumes),
         "total_chapters": total_chapters,
         "translated_chapters": translated_chapters,
         "created_at": work.created_at.isoformat()

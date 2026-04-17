@@ -34,13 +34,13 @@ PDFTranslator/
 │   ├── services/             # Business logic services
 │   │   ├── translator.py     # Translation service
 │   │   └── glossary_translator.py
-│   └── tools/                # Utility tools
+│   └── tools/ # Utility tools
 │       ├── AudioGenerator.py
 │       ├── Translator.py
 │       └── TextExtractor.py
-├── frontend/                 # React frontend
-│   ├── src/                  # React source
-│   ├── public/               # Static assets
+├── frontend/ # Angular frontend (located at src/pdftranslator/frontend/)
+│   ├── src/ # Angular source
+│   ├── public/ # Static assets
 │   └── package.json
 ├── tests/                    # Test suite (mirrors src/)
 │   ├── backend/
@@ -74,7 +74,7 @@ python PDFAgent.py backend
 python PDFAgent.py backend --host 0.0.0.0 --port 8000
 python PDFAgent.py backend --reload  # Development mode with auto-reload
 
-# Frontend mode - Start React frontend
+# Frontend mode - Start Angular frontend
 python PDFAgent.py frontend
 
 # Development mode - Start both backend + frontend
@@ -88,7 +88,7 @@ python PDFAgent.py dev --host localhost --port 8080
 |---------|-------------|---------|
 | `cli` | Run CLI commands for PDF translation and processing | Pass-through to src.cli.app |
 | `backend` | Start FastAPI backend server | `--host, -h`, `--port, -p`, `--reload, -r` |
-| `frontend` | Start React frontend development server | Auto-installs npm deps if needed |
+| `frontend` | Start Angular frontend development server | Auto-installs npm deps if needed |
 | `dev` | Start both backend + frontend for development | `--host, -h`, `--port, -p` |
 
 ### Short Flags
@@ -417,3 +417,115 @@ class LLMClient(Protocol):
 - All LLM configs use Pydantic with Field validators
 - CLI uses Typer with Rich for beautiful output
 - Use `Settings.reset()` in tests to avoid singleton pollution
+- **Frontend is Angular (not React)** - located at `src/pdftranslator/frontend/`
+- **Database migrations**: SQL schemas are in `src/pdftranslator/database/schemas/`. When adding new columns, you must run the migration manually or the app will fail with "column does not exist" errors.
+
+## Database Migrations
+
+When adding new database columns or tables:
+
+1. Create a new migration file in `src/pdftranslator/database/schemas/` with sequential numbering (e.g., `014_xxx.sql`)
+2. Run the migration against your database:
+   ```bash
+   # Using psql
+   psql -h localhost -U postgres -d pdftranslator -f src/pdftranslator/database/schemas/014_xxx.sql
+   
+   # Or using Python
+   python -c "
+   from pdftranslator.database.connection import DatabasePool
+   pool = DatabasePool.get_instance()
+   with open('src/pdftranslator/database/schemas/014_xxx.sql') as f:
+       with pool.get_sync_pool().connection() as conn:
+           conn.execute(f.read())
+   "
+   ```
+
+## Frontend Architecture
+
+The frontend is built with **Angular 17+** (standalone components) and uses:
+
+- **SCSS** for styling with CSS variables defined in `styles.scss`
+- **Signals** for reactive state management
+- **ng2-charts** for chart visualizations
+
+### Key CSS Variables
+
+The project uses a custom design system. Main variables defined in `styles.scss`:
+
+```scss
+:root {
+  --primary: #8B4513;
+  --accent: #C9A961;
+  --text: var(--ink);
+  --surface: var(--paper);
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-accent: 'Cormorant Garamond', Georgia, serif;
+  --radius-md: 8px;
+  --transition-fast: 0.15s ease;
+  // ... see styles.scss for full list
+}
+```
+
+**IMPORTANT**: When creating new components, use these existing variables, not invented ones like `--color-primary`, `--font-size-base`, etc.
+
+### Message Handling Pattern
+
+All components that display success/error messages should follow this pattern to prevent message spam:
+
+```typescript
+// 1. Implement OnDestroy to clean up timeouts
+export class MyComponent implements OnInit, OnDestroy {
+  private messageTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  // 2. Clear timeout on destroy
+  ngOnDestroy(): void {
+    this.clearMessageTimeout();
+  }
+
+  private clearMessageTimeout(): void {
+    if (this.messageTimeoutId) {
+      clearTimeout(this.messageTimeoutId);
+      this.messageTimeoutId = null;
+    }
+  }
+
+  // 3. Use helper methods for messages
+  private showSuccess(message: string, duration: number = 3000): void {
+    this.clearMessageTimeout();
+    this.errorMessage.set(null);
+    this.successMessage.set(message);
+    this.messageTimeoutId = setTimeout(() => {
+      this.successMessage.set(null);
+      this.messageTimeoutId = null;
+    }, duration);
+  }
+
+  private showError(message: string): void {
+    this.clearMessageTimeout();
+    this.successMessage.set(null);
+    this.errorMessage.set(message);
+  }
+}
+```
+
+This pattern ensures:
+- Only one message is shown at a time
+- Timeouts are properly cancelled when showing new messages
+- No memory leaks when components are destroyed
+- No message accumulation issues
+
+### Frontend Feature Modules
+
+The frontend is organized into feature modules under `src/app/features/`:
+
+- **Dashboard**: Stats, charts, recent activity
+- **Library**: Work browser with volume/chapter progress
+- **Glossary**: Term management with AI-powered entity extraction
+- **Split**: Chapter marker insertion tool
+- **Settings**: Configuration and substitution rules
+- **Translate**: Translation interface
+
+Each feature module contains:
+- `*.component.ts` - Component logic with signals
+- `*.component.html` - Template with Angular control flow (`@if`, `@for`)
+- `*.component.scss` - Styles using design system variables

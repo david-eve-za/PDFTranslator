@@ -1,9 +1,12 @@
+import { VolumeInfo } from './volume.model';
+
 export interface Work {
   id: number;
   title: string;
   title_translated?: string;
   author: string;
-  volumes: Volume[];
+  volumes: VolumeInfo[];
+  total_volumes: number;
   total_chapters: number;
   translated_chapters: number;
   source_lang: string;
@@ -23,4 +26,4 @@ export interface WorkUpdate {
   author?: string;
 }
 
-import { Volume } from './volume.model';
+

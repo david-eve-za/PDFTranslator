@@ -159,8 +159,8 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                 cur.execute(
                     """
                     SELECT id, work_id, term, translation, entity_type, context,
-                           is_proper_noun, frequency, source_lang, target_lang,
-                           created_at, updated_at
+                    is_proper_noun, frequency, source_lang, target_lang,
+                    created_at, updated_at
                     FROM glossary_terms
                     WHERE work_id = %s
                     ORDER BY term
@@ -169,6 +169,20 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                 )
                 rows = cur.fetchall()
                 return [self._row_to_glossary_entry(row) for row in rows]
+
+    def get_by_work_and_volume(
+        self, work_id: int, volume_id: int
+    ) -> List[GlossaryEntry]:
+        """
+        Get glossary entries for a specific work and volume.
+
+        Note: Glossary terms are stored at work level, but we can track
+        which volumes have been processed by checking if there are any
+        terms with context matching chapters from that volume.
+
+        For now, returns all terms for the work (volume_id is informational).
+        """
+        return self.get_by_work(work_id)
 
     def find_by_term(
         self, term: str, work_id: Optional[int] = None, fuzzy: bool = False

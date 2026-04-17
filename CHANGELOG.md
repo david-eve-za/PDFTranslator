@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Glossary Build Feature & UI Improvements (2026-04-17)
+
+#### Backend API
+- **New glossary build endpoint**: `POST /api/glossary/build`
+  - Analyzes work volumes using NER + LLM entity extraction
+  - Skips volumes already processed (tracked by `glossary_built_at` column)
+  - Returns detailed results per volume (extracted, new, skipped counts)
+- **New migration**: `014_volume_glossary_tracking.sql`
+  - Adds `glossary_built_at` timestamp column to `volumes` table
+  - Tracks which volumes have been analyzed for glossary terms
+- **Updated schemas**: `GlossaryBuildRequest`, `GlossaryBuildResponse`, `GlossaryBuildVolumeResult`
+
+#### Frontend Components
+- **GlossaryComponent** enhanced with:
+  - "Build Glossary" button to trigger AI-powered entity extraction
+  - Progress indicator during build process
+  - Success/error messages with build statistics
+- **LibraryComponent** updated:
+  - Work cards now display volume count and chapters per volume
+  - Visual progress bars for each volume within a work
+  - Added `getProgressClass()` method for card styling
+- **Message handling improved** across all components:
+  - Centralized timeout management to prevent message spam
+  - `showSuccess()`, `showError()`, `clearMessages()` helper methods
+  - Proper cleanup on component destruction (`OnDestroy`)
+- **Components updated** with message fixes:
+  - `GlossaryComponent`, `LibraryComponent`, `SettingsComponent`, `SplitComponent`
+
+#### UI/UX Polish
+- **Glossary page styling fixes**:
+  - Corrected CSS variable names to match design system (`--primary`, `--text`, `--surface`, etc.)
+  - Added volume information display in work cards
+- **Library page enhancements**:
+  - Volume-by-volume progress indicators
+  - Per-volume chapter count and translation status
+
+#### Bug Fixes
+- Fixed message spam issue when closing toast notifications
+- Fixed SCSS syntax errors in library.component.scss (duplicate code blocks)
+- Fixed TypeScript error: missing `getProgressClass()` method in LibraryComponent
+- Fixed Python indentation errors in glossary_repository.py and glossary.py routes
+- Fixed duplicate `VolumeInfo` interface definition causing compilation errors
+
+#### Database
+- Migration `014_volume_glossary_tracking.sql` adds:
+  - `glossary_built_at TIMESTAMP` column to `volumes` table
+  - Index for faster lookups of processed volumes
+
 ### Added - Settings UI + Text Substitution Rules (2026-04-13)
 
 #### Backend API

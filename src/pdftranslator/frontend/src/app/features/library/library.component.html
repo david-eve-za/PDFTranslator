@@ -30,7 +30,7 @@
   @if (isLoading()) {
     <div class="loading">Loading works...</div>
   } @else {
-    <div class="works-grid" [@cardAnimation]>
+    <div class="works-grid card-animation">
       @for (work of filteredWorks(); track work.id) {
         <div class="work-card" [class]="getProgressClass(work)">
           <div class="work-card-header">
@@ -40,25 +40,45 @@
             }
           </div>
 
-          <div class="work-card-body">
-            <p class="work-author">by {{ work.author }}</p>
-            <div class="work-stats">
-              <span class="stat">
-                <strong>{{ work.total_chapters }}</strong> chapters
-              </span>
-              <span class="stat">
-                <strong>{{ work.translated_chapters }}</strong> translated
-              </span>
-            </div>
-
-            <div class="progress-bar">
-              <div
-                class="progress-fill"
-                [style.width.%]="getProgressPercentage(work)">
-              </div>
-            </div>
-            <p class="progress-text">{{ getProgressPercentage(work) }}% complete</p>
+        <div class="work-card-body">
+          <p class="work-author">by {{ work.author }}</p>
+          <div class="work-stats">
+            <span class="stat">
+              <strong>{{ work.total_volumes }}</strong> volumes
+            </span>
+            <span class="stat">
+              <strong>{{ work.total_chapters }}</strong> chapters
+            </span>
+            <span class="stat">
+              <strong>{{ work.translated_chapters }}</strong> translated
+            </span>
           </div>
+
+          @if (work.volumes.length > 0) {
+            <div class="volumes-info">
+              @for (volume of work.volumes; track volume.id) {
+                <div class="volume-row">
+                  <span class="volume-label">Vol. {{ volume.volume_number }}</span>
+                  <span class="volume-chapters">{{ volume.translated_chapters }}/{{ volume.total_chapters }}</span>
+                  <div class="volume-progress-bar">
+                    <div
+                      class="volume-progress-fill"
+                      [style.width.%]="volume.total_chapters > 0 ? (volume.translated_chapters / volume.total_chapters) * 100 : 0">
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          <div class="progress-bar">
+            <div
+              class="progress-fill"
+              [style.width.%]="getProgressPercentage(work)">
+            </div>
+          </div>
+          <p class="progress-text">{{ getProgressPercentage(work) }}% complete</p>
+        </div>
 
           <div class="work-card-actions">
             <button 

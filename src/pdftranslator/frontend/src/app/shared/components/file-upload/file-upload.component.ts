@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter, signal, ViewChild, ElementRef } from '@angular/core';
+import { Component, output, signal, viewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -7,11 +7,11 @@ import { FormsModule } from '@angular/forms';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './file-upload.component.html',
-  styleUrls: ['./file-upload.component.scss'],
+  styleUrl: './file-upload.component.scss',
 })
 export class FileUploadComponent {
-  @Output() fileSelected = new EventEmitter<File>();
-  @ViewChild('fileInput') fileInputRef!: ElementRef<HTMLInputElement>;
+  fileSelected = output<File>();
+  fileInputRef = viewChild<ElementRef<HTMLInputElement>>('fileInput');
 
   isDragging = signal(false);
   selectedFile = signal<File | null>(null);
@@ -80,11 +80,11 @@ export class FileUploadComponent {
 
   formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
-    
+
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return Math.round(bytes / Math.pow(k, i)) + ' ' + sizes[i];
   }
 }

@@ -1,12 +1,12 @@
 <div class="empty-state">
-  <div class="empty-icon">{{ icon }}</div>
-  <h3 class="empty-title">{{ title }}</h3>
-  @if (message) {
-    <p class="empty-message">{{ message }}</p>
+  <div class="empty-icon">{{ icon() }}</div>
+  <h3 class="empty-title">{{ title() }}</h3>
+  @if (message()) {
+    <p class="empty-message">{{ message() }}</p>
   }
-  @if (actionLabel) {
+  @if (actionLabel()) {
     <button class="empty-action" (click)="onAction()">
-      {{ actionLabel }}
+      {{ actionLabel() }}
     </button>
   }
 </div>

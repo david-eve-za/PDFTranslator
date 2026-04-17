@@ -3,6 +3,31 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { GlossaryTerm, GlossaryTermCreate, GlossaryTermUpdate, EntityType } from '../models';
 
+export interface GlossaryBuildRequest {
+  work_id: number;
+  source_lang?: string;
+  target_lang?: string;
+}
+
+export interface GlossaryBuildVolumeResult {
+  volume_id: number;
+  volume_number: number;
+  extracted: number;
+  new: number;
+  skipped: number;
+  entities_by_type: Record<string, number>;
+}
+
+export interface GlossaryBuildResponse {
+  total_extracted: number;
+  total_new: number;
+  total_skipped: number;
+  volumes_processed: number;
+  volumes_skipped: number;
+  entities_by_type: Record<string, number>;
+  volume_results: GlossaryBuildVolumeResult[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -31,5 +56,9 @@ export class GlossaryService {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  build(request: GlossaryBuildRequest): Observable<GlossaryBuildResponse> {
+    return this.http.post<GlossaryBuildResponse>(`${this.apiUrl}/build`, request);
   }
 }

@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -9,11 +9,11 @@ import { CommonModule } from '@angular/common';
   styleUrl: './empty-state.component.scss'
 })
 export class EmptyStateComponent {
-  @Input() icon = '📭';
-  @Input() title = 'No data available';
-  @Input() message = '';
-  @Input() actionLabel = '';
-  @Output()action = new EventEmitter<void>();
+  icon = input('📭');
+  title = input('No data available');
+  message = input('');
+  actionLabel = input('');
+  action = output<void>();
 
   onAction(): void {
     this.action.emit();

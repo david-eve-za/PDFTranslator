@@ -190,6 +190,7 @@ class WorkResponse(BaseModel):
     source_lang: str = "en"
     target_lang: str = "es"
     volumes: list[dict] = []
+    total_volumes: int = 0
     total_chapters: int = 0
     translated_chapters: int = 0
     created_at: str
@@ -386,3 +387,34 @@ class ApplyRulesRequest(BaseModel):
     """Request to apply rules to a volume."""
 
     rule_ids: list[int] | None = None
+
+
+class GlossaryBuildRequest(BaseModel):
+    """Request schema for building glossary."""
+
+    work_id: int
+    source_lang: str = "en"
+    target_lang: str = "es"
+
+
+class GlossaryBuildVolumeResult(BaseModel):
+    """Result for a single volume in glossary build."""
+
+    volume_id: int
+    volume_number: int
+    extracted: int = 0
+    new: int = 0
+    skipped: int = 0
+    entities_by_type: dict = {}
+
+
+class GlossaryBuildResponse(BaseModel):
+    """Response schema for glossary build."""
+
+    total_extracted: int = 0
+    total_new: int = 0
+    total_skipped: int = 0
+    volumes_processed: int = 0
+    volumes_skipped: int = 0
+    entities_by_type: dict = {}
+    volume_results: list[GlossaryBuildVolumeResult] = []

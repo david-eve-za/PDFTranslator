@@ -325,7 +325,30 @@ input:checked + .toggle-slider:before {
 }
 
 @media (max-width: 768px) {
-  .settings-container {
+.list-animation {
+  .rule-item {
+    animation: listItemFadeIn 200ms ease-out backwards;
+    
+    @for $i from 1 through 20 {
+      &:nth-child(#{$i}) {
+        animation-delay: #{($i - 1) * 50ms};
+      }
+    }
+  }
+}
+
+@keyframes listItemFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.settings-container {
     padding: 1rem;
   }
 

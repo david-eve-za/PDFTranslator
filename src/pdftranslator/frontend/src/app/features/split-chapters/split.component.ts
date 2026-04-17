@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, inject, viewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -16,13 +16,15 @@ type BlockType = 'Prologue' | 'Chapter' | 'Epilogue';
   templateUrl: './split.component.html',
   styleUrl: './split.component.scss'
 })
-export class SplitComponent implements OnInit {
+export class SplitComponent implements OnInit, OnDestroy {
   private workService = inject(WorkService);
   private volumeService = inject(VolumeService);
   private splitService = inject(SplitService);
   private route = inject(ActivatedRoute);
 
-  @ViewChild('textareaRef') textareaElement!: ElementRef<HTMLTextAreaElement>;
+  private messageTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  textareaElement = viewChild<ElementRef<HTMLTextAreaElement>>('textareaRef');
 
   works = signal<Work[]>([]);
   volumes = signal<Volume[]>([]);
@@ -44,6 +46,39 @@ export class SplitComponent implements OnInit {
     this.loadWorks();
   }
 
+  ngOnDestroy(): void {
+    this.clearMessageTimeout();
+  }
+
+  private clearMessageTimeout(): void {
+    if (this.messageTimeoutId) {
+      clearTimeout(this.messageTimeoutId);
+      this.messageTimeoutId = null;
+    }
+  }
+
+  private showSuccess(message: string, duration: number = 5000): void {
+    this.clearMessageTimeout();
+    this.errorMessage.set(null);
+    this.successMessage.set(message);
+    this.messageTimeoutId = setTimeout(() => {
+      this.successMessage.set(null);
+      this.messageTimeoutId = null;
+    }, duration);
+  }
+
+  private showError(message: string): void {
+    this.clearMessageTimeout();
+    this.successMessage.set(null);
+    this.errorMessage.set(message);
+  }
+
+  private clearMessages(): void {
+    this.clearMessageTimeout();
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+  }
+
   private loadWorks(): void {
     this.isLoading.set(true);
     this.workService.getAll(1, 100).subscribe({
@@ -53,7 +88,7 @@ export class SplitComponent implements OnInit {
         this.checkQueryParam();
       },
       error: (err) => {
-        this.errorMessage.set('Failed to load works');
+        this.showError('Failed to load works');
         this.isLoading.set(false);
         console.error('Failed to load works:', err);
       }
@@ -82,14 +117,14 @@ export class SplitComponent implements OnInit {
     this.selectedVolumeId.set(null);
     this.volumeText.set('');
     this.parsedBlocks.set([]);
-    this.errorMessage.set(null);
+    this.clearMessages();
 
     this.volumeService.getByWorkId(id).subscribe({
       next: (response: VolumeListResponse) => {
         this.volumes.set(response.items.sort((a, b) => a.volume_number - b.volume_number));
       },
       error: (err) => {
-        this.errorMessage.set('Failed to load volumes');
+        this.showError('Failed to load volumes');
         console.error('Failed to load volumes:', err);
       }
     });
@@ -105,14 +140,14 @@ export class SplitComponent implements OnInit {
 
     this.selectedVolumeId.set(id);
     this.parsedBlocks.set([]);
-    this.errorMessage.set(null);
+    this.clearMessages();
 
     this.volumeService.getById(id).subscribe({
       next: (volume) => {
         this.volumeText.set(volume.full_text || '');
       },
       error: (err) => {
-        this.errorMessage.set('Failed to load volume text');
+        this.showError('Failed to load volume text');
         console.error('Failed to load volume:', err);
       }
     });
@@ -129,7 +164,7 @@ export class SplitComponent implements OnInit {
   }
 
   insertStartMarker(): void {
-    const textarea = this.textareaElement?.nativeElement;
+    const textarea = this.textareaElement()?.nativeElement;
     if (!textarea) return;
 
     const position = textarea.selectionStart;
@@ -156,7 +191,7 @@ export class SplitComponent implements OnInit {
   }
 
   insertEndMarker(): void {
-    const textarea = this.textareaElement?.nativeElement;
+    const textarea = this.textareaElement()?.nativeElement;
     if (!textarea) return;
 
     const position = textarea.selectionStart;
@@ -175,19 +210,19 @@ export class SplitComponent implements OnInit {
 
   previewBlocks(): void {
     this.isLoading.set(true);
-    this.errorMessage.set(null);
+    this.clearMessages();
 
     this.splitService.preview(this.volumeText()).subscribe({
       next: (response) => {
         if (response.has_errors) {
-          this.errorMessage.set(response.error_message || 'Parse error');
+          this.showError(response.error_message || 'Parse error');
         } else {
           this.parsedBlocks.set(response.blocks);
         }
         this.isLoading.set(false);
       },
       error: (err) => {
-        this.errorMessage.set('Failed to preview blocks');
+        this.showError('Failed to preview blocks');
         this.isLoading.set(false);
         console.error('Preview error:', err);
       }
@@ -197,26 +232,26 @@ export class SplitComponent implements OnInit {
   processAndSave(): void {
     const volumeId = this.selectedVolumeId();
     if (!volumeId) {
-      this.errorMessage.set('No volume selected');
+      this.showError('No volume selected');
       return;
     }
 
     this.isProcessing.set(true);
-    this.errorMessage.set(null);
+    this.clearMessages();
 
     this.splitService.process(volumeId, this.volumeText()).subscribe({
       next: (response) => {
         if (response.success) {
-          this.successMessage.set(`Successfully created ${response.chapters_created} chapter(s)`);
           this.parsedBlocks.set([]);
-          setTimeout(() => this.successMessage.set(null), 5000);
+          this.isProcessing.set(false);
+          this.showSuccess(`Successfully created ${response.chapters_created} chapter(s)`);
         } else {
-          this.errorMessage.set(response.error_message || 'Failed to process');
+          this.showError(response.error_message || 'Failed to process');
+          this.isProcessing.set(false);
         }
-        this.isProcessing.set(false);
       },
       error: (err) => {
-        this.errorMessage.set('Failed to process split');
+        this.showError('Failed to process split');
         this.isProcessing.set(false);
         console.error('Process error:', err);
       }

@@ -1,19 +1,19 @@
 <div class="work-card" [class]="getStatusClass()">
   <div class="work-card-header">
-    <h3 class="work-title">{{ work.title }}</h3>
-    @if (work.title_translated) {
-      <p class="work-title-translated">{{ work.title_translated }}</p>
+    <h3 class="work-title">{{ work().title }}</h3>
+    @if (work().title_translated) {
+      <p class="work-title-translated">{{ work().title_translated }}</p>
     }
   </div>
 
   <div class="work-card-body">
-    <p class="work-author">by {{ work.author }}</p>
+    <p class="work-author">by {{ work().author }}</p>
     <div class="work-stats">
       <span class="stat">
-        <strong>{{ work.total_chapters }}</strong> chapters
+        <strong>{{ work().total_chapters }}</strong> chapters
       </span>
       <span class="stat">
-        <strong>{{ work.translated_chapters }}</strong> translated
+        <strong>{{ work().translated_chapters }}</strong> translated
       </span>
     </div>
 

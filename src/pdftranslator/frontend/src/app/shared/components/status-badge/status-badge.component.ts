@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export type BadgeStatus = 'success' | 'warning' | 'error' | 'info' | 'neutral';
@@ -12,16 +12,16 @@ export type BadgeSize = 'small' | 'medium' | 'large';
   styleUrl: './status-badge.component.scss'
 })
 export class StatusBadgeComponent {
-  @Input() status: BadgeStatus = 'neutral';
-  @Input() text = '';
-  @Input() size: BadgeSize = 'medium';
-  @Input() icon = '';
+  status = input<BadgeStatus>('neutral');
+  text = input('');
+  size = input<BadgeSize>('medium');
+  icon = input('');
 
   getStatusClass(): string {
-    return `badge-${this.status}`;
+    return `badge-${this.status()}`;
   }
 
   getSizeClass(): string {
-    return `badge-${this.size}`;
+    return `badge-${this.size()}`;
   }
 }

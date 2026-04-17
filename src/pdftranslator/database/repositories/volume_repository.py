@@ -1,4 +1,5 @@
 from typing import Optional, List
+from datetime import datetime
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.base import BaseRepository
 from pdftranslator.database.models import Volume
@@ -16,6 +17,8 @@ class VolumeRepository(BaseRepository[Volume]):
             title=row[3],
             full_text=row[4],
             translated_text=row[5],
+            glossary_built_at=row[6] if len(row) > 6 else None,
+            created_at=row[7] if len(row) > 7 else None,
         )
 
     def get_by_id(self, id: int) -> Optional[Volume]:
@@ -24,7 +27,8 @@ class VolumeRepository(BaseRepository[Volume]):
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT id, work_id, volume_number, title, full_text, translated_text
+                    SELECT id, work_id, volume_number, title, full_text, translated_text,
+                           glossary_built_at, created_at
                     FROM volumes
                     WHERE id = %s
                     """,
@@ -109,7 +113,8 @@ class VolumeRepository(BaseRepository[Volume]):
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT id, work_id, volume_number, title, full_text, translated_text
+                    SELECT id, work_id, volume_number, title, full_text, translated_text,
+                           glossary_built_at, created_at
                     FROM volumes
                     WHERE work_id = %s
                     ORDER BY volume_number
@@ -151,5 +156,20 @@ class VolumeRepository(BaseRepository[Volume]):
                     WHERE id = %s
                     """,
                     (text, volume_id),
+                )
+                return cur.rowcount > 0
+
+    def mark_glossary_built(self, volume_id: int) -> bool:
+        """Mark a volume as having its glossary built."""
+        pool = self._pool.get_sync_pool()
+        with pool.connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE volumes
+                    SET glossary_built_at = NOW()
+                    WHERE id = %s
+                    """,
+                    (volume_id,),
                 )
                 return cur.rowcount > 0

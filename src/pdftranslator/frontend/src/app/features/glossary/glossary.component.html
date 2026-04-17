@@ -27,31 +27,41 @@
     </p>
   </header>
 
-  <div class="work-selector-section">
-    <div class="work-selector">
-      <label class="work-label" for="work-select">📚 Select Work:</label>
-      @if (isLoadingWorks()) {
-        <span class="loading-text">Loading works...</span>
-      } @else {
-        <select
-          id="work-select"
-          class="work-select"
-          [value]="selectedWorkId() || ''"
-          (change)="onWorkChange($any($event.target).value)">
-          <option value="">-- Select a work --</option>
-          @for (work of works(); track work.id) {
-            <option [value]="work.id">{{ work.title }}</option>
-          }
-        </select>
+<div class="work-selector-section">
+  <div class="work-selector">
+    <label class="work-label" for="work-select">📚 Select Work:</label>
+    @if (isLoadingWorks()) {
+    <span class="loading-text">Loading works...</span>
+    } @else {
+    <select
+      id="work-select"
+      class="work-select"
+      [value]="selectedWorkId() || ''"
+      (change)="onWorkChange($any($event.target).value)">
+      <option value="">-- Select a work --</option>
+      @for (work of works(); track work.id) {
+      <option [value]="work.id">{{ work.title }}</option>
       }
-    </div>
-    @if (selectedWork()) {
-      <div class="selected-work-info">
-        <span class="work-badge">📖 {{ selectedWork()!.title }}</span>
-        <span class="lang-info">{{ selectedWork()!.source_lang }} → {{ selectedWork()!.target_lang }}</span>
-      </div>
+    </select>
     }
   </div>
+  @if (selectedWork()) {
+  <div class="selected-work-info">
+    <span class="work-badge">📖 {{ selectedWork()!.title }}</span>
+    <span class="lang-info">{{ selectedWork()!.source_lang }} → {{ selectedWork()!.target_lang }}</span>
+    <button
+      class="build-glossary-btn"
+      (click)="buildGlossary()"
+      [disabled]="isBuildingGlossary()">
+      @if (isBuildingGlossary()) {
+      <span>⏳ Building...</span>
+      } @else {
+      <span>🔮 Build Glossary</span>
+      }
+    </button>
+  </div>
+  }
+</div>
 
   <main class="glossary-content">
     @if (!selectedWorkId()) {
@@ -240,7 +250,7 @@
         }
 
         @if (!isLoading() && filteredTerms.length > 0) {
-          <div class="terms-grid" [@listAnimation]>
+          <div class="terms-grid list-animation">
             @for (term of filteredTerms; track term.id) {
               <div class="term-card">
                 @if (editingTerm()?.id !== term.id) {
