@@ -46,14 +46,15 @@ class NvidiaLLM(BaseLLM):
             max_bucket_size=rpm,
         )
 
-        # Create model with timeout
+        # Create model with timeout in model_kwargs (deprecated parameter)
+        timeout = config.request_timeout or DEFAULT_TIMEOUT
         self._model = ChatNVIDIA(
             model=config.model_name,
             temperature=config.temperature,
             top_p=config.top_p,
             max_tokens=config.max_output_tokens,
             rate_limiter=rate_limiter,
-            request_timeout=config.request_timeout or DEFAULT_TIMEOUT,
+            model_kwargs={"request_timeout": timeout},
             verbose=True,
         )
 
