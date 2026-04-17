@@ -85,6 +85,46 @@ class GlossaryManager:
         logger.info(f"Validated {len(validated_entities)}/{len(entities)} entities")
         return validated_entities
 
+    def _validate_with_llm_tracked(
+        self,
+        entities: List[EntityCandidate],
+        source_lang: str,
+        work_id: int,
+        volume_id: int,
+    ) -> tuple[List[EntityCandidate], int]:
+        """
+        Validate entities with LLM, tracking progress per batch.
+
+        Returns (validated_entities, last_batch_number).
+        """
+        if not entities:
+            return [], 0
+
+        self._ensure_llm()
+        batch_size = self._calculate_validation_batch_size()
+        batches = self._split_into_batches(entities, batch_size)
+
+        validated_entities = []
+        for i, batch in enumerate(batches):
+            logger.info(
+                f"Validating batch {i + 1}/{len(batches)} ({len(batch)} entities)"
+            )
+            batch_validated = self._validate_batch(batch, source_lang)
+            validated_entities.extend(batch_validated)
+
+            # Update progress after each batch
+            batch_entity_texts = [e.text for e in batch_validated]
+            pending = self._progress_repo.get_pending_for_phase(
+                work_id, volume_id, "extracted"
+            )
+            matching_ids = [
+                p.id for p in pending if p.entity_text in batch_entity_texts
+            ]
+            if matching_ids:
+                self._progress_repo.batch_update_phase(matching_ids, "validated", i + 1)
+
+        return validated_entities, len(batches)
+
     def _calculate_validation_batch_size(self) -> int:
         """
         Calculate optimal batch size for validation.
@@ -244,11 +284,14 @@ Respond ONLY as JSON (no explanation):
             )
             logger.info(f"Saved {len(progress_records)} entities to progress table")
 
-            # 4. Validate with LLM
+            # 4. Validate with LLM (NEW: use tracked version)
             validated_entities = new_entities
+            validation_batches = 0
             if suggest_translations:
                 logger.info(f"Validating {len(new_entities)} entities with LLM...")
-                validated_entities = self._validate_with_llm(new_entities, source_lang)
+                validated_entities, validation_batches = self._validate_with_llm_tracked(
+                    new_entities, source_lang, work_id, volume_id
+                )
 
             # Update entities_by_type with validated types
             entities_by_type = {}
@@ -266,11 +309,12 @@ Respond ONLY as JSON (no explanation):
                 validated_entities
             )
 
-            # 6. Suggest translations with batching
+            # 6. Suggest translations with batching (IMPROVED: use tracked version)
             translations: Dict[str, str] = {}
+            translation_batches = 0
             if suggest_translations and entity_embeddings:
-                translations = self._suggest_translations(
-                    validated_entities, source_lang, target_lang
+                translations, translation_batches = self._suggest_translations_tracked(
+                    validated_entities, source_lang, target_lang, work_id, volume_id
                 )
 
             # 7. Save to database
@@ -342,6 +386,55 @@ Respond ONLY as JSON (no explanation):
             all_translations.update(batch_translations)
 
         return all_translations
+
+    def _suggest_translations_tracked(
+        self,
+        entities: List[EntityCandidate],
+        source_lang: str,
+        target_lang: str,
+        work_id: int,
+        volume_id: int,
+    ) -> tuple[Dict[str, str], int]:
+        """
+        Suggest translations with progress tracking.
+
+        Returns (translations, last_batch_number).
+        """
+        if not entities:
+            return {}, 0
+
+        self._ensure_llm()
+
+        # If entities already have translations from validation, use them
+        if all(e.translation for e in entities):
+            logger.info("Using translations from LLM validation")
+            return {e.text: e.translation for e in entities}, 0
+
+        batch_size = self._calculate_translation_batch_size(len(entities))
+        batches = self._split_into_batches(entities, batch_size)
+
+        all_translations = {}
+        for i, batch in enumerate(batches):
+            logger.info(
+                f"Translating batch {i + 1}/{len(batches)} ({len(batch)} entities)"
+            )
+            batch_translations = self._translate_batch(batch, source_lang, target_lang)
+            all_translations.update(batch_translations)
+
+            # Update progress after each batch
+            batch_entity_texts = list(batch_translations.keys())
+            pending = self._progress_repo.get_pending_for_phase(
+                work_id, volume_id, "validated"
+            )
+            matching_ids = [
+                p.id for p in pending if p.entity_text in batch_entity_texts
+            ]
+            if matching_ids:
+                self._progress_repo.batch_update_phase(
+                    matching_ids, "translated", i + 1
+                )
+
+        return all_translations, len(batches)
 
     def _calculate_translation_batch_size(self, total_entities: int) -> int:
         """
