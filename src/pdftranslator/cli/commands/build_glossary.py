@@ -151,6 +151,7 @@ def _process_all_book(
     target_lang: str,
     dry_run: bool,
     all_entities_by_type: dict,
+    resume: bool,
 ) -> tuple:
     """Process all volumes in a work, concatenating chapters per volume."""
     if selected_work.id is None:
@@ -194,9 +195,11 @@ def _process_all_book(
             result = manager.build_from_text(
                 text=consolidated_text,
                 work_id=selected_work.id,
+                volume_id=vol.id,
                 source_lang=source_lang,
                 target_lang=target_lang,
                 suggest_translations=not dry_run,
+                resume=resume,
             )
 
             total_extracted += result.extracted
@@ -219,6 +222,7 @@ def _process_volume_consolidated(
     source_lang: str,
     target_lang: str,
     dry_run: bool,
+    resume: bool,
 ) -> BuildResult:
     """Process a single volume with consolidated chapter text."""
     console.print(
@@ -243,9 +247,11 @@ def _process_volume_consolidated(
         result = manager.build_from_text(
             text=consolidated_text,
             work_id=work_id,
+            volume_id=volume.id,
             source_lang=source_lang,
             target_lang=target_lang,
             suggest_translations=not dry_run,
+            resume=resume,
         )
 
         progress.update(task, description="[green]Extraction complete")
@@ -309,9 +315,21 @@ def build_glossary(
     dry_run: bool = typer.Option(
         False, "--dry-run", "-d", help="Solo mostrar entidades sin guardar"
     ),
+    resume: bool = typer.Option(
+        False,
+        "--resume",
+        "-r",
+        help="Reanudar desde el último punto guardado si se interrumpió",
+    ),
+    force_restart: bool = typer.Option(
+        False,
+        "--force-restart",
+        "-f",
+        help="Ignorar progreso existente y comenzar desde cero",
+    ),
 ):
     """
-    Construye el glosario de traducción extrayendo entidades con NER + RAG.
+    Construye el glosario de traducción con soporte de recuperación.
 
     El comando guía al usuario a través de selección interactiva:
     1. Selección de obra
@@ -319,8 +337,10 @@ def build_glossary(
     3. Selección de volumen/capítulo según corresponda
 
     Ejemplos:
-        pdftranslator build-glossary
-        pdftranslator build-glossary --min-frequency 3 --dry-run
+    pdftranslator build-glossary
+    pdftranslator build-glossary --resume
+    pdftranslator build-glossary --force-restart
+    pdftranslator build-glossary -r -m 3
     """
     setup_logging()
 
@@ -340,11 +360,57 @@ def build_glossary(
 
     pool = DatabasePool.get_instance()
     manager = GlossaryManager(pool)
+    volume_repo_pool = VolumeRepository(pool)
+
+    # Check for failed/in-progress volumes when resume is True
+    if resume:
+        from pdftranslator.database.repositories.glossary_build_progress_repository import (
+            GlossaryBuildProgressRepository,
+        )
+
+        progress_repo = GlossaryBuildProgressRepository(pool)
+        failed_volumes = volume_repo_pool.get_volumes_by_status(
+            selected_work.id, "failed"
+        )
+        in_progress_volumes = volume_repo_pool.get_volumes_by_status(
+            selected_work.id, "in_progress"
+        )
+        if failed_volumes:
+            console.print(
+                f"[yellow]Encontrados {len(failed_volumes)} volúmenes fallidos a reanudar[/yellow]"
+            )
+        if in_progress_volumes:
+            console.print(
+                f"[yellow]Encontrados {len(in_progress_volumes)} volúmenes en progreso[/yellow]"
+            )
 
     total_extracted = 0
     total_new = 0
     total_skipped = 0
     all_entities_by_type = {}
+
+    # Handle force_restart flag
+    selected_volume = None
+    if force_restart:
+        from pdftranslator.database.repositories.glossary_build_progress_repository import (
+            GlossaryBuildProgressRepository,
+        )
+
+        progress_repo = GlossaryBuildProgressRepository(pool)
+        console.print("[yellow]Limpiando progreso existente...[/yellow]")
+        # Get volumes based on scope - need to select volume first for certain scopes
+        volumes_to_clear = []
+        if selected_scope == SCOPE_ALL_BOOK:
+            volumes_to_clear = volume_repo_pool.get_by_work_id(selected_work.id)
+        elif selected_scope in (SCOPE_ALL_VOLUME, SCOPE_SINGLE_CHAPTER):
+            # Need to select volume interactively first
+            selected_volume = _select_volume_interactive(selected_work, volume_repo)
+            if not selected_volume:
+                raise typer.Exit(0)
+            volumes_to_clear = [selected_volume]
+        for vol in volumes_to_clear:
+            progress_repo.cleanup_completed(vol.id)
+            volume_repo_pool.update_build_status(vol.id, "pending")
 
     if selected_scope == SCOPE_ALL_BOOK:
         total_extracted, total_new, total_skipped = _process_all_book(
@@ -356,12 +422,14 @@ def build_glossary(
             target_lang=target_lang,
             dry_run=dry_run,
             all_entities_by_type=all_entities_by_type,
+            resume=resume,
         )
 
     elif selected_scope == SCOPE_ALL_VOLUME:
-        selected_volume = _select_volume_interactive(selected_work, volume_repo)
-        if not selected_volume:
-            raise typer.Exit(0)
+        if selected_volume is None:
+            selected_volume = _select_volume_interactive(selected_work, volume_repo)
+            if not selected_volume:
+                raise typer.Exit(0)
 
         work_id = selected_work.id
         if work_id is None:
@@ -376,6 +444,7 @@ def build_glossary(
             source_lang=source_lang,
             target_lang=target_lang,
             dry_run=dry_run,
+            resume=resume,
         )
 
         total_extracted = result.extracted
@@ -384,9 +453,10 @@ def build_glossary(
         all_entities_by_type = result.entities_by_type
 
     elif selected_scope == SCOPE_SINGLE_CHAPTER:
-        selected_volume = _select_volume_interactive(selected_work, volume_repo)
-        if not selected_volume:
-            raise typer.Exit(0)
+        if selected_volume is None:
+            selected_volume = _select_volume_interactive(selected_work, volume_repo)
+            if not selected_volume:
+                raise typer.Exit(0)
 
         selected_chapter = _select_chapter_interactive(selected_volume, chapter_repo)
         if not selected_chapter:
@@ -404,9 +474,11 @@ def build_glossary(
         result = manager.build_from_text(
             text=selected_chapter.original_text,
             work_id=work_id,
+            volume_id=selected_volume.id,
             source_lang=source_lang,
             target_lang=target_lang,
             suggest_translations=not dry_run,
+            resume=resume,
         )
 
         total_extracted = result.extracted
