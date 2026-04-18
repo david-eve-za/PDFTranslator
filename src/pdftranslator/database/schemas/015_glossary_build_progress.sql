@@ -21,11 +21,11 @@ CREATE TABLE IF NOT EXISTS glossary_build_progress (
 
     -- Timestamps
     created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-
-    -- Constraints
-    UNIQUE(work_id, volume_id, LOWER(entity_text))
+    updated_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Unique constraint for case-insensitive entity_text (using unique index)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_progress_unique_entity ON glossary_build_progress(work_id, volume_id, LOWER(entity_text));
 
 -- Indexes for efficient queries
 CREATE INDEX IF NOT EXISTS idx_progress_work_volume ON glossary_build_progress(work_id, volume_id);
