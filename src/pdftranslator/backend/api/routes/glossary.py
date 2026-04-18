@@ -152,6 +152,12 @@ def _entry_to_response(entry) -> dict:
 @router.post("/build", response_model=GlossaryBuildResponse)
 async def build_glossary(
     data: GlossaryBuildRequest,
+    resume: bool = Query(
+        False, description="Reanudar desde el último punto guardado si se interrumpió"
+    ),
+    force_restart: bool = Query(
+        False, description="Ignorar progreso existente y comenzar desde cero"
+    ),
     background_tasks: BackgroundTasks = None,
 ):
     """
@@ -159,6 +165,8 @@ async def build_glossary(
 
     Processes each volume that hasn't been analyzed yet, extracting entities
     and suggesting translations. Volumes with glossary_built_at set are skipped.
+
+    NEW: Supports resume from last checkpoint with ?resume=true
     """
     pool = DatabasePool.get_instance()
     work_repo = BookRepository(pool)
@@ -204,11 +212,74 @@ async def build_glossary(
             )
             continue
 
-        chapters = chapter_repo.get_by_volume(volume.id)
-        texts = [ch.original_text for ch in chapters if ch.original_text]
+        try:
+            volume_repo.update_build_status(volume.id, "in_progress")
 
-        if not texts:
-            logger.info(f"Volume {volume.volume_number} has no text content, skipping")
+            chapters = chapter_repo.get_by_volume(volume.id)
+            texts = [ch.original_text for ch in chapters if ch.original_text]
+
+            if not texts:
+                logger.info(
+                    f"Volume {volume.volume_number} has no text content, skipping"
+                )
+                volumes_skipped += 1
+                volume_repo.update_build_status(volume.id, "completed")
+                volume_results.append(
+                    GlossaryBuildVolumeResult(
+                        volume_id=volume.id,
+                        volume_number=volume.volume_number,
+                        extracted=0,
+                        new=0,
+                        skipped=0,
+                        entities_by_type={},
+                    )
+                )
+                continue
+
+            consolidated_text = "\n\n".join(texts)
+            logger.info(
+                f"Processing Volume {volume.volume_number} ({len(consolidated_text)} chars)"
+            )
+
+            result = manager.build_from_text(
+                text=consolidated_text,
+                work_id=data.work_id,
+                volume_id=volume.id,
+                source_lang=source_lang,
+                target_lang=target_lang,
+                suggest_translations=True,
+                resume=resume,
+            )
+
+            volume_repo.mark_glossary_built(volume.id)
+            volume_repo.update_build_status(volume.id, "completed")
+
+            total_extracted += result.extracted
+            total_new += result.new
+            total_skipped += result.skipped
+            volumes_processed += 1
+
+            for etype, count in result.entities_by_type.items():
+                all_entities_by_type[etype] = all_entities_by_type.get(etype, 0) + count
+
+            volume_results.append(
+                GlossaryBuildVolumeResult(
+                    volume_id=volume.id,
+                    volume_number=volume.volume_number,
+                    extracted=result.extracted,
+                    new=result.new,
+                    skipped=result.skipped,
+                    entities_by_type=result.entities_by_type,
+                )
+            )
+
+        except Exception as e:
+            volume_repo.update_build_status(
+                volume.id,
+                "failed",
+                error_message=str(e),
+            )
+            logger.error(f"Volume {volume.volume_number} failed: {e}")
             volumes_skipped += 1
             volume_results.append(
                 GlossaryBuildVolumeResult(
@@ -220,41 +291,6 @@ async def build_glossary(
                     entities_by_type={},
                 )
             )
-            continue
-
-        consolidated_text = "\n\n".join(texts)
-        logger.info(
-            f"Processing Volume {volume.volume_number} ({len(consolidated_text)} chars)"
-        )
-
-        result = manager.build_from_text(
-            text=consolidated_text,
-            work_id=data.work_id,
-            source_lang=source_lang,
-            target_lang=target_lang,
-            suggest_translations=True,
-        )
-
-        volume_repo.mark_glossary_built(volume.id)
-
-        total_extracted += result.extracted
-        total_new += result.new
-        total_skipped += result.skipped
-        volumes_processed += 1
-
-        for etype, count in result.entities_by_type.items():
-            all_entities_by_type[etype] = all_entities_by_type.get(etype, 0) + count
-
-        volume_results.append(
-            GlossaryBuildVolumeResult(
-                volume_id=volume.id,
-                volume_number=volume.volume_number,
-                extracted=result.extracted,
-                new=result.new,
-                skipped=result.skipped,
-                entities_by_type=result.entities_by_type,
-            )
-        )
 
     return GlossaryBuildResponse(
         total_extracted=total_extracted,

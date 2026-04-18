@@ -406,6 +406,9 @@ class GlossaryBuildVolumeResult(BaseModel):
     new: int = 0
     skipped: int = 0
     entities_by_type: dict = {}
+    was_resumed: bool = False
+    resume_phase: str | None = None
+    progress_stats: dict[str, int] | None = None
 
 
 class GlossaryBuildResponse(BaseModel):
