@@ -37,20 +37,20 @@ class GlossaryBuildProgressRepository:
                     cur.execute(
                         """
                         INSERT INTO glossary_build_progress
-                        (work_id, volume_id, entity_text, phase,
-                        entity_type, frequency, contexts)
+                            (work_id, volume_id, entity_text, phase,
+                             entity_type, frequency, contexts)
                         VALUES (%s, %s, %s, 'extracted', %s, %s, %s)
                         ON CONFLICT (work_id, volume_id, LOWER(entity_text))
                         DO UPDATE SET
-                        entity_type = EXCLUDED.entity_type,
-                        frequency = EXCLUDED.frequency,
-                        contexts = EXCLUDED.contexts,
-                        phase = 'extracted',
-                        updated_at = NOW()
+                            entity_type = EXCLUDED.entity_type,
+                            frequency = EXCLUDED.frequency,
+                            contexts = EXCLUDED.contexts,
+                            phase = 'extracted',
+                            updated_at = NOW()
                         RETURNING id, work_id, volume_id, entity_text, phase,
-                        entity_type, frequency, contexts, translation,
-                        validation_batch, translation_batch,
-                        created_at, updated_at
+                                  entity_type, frequency, contexts, translation,
+                                  embedding, validation_batch, translation_batch,
+                                  created_at, updated_at
                         """,
                         (
                             work_id,
@@ -81,9 +81,9 @@ class GlossaryBuildProgressRepository:
                 cur.execute(
                     """
                     SELECT id, work_id, volume_id, entity_text, phase,
-                    entity_type, frequency, contexts, translation,
-                    validation_batch, translation_batch,
-                    created_at, updated_at
+                           entity_type, frequency, contexts, translation,
+                           embedding, validation_batch, translation_batch,
+                           created_at, updated_at
                     FROM glossary_build_progress
                     WHERE work_id = %s AND volume_id = %s AND phase = %s
                     ORDER BY id
@@ -117,7 +117,7 @@ class GlossaryBuildProgressRepository:
                     UPDATE glossary_build_progress
                     SET phase = %s{batch_field}, updated_at = NOW()
                     WHERE id = ANY(%s)
-                    """
+                """
 
                 if batch_number is not None and batch_field:
                     cur.execute(sql, (phase, batch_number, ids))
@@ -146,7 +146,7 @@ class GlossaryBuildProgressRepository:
                         """,
                         (embedding, progress_id),
                     )
-                return len(updates)
+        return len(updates)
 
     def batch_update_translations(
         self,
@@ -168,7 +168,7 @@ class GlossaryBuildProgressRepository:
                         """,
                         (translation, progress_id),
                     )
-                return len(updates)
+        return len(updates)
 
     def get_resume_point(
         self,
@@ -185,8 +185,8 @@ class GlossaryBuildProgressRepository:
                 cur.execute(
                     """
                     SELECT phase, COUNT(*) as count,
-                    MAX(validation_batch) as last_val_batch,
-                    MAX(translation_batch) as last_trans_batch
+                           MAX(validation_batch) as last_val_batch,
+                           MAX(translation_batch) as last_trans_batch
                     FROM glossary_build_progress
                     WHERE work_id = %s AND volume_id = %s
                     GROUP BY phase
