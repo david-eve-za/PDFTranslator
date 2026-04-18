@@ -182,9 +182,36 @@ python PDFAgent.py process /path/to/file.pdf --gen-video --voice Paulina
 # Build glossary from existing translations
 python PDFAgent.py build-glossary --work-id 1
 
+# Resume from last checkpoint (if interrupted)
+python PDFAgent.py build-glossary --work-id 1 --resume
+
+# Force restart (clear all progress)
+python PDFAgent.py build-glossary --work-id 1 --force-restart
+
 # Add terms manually
 python PDFAgent.py add-to-database --term "arcane" --translation "arcano"
 ```
+
+### Glossary Build Resume
+
+The glossary build process now supports resuming from interruptions:
+
+```bash
+# Normal build
+python PDFAgent.py build-glossary --work-id 1
+
+# Resume from last checkpoint (if interrupted)
+python PDFAgent.py build-glossary --work-id 1 --resume
+
+# Force restart (clear all progress)
+python PDFAgent.py build-glossary --work-id 1 --force-restart
+```
+
+**How it works:**
+- Progress is saved after each batch (validation, translation)
+- Use `--resume` to continue from the exact failure point
+- No duplicated LLM calls or processing
+- Checkpoints stored in `glossary_build_progress` table
 
 #### Split Chapters
 

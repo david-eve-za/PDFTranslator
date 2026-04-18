@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Glossary Resume System (2025-04-17)
+
+#### Resume Functionality
+- **Glossary build resume system** with `--resume` flag
+- Progress tracking at entity level through pipeline phases
+- `glossary_build_progress` table for checkpoint persistence
+- Volume build status tracking (`pending`, `in_progress`, `completed`, `failed`)
+- `--force-restart` flag to clear progress and start fresh
+- **New migration**: `015_glossary_build_progress.sql`
+- Progress saved after each batch (validation, translation)
+- Resume from exact failure point without duplicated LLM calls
+
+#### Database Changes
+- `glossary_build_progress` table for entity-level progress tracking
+- Volumes table extended with `glossary_build_status`, `glossary_error_message`, `glossary_resume_phase`
+- Indexes for efficient resume point detection
+- Cascade delete on work/volume deletion
+
+#### Repository Layer
+- `GlossaryBuildProgressRepository` for checkpoint operations
+- `VolumeRepository.update_build_status()` for status management
+- Batch-level progress updates for validation and translation phases
+
 ### Added - Glossary Build Feature & UI Improvements (2026-04-17)
 
 #### Backend API

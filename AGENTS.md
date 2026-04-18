@@ -426,19 +426,50 @@ When adding new database columns or tables:
 
 1. Create a new migration file in `src/pdftranslator/database/schemas/` with sequential numbering (e.g., `014_xxx.sql`)
 2. Run the migration against your database:
-   ```bash
-   # Using psql
-   psql -h localhost -U postgres -d pdftranslator -f src/pdftranslator/database/schemas/014_xxx.sql
-   
-   # Or using Python
-   python -c "
-   from pdftranslator.database.connection import DatabasePool
-   pool = DatabasePool.get_instance()
-   with open('src/pdftranslator/database/schemas/014_xxx.sql') as f:
-       with pool.get_sync_pool().connection() as conn:
-           conn.execute(f.read())
-   "
-   ```
+```bash
+# Using psql
+psql -h localhost -U postgres -d pdftranslator -f src/pdftranslator/database/schemas/014_xxx.sql
+
+# Or using Python
+python -c "
+from pdftranslator.database.connection import DatabasePool
+pool = DatabasePool.get_instance()
+with open('src/pdftranslator/database/schemas/014_xxx.sql') as f:
+    with pool.get_sync_pool().connection() as conn:
+        conn.execute(f.read())
+"
+```
+
+## Glossary Resume System
+
+When building glossaries, the system tracks progress through phases:
+
+- `extracted`: After NLTK entity extraction
+- `validated`: After LLM validation (per batch)
+- `translated`: After LLM translation (per batch)
+- `saved`: After saving to glossary_terms
+
+Use `--resume` to continue from interruptions. Use `--force-restart` to start fresh.
+
+### Related Tables
+
+- `glossary_build_progress`: Tracks entity progress through pipeline phases
+- `volumes.glossary_build_status`: Overall volume status (`pending`, `in_progress`, `completed`, `failed`)
+- `volumes.glossary_error_message`: Error details if build failed
+- `volumes.glossary_resume_phase`: Phase to resume from
+
+### CLI Usage
+
+```bash
+# Normal build
+python PDFAgent.py build-glossary --work-id 1
+
+# Resume from last checkpoint
+python PDFAgent.py build-glossary --work-id 1 --resume
+
+# Force restart (clears progress)
+python PDFAgent.py build-glossary --work-id 1 --force-restart
+```
 
 ## Frontend Architecture
 
