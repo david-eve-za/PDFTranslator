@@ -128,6 +128,85 @@ def _generate_chapter_audio(chapter_id: int, voice: str) -> None:
 
 def _generate_volume_audio(volume_id: int, voice: str) -> None:
     """Generate audio for all chapters in a volume."""
+    pool = DatabasePool.get_instance()
+    chapter_repo = ChapterRepository(pool)
+    volume_repo = VolumeRepository(pool)
+    work_repo = BookRepository(pool)
+
+    volume = volume_repo.get_by_id(volume_id)
+    if volume is None:
+        console.print(f"[red]Error: Volume with ID {volume_id} not found[/red]")
+        raise typer.Exit(1)
+
+    work = work_repo.get_by_id(volume.work_id)
+    if work is None:
+        console.print(f"[red]Error: Work with ID {volume.work_id} not found[/red]")
+        raise typer.Exit(1)
+
+    chapters = chapter_repo.get_by_volume(volume_id)
+    if not chapters:
+        console.print(f"[yellow]No chapters found in volume {volume_id}[/yellow]")
+        return
+
+    console.print(f"[cyan]Generating audio for {len(chapters)} chapters...[/cyan]")
+
+    success_count = 0
+    fail_count = 0
+    skip_count = 0
+
+    for chapter in chapters:
+        if not chapter.translated_text or not chapter.translated_text.strip():
+            console.print(
+                f"[yellow]Skipping Chapter {chapter.chapter_number}: no translated text[/yellow]"
+            )
+            skip_count += 1
+            continue
+
+        settings = Settings.get()
+        work_title = work.title.replace(" ", "_")
+        output_dir = (
+            settings.paths.audiobooks_dir / work_title / f"Vol{volume.volume_number}"
+        )
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        output_filename = (
+            output_dir
+            / f"{work_title}_Vol{volume.volume_number}_Ch{chapter.chapter_number:03d}.m4a"
+        )
+
+        if output_filename.exists():
+            console.print(
+                f"[dim]Skipping Chapter {chapter.chapter_number}: file exists[/dim]"
+            )
+            skip_count += 1
+            continue
+
+        try:
+            audio_generator = AudioGenerator()
+            success = audio_generator.process_texts(
+                text_content=chapter.translated_text,
+                output_filename=output_filename,
+            )
+
+            if success:
+                console.print(
+                    f"[green]✓ Chapter {chapter.chapter_number}: {output_filename.name}[/green]"
+                )
+                success_count += 1
+            else:
+                console.print(
+                    f"[red]✗ Chapter {chapter.chapter_number}: generation failed[/red]"
+                )
+                fail_count += 1
+        except Exception as e:
+            logger.error(f"Error generating audio for chapter {chapter.id}: {e}")
+            console.print(f"[red]✗ Chapter {chapter.chapter_number}: {e}[/red]")
+            fail_count += 1
+
+    console.print()
     console.print(
-        f"[yellow]Volume audio generation not yet implemented: volume_id={volume_id}[/yellow]"
+        f"[cyan]Summary: {success_count} succeeded, {skip_count} skipped, {fail_count} failed[/cyan]"
     )
+
+    if fail_count > 0:
+        raise typer.Exit(1)
