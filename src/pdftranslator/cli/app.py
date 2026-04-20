@@ -71,4 +71,5 @@ from pdftranslator.cli.commands import (
     reset_database,
     build_glossary,
     translate_chapter,
+    generate_audio,
 )

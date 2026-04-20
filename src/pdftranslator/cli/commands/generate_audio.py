@@ -8,7 +8,7 @@ import typer
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn
 
-from pdftranslator.cli.app import console
+from pdftranslator.cli.app import app, console
 from pdftranslator.core.config.settings import Settings
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.chapter_repository import ChapterRepository
@@ -19,6 +19,7 @@ from pdftranslator.tools.AudioGenerator import AudioGenerator
 logger = logging.getLogger(__name__)
 
 
+@app.command("generate-audio")
 def generate_audio(
     chapter_id: Optional[int] = typer.Option(
         None, "--chapter-id", "-c", help="Chapter ID to generate audio for"
