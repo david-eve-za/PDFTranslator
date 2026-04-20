@@ -59,9 +59,71 @@ def generate_audio(
 
 def _generate_chapter_audio(chapter_id: int, voice: str) -> None:
     """Generate audio for a single chapter."""
-    console.print(
-        f"[yellow]Chapter audio generation not yet implemented: chapter_id={chapter_id}[/yellow]"
+    pool = DatabasePool.get_instance()
+    chapter_repo = ChapterRepository(pool)
+    volume_repo = VolumeRepository(pool)
+    work_repo = BookRepository(pool)
+
+    chapter = chapter_repo.get_by_id(chapter_id)
+    if chapter is None:
+        console.print(f"[red]Error: Chapter with ID {chapter_id} not found[/red]")
+        raise typer.Exit(1)
+
+    if not chapter.translated_text or not chapter.translated_text.strip():
+        console.print(f"[red]Error: Chapter {chapter_id} has no translated text[/red]")
+        raise typer.Exit(1)
+
+    volume = volume_repo.get_by_id(chapter.volume_id)
+    if volume is None:
+        console.print(f"[red]Error: Volume with ID {chapter.volume_id} not found[/red]")
+        raise typer.Exit(1)
+
+    work = work_repo.get_by_id(volume.work_id)
+    if work is None:
+        console.print(f"[red]Error: Work with ID {volume.work_id} not found[/red]")
+        raise typer.Exit(1)
+
+    settings = Settings.get()
+    work_title = work.title.replace(" ", "_")
+    output_dir = (
+        settings.paths.audiobooks_dir / work_title / f"Vol{volume.volume_number}"
     )
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    output_filename = (
+        output_dir
+        / f"{work_title}_Vol{volume.volume_number}_Ch{chapter.chapter_number:03d}.m4a"
+    )
+
+    if output_filename.exists():
+        console.print(f"[yellow]Audio file already exists: {output_filename}[/yellow]")
+        console.print("[yellow]Skipping.[/yellow]")
+        return
+
+    console.print(
+        f"[cyan]Generating audio for Chapter {chapter.chapter_number}...[/cyan]"
+    )
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Generating audio...", total=None)
+
+        audio_generator = AudioGenerator(progress=progress)
+        success = audio_generator.process_texts(
+            text_content=chapter.translated_text,
+            output_filename=output_filename,
+        )
+
+        if success:
+            progress.update(
+                task, description=f"[green]✓ Audio saved: {output_filename}[/green]"
+            )
+        else:
+            progress.update(task, description=f"[red]✗ Failed to generate audio[/red]")
+            raise typer.Exit(1)
 
 
 def _generate_volume_audio(volume_id: int, voice: str) -> None:
