@@ -93,11 +93,12 @@ def _display_work_structure(
         pending = 0
         for ch in chapters:
             if ch.translated_text:
+                ch_num = ch.chapter_number if ch.chapter_number is not None else 0
                 output_path = (
                     settings.paths.audiobooks_dir
                     / work_title
                     / f"Vol{volume.volume_number}"
-                    / f"{work_title}_Vol{volume.volume_number}_Ch{ch.chapter_number:03d}.m4a"
+                    / f"{work_title}_Vol{volume.volume_number}_Ch{ch_num:03d}.m4a"
                 )
                 if output_path.exists():
                     generated += 1
@@ -123,11 +124,12 @@ def _display_work_structure(
 
         for ch in sorted(chapters, key=_get_chapter_sort_key)[:5]:
             ch_display = _format_chapter_display(ch)
+            ch_num = ch.chapter_number if ch.chapter_number is not None else 0
             output_path = (
                 settings.paths.audiobooks_dir
                 / work_title
                 / f"Vol{volume.volume_number}"
-                / f"{work_title}_Vol{volume.volume_number}_Ch{ch.chapter_number:03d}.m4a"
+                / f"{work_title}_Vol{volume.volume_number}_Ch{ch_num:03d}.m4a"
             )
 
             if not ch.translated_text:
@@ -250,11 +252,12 @@ def _select_chapter_interactive(
         if not ch.translated_text:
             status = " [dim](○ no translation)[/dim]"
         else:
+            ch_num = ch.chapter_number if ch.chapter_number is not None else 0
             output_path = (
                 settings.paths.audiobooks_dir
                 / work_title
                 / f"Vol{volume.volume_number}"
-                / f"{work_title}_Vol{volume.volume_number}_Ch{ch.chapter_number:03d}.m4a"
+                / f"{work_title}_Vol{volume.volume_number}_Ch{ch_num:03d}.m4a"
             )
             if output_path.exists():
                 status = " [green](✓ audio)[/green]"
@@ -293,9 +296,9 @@ def _generate_chapter_audio(
     )
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    ch_num = chapter.chapter_number if chapter.chapter_number is not None else 0
     output_filename = (
-        output_dir
-        / f"{work_title}_Vol{volume.volume_number}_Ch{chapter.chapter_number:03d}.m4a"
+        output_dir / f"{work_title}_Vol{volume.volume_number}_Ch{ch_num:03d}.m4a"
     )
 
     if output_filename.exists():
@@ -304,9 +307,8 @@ def _generate_chapter_audio(
         )
         return True
 
-    console.print(
-        f"[cyan]Generating audio for Chapter {chapter.chapter_number}...[/cyan]"
-    )
+    ch_display = _format_chapter_display(chapter)
+    console.print(f"[cyan]Generating audio for {ch_display}...[/cyan]")
 
     with Progress(
         SpinnerColumn(),
