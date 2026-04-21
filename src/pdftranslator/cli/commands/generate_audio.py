@@ -310,28 +310,18 @@ def _generate_chapter_audio(
     ch_display = _format_chapter_display(chapter)
     console.print(f"[cyan]Generating audio for {ch_display}...[/cyan]")
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console,
-    ) as progress:
-        task = progress.add_task("Generating audio...", total=None)
+    audio_generator = AudioGenerator()
+    success = audio_generator.process_texts(
+        text_content=chapter.translated_text,
+        output_filename=output_filename,
+    )
 
-        audio_generator = AudioGenerator(progress=progress)
-        success = audio_generator.process_texts(
-            text_content=chapter.translated_text,
-            output_filename=output_filename,
-        )
-
-        if success:
-            progress.update(
-                task,
-                description=f"[green]✓ Audio saved: {output_filename.name}[/green]",
-            )
-            return True
-        else:
-            progress.update(task, description=f"[red]✗ Failed to generate audio[/red]")
-            return False
+    if success:
+        console.print(f"[green]✓ Audio saved: {output_filename.name}[/green]")
+        return True
+    else:
+        console.print(f"[red]✗ Failed to generate audio[/red]")
+        return False
 
 
 def _generate_volume_audio(
