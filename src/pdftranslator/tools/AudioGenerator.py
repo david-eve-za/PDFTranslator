@@ -95,8 +95,13 @@ class AudioGenerator:
         - text_chunk (str): The text to convert.
         - output_audio_file (Path): Path to save the generated audio chunk.
         """
-        # Temporary file to pass text to 'say' command, created within the managed temp dir.
-        # This temp file for text is specific to this call and will be cleaned up with the directory.
+        if self.output_dir is None or not self.output_dir.exists():
+            raise RuntimeError(
+                f"Output directory not available: {self.output_dir}. "
+                "Ensure process_texts() is called to set up the temp directory."
+            )
+
+        self.output_dir.mkdir(parents=True, exist_ok=True)
         temp_text_file = self.output_dir / f"{output_audio_file.stem}_text.txt"
         try:
             with open(temp_text_file, "w", encoding="utf-8") as f:
