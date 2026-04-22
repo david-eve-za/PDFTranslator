@@ -95,8 +95,13 @@ class AudioGenerator:
         - text_chunk (str): The text to convert.
         - output_audio_file (Path): Path to save the generated audio chunk.
         """
-        # Temporary file to pass text to 'say' command, created within the managed temp dir.
-        # This temp file for text is specific to this call and will be cleaned up with the directory.
+        if self.output_dir is None or not self.output_dir.exists():
+            raise RuntimeError(
+                f"Output directory not available: {self.output_dir}. "
+                "Ensure process_texts() is called to set up the temp directory."
+            )
+
+        self.output_dir.mkdir(parents=True, exist_ok=True)
         temp_text_file = self.output_dir / f"{output_audio_file.stem}_text.txt"
         try:
             with open(temp_text_file, "w", encoding="utf-8") as f:
@@ -266,23 +271,26 @@ class AudioGenerator:
                     f"Using temporary directory for audio chunks: {self.output_dir}"
                 )
 
-            if self._progress:
-                iterator = self._progress(
-                    enumerate(chunks), desc="Generating Audio Chunks", unit="chunk"
-                )
-            else:
-                iterator = tqdm(
-                    enumerate(chunks, start=1),
-                    total=len(chunks),
-                    desc="Generating Audio Chunks",
-                    unit="chunk",
-                )
+                if self._progress:
+                    iterator = self._progress(
+                        enumerate(chunks), desc="Generating Audio Chunks", unit="chunk"
+                    )
+                else:
+                    iterator = tqdm(
+                        enumerate(chunks, start=1),
+                        total=len(chunks),
+                        desc="Generating Audio Chunks",
+                        unit="chunk",
+                    )
 
                 for i, chunk_text in iterator:
                     normalized_chunk = self._normalize_text_chunk(chunk_text)
                     chunk_audio_file = self.output_dir / f"chunk_{i:04d}.m4a"
-                    self._text_to_audio(normalized_chunk, chunk_audio_file)
-                    audio_files_generated.append(chunk_audio_file)
+                    try:
+                        self._text_to_audio(normalized_chunk, chunk_audio_file)
+                        audio_files_generated.append(chunk_audio_file)
+                    except Exception as e:
+                        logger.error(f"Failed to generate audio for chunk {i}: {e}")
 
                 if not audio_files_generated:
                     logger.warning(
@@ -297,11 +305,8 @@ class AudioGenerator:
                     audio_files=audio_files_generated, target_file=output_filename
                 )
 
-            logger.info(f"Successfully created final audio: {output_filename}")
-            logger.info(
-                f"Temporary audio processing directory ({self.output_dir}) and its contents have been removed."
-            )
-            return True
+                logger.info(f"Successfully created final audio: {output_filename}")
+                return True
 
         except subprocess.CalledProcessError:
             # Error message already logged by the helper methods (_text_to_audio or _merge_audio_files).

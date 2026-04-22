@@ -1,7 +1,7 @@
 # tests/cli/test_glossary_post_processor.py
 import pytest
-from cli.services.glossary_post_processor import GlossaryPostProcessor
-from database.models import GlossaryEntry
+from pdftranslator.cli.services.glossary_post_processor import GlossaryPostProcessor
+from pdftranslator.database.models import GlossaryEntry
 
 
 def create_entry(

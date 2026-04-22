@@ -3,25 +3,46 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: '/translate',
-    pathMatch: 'full',
+    redirectTo: '/dashboard',
+    pathMatch: 'full'
+  },
+  {
+    path: 'dashboard',
+    loadComponent: () =>
+      import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
+  },
+  {
+    path: 'library',
+    loadComponent: () =>
+      import('./features/library/library.component').then(m => m.LibraryComponent)
+  },
+  {
+    path: 'files',
+    loadComponent: () =>
+      import('./features/files/files.component').then(m => m.FilesComponent)
   },
   {
     path: 'translate',
     loadComponent: () =>
-      import('./features/translate/translate.component').then(
-        (m) => m.TranslateComponent
-      ),
+      import('./features/translate/translate.component').then(m => m.TranslateComponent)
   },
   {
     path: 'glossary',
     loadComponent: () =>
-      import('./features/glossary/glossary.component').then(
-        (m) => m.GlossaryComponent
-      ),
+      import('./features/glossary/glossary.component').then(m => m.GlossaryComponent)
+  },
+  {
+    path: 'split',
+    loadComponent: () =>
+      import('./features/split-chapters/split.component').then(m => m.SplitComponent)
+  },
+  {
+    path: 'settings',
+    loadComponent: () =>
+      import('./features/settings/settings.component').then(m => m.SettingsComponent)
   },
   {
     path: '**',
-    redirectTo: '/translate',
-  },
+    redirectTo: '/dashboard'
+  }
 ];

@@ -33,7 +33,11 @@ class Volume:
     full_text: Optional[str] = None
     translated_text: Optional[str] = None
     embedding: Optional[list] = None
+    glossary_built_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
+    glossary_build_status: str = "pending"
+    glossary_error_message: Optional[str] = None
+    glossary_resume_phase: Optional[str] = None
 
     def __repr__(self) -> str:
         return f"Volume(id={self.id}, number={self.volume_number})"
@@ -68,10 +72,15 @@ class GlossaryEntry:
     work_id: Optional[int] = None
     term: str = ""
     translation: Optional[str] = None
-    notes: Optional[str] = None
+    entity_type: str = "other"
+    context: Optional[str] = None
     is_proper_noun: bool = False
+    frequency: int = 0
+    source_lang: str = "en"
+    target_lang: str = "es"
     embedding: Optional[list] = None
     created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     def __repr__(self) -> str:
         return f"GlossaryEntry(id={self.id}, '{self.term}' -> '{self.translation}')"

@@ -7,6 +7,304 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Glossary Resume System (2025-04-17)
+
+#### Resume Functionality
+- **Glossary build resume system** with `--resume` flag
+- Progress tracking at entity level through pipeline phases
+- `glossary_build_progress` table for checkpoint persistence
+- Volume build status tracking (`pending`, `in_progress`, `completed`, `failed`)
+- `--force-restart` flag to clear progress and start fresh
+- **New migration**: `015_glossary_build_progress.sql`
+- Progress saved after each batch (validation, translation)
+- Resume from exact failure point without duplicated LLM calls
+
+#### Database Changes
+- `glossary_build_progress` table for entity-level progress tracking
+- Volumes table extended with `glossary_build_status`, `glossary_error_message`, `glossary_resume_phase`
+- Indexes for efficient resume point detection
+- Cascade delete on work/volume deletion
+
+#### Repository Layer
+- `GlossaryBuildProgressRepository` for checkpoint operations
+- `VolumeRepository.update_build_status()` for status management
+- Batch-level progress updates for validation and translation phases
+
+### Added - Glossary Build Feature & UI Improvements (2026-04-17)
+
+#### Backend API
+- **New glossary build endpoint**: `POST /api/glossary/build`
+  - Analyzes work volumes using NER + LLM entity extraction
+  - Skips volumes already processed (tracked by `glossary_built_at` column)
+  - Returns detailed results per volume (extracted, new, skipped counts)
+- **New migration**: `014_volume_glossary_tracking.sql`
+  - Adds `glossary_built_at` timestamp column to `volumes` table
+  - Tracks which volumes have been analyzed for glossary terms
+- **Updated schemas**: `GlossaryBuildRequest`, `GlossaryBuildResponse`, `GlossaryBuildVolumeResult`
+
+#### Frontend Components
+- **GlossaryComponent** enhanced with:
+  - "Build Glossary" button to trigger AI-powered entity extraction
+  - Progress indicator during build process
+  - Success/error messages with build statistics
+- **LibraryComponent** updated:
+  - Work cards now display volume count and chapters per volume
+  - Visual progress bars for each volume within a work
+  - Added `getProgressClass()` method for card styling
+- **Message handling improved** across all components:
+  - Centralized timeout management to prevent message spam
+  - `showSuccess()`, `showError()`, `clearMessages()` helper methods
+  - Proper cleanup on component destruction (`OnDestroy`)
+- **Components updated** with message fixes:
+  - `GlossaryComponent`, `LibraryComponent`, `SettingsComponent`, `SplitComponent`
+
+#### UI/UX Polish
+- **Glossary page styling fixes**:
+  - Corrected CSS variable names to match design system (`--primary`, `--text`, `--surface`, etc.)
+  - Added volume information display in work cards
+- **Library page enhancements**:
+  - Volume-by-volume progress indicators
+  - Per-volume chapter count and translation status
+
+#### Bug Fixes
+- Fixed message spam issue when closing toast notifications
+- Fixed SCSS syntax errors in library.component.scss (duplicate code blocks)
+- Fixed TypeScript error: missing `getProgressClass()` method in LibraryComponent
+- Fixed Python indentation errors in glossary_repository.py and glossary.py routes
+- Fixed duplicate `VolumeInfo` interface definition causing compilation errors
+
+#### Database
+- Migration `014_volume_glossary_tracking.sql` adds:
+  - `glossary_built_at TIMESTAMP` column to `volumes` table
+  - Index for faster lookups of processed volumes
+
+### Added - Settings UI + Text Substitution Rules (2026-04-13)
+
+#### Backend API
+- **New settings endpoints**:
+  - `GET /api/settings` - Get current configuration (secrets masked)
+  - `PUT /api/settings` - Update settings and write to .env file
+  - `POST /api/settings/restart` - Request backend restart signal
+- **New substitution rules endpoints**:
+  - `GET /api/substitution-rules` - List all rules (optional `active_only` filter)
+  - `GET /api/substitution-rules/{id}` - Get rule by ID
+  - `POST /api/substitution-rules` - Create new rule
+  - `PUT /api/substitution-rules/{id}` - Update rule
+  - `DELETE /api/substitution-rules/{id}` - Delete rule
+  - `POST /api/substitution-rules/apply/{volume_id}` - Apply rules to volume text
+
+#### Database
+- New migration: `013_substitution_rules.sql`
+- Table: `text_substitution_rules` with columns:
+  - `id`, `name`, `pattern`, `replacement`, `description`
+  - `is_active`, `apply_on_extract`, `created_at`, `updated_at`
+- Indexes on `is_active` and `apply_on_extract`
+
+#### Services
+- **TextSubstitutionService** for applying regex rules to text
+- Supports applying specific rules or all active rules
+- Can apply to volume's full_text with change tracking
+
+#### Frontend Components
+- **SettingsComponent** with tabbed interface:
+  - LLM tab: Provider selection, NVIDIA/Gemini/Ollama configs, API keys
+  - Database tab: Connection settings (host, port, name, user, password, pool size)
+  - Document tab: OCR settings, accelerator device, table structure, page images
+  - NLP tab: Sentence model configuration
+  - Paths tab: Translation prompt path, output directory
+  - Rules tab: CRUD for substitution rules with toggle switches
+- **SettingsService** and **SubstitutionRuleService** for API communication
+- Navigation link added to app sidebar
+
+#### Features
+- View and edit all backend configuration from UI
+- Secrets (API keys, passwords) displayed as `***`
+- Settings saved to `.env` file with proper key flattening
+- Restart reminder after settings update
+- Create, edit, delete, toggle substitution rules
+- Inline editing for rules with real-time updates
+
+### Added - Split Chapters Web UI (2026-04-13)
+
+#### Backend API
+- **New split endpoints**:
+  - `POST /api/split/preview` - Preview parsed blocks from text
+  - `POST /api/split/process` - Process text and create chapters in database
+- Reuses existing `parse_blocks()` logic from CLI `split_text.py`
+- Handles block types: Prologue, Chapter, Epilogue
+
+#### Frontend Components
+- **SplitComponent** with interactive block marker insertion:
+  - Work and volume selection dropdowns
+  - Text editor with cursor position tracking
+  - Modal for selecting block type (Prologue, Chapter, Epilogue)
+  - Optional title input for chapters
+  - Preview of detected blocks before saving
+- **SplitService** for API communication
+- Uses existing WorkService and VolumeService
+
+#### Features
+- Insert start marker at cursor position with type selection
+- Insert end marker at cursor position
+- Preview parsed blocks with line numbers
+- Confirm and save to create chapters in database
+- Error handling with user-friendly messages
+
+### Added - Glossary Backend Schema Update (2026-04-13)
+
+#### Database Schema
+- New migration: `011_glossary_frontend_compat.sql`
+- Added columns: `entity_type`, `context`, `frequency`, `source_lang`, `target_lang`, `updated_at`
+- Renamed: `notes` → `context`, `source_language` → `source_lang`, `target_language` → `target_lang`
+- Auto-update trigger for `updated_at`
+
+#### Backend Updates
+- `GlossaryEntry` model updated with new fields
+- `GlossaryRepository` updated to map all new fields
+- `GlossaryEntryResponse`, `GlossaryCreate`, `GlossaryUpdateRequest` schemas updated
+- Backend routes updated to use new fields
+
+### Fixed - Database Configuration (2026-04-12)
+
+#### Environment Variable Loading
+- **DatabaseSettings now reads from .env file**:
+- Changed base class from `pydantic.BaseModel` to `pydantic_settings.BaseSettings`
+- Added environment variable aliases: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_MIN_CONNECTIONS`, `DB_MAX_CONNECTIONS`
+- Configured `env_file=".env"` for automatic .env loading
+- Fixed "password authentication failed for user translator_user" error
+
+#### API Route Fixes
+- **Fixed AttributeError in backend routes**:
+- Changed `get_pool()` to `get_sync_pool()` in `works.py` (lines 22, 109)
+- Changed `get_pool()` to `get_sync_pool()` in `glossary.py` (line 20)
+- Fixed "AttributeError: 'DatabasePool' object has no attribute 'get_pool'" error
+
+#### Files Modified
+- `src/pdftranslator/core/config/database.py` - DatabaseSettings now extends BaseSettings
+- `src/pdftranslator/backend/api/routes/works.py` - Fixed pool method calls
+- `src/pdftranslator/backend/api/routes/glossary.py` - Fixed pool method calls
+
+### Added - Frontend Mock Data Integration (2026-04-11)
+
+#### Architecture
+- **Environment Configuration**: Switch between mock data and real API
+  - `environment.ts` for development with mock data
+  - `environment.prod.ts` for production with real API
+  - Conditional InMemoryWebAPI loading
+
+#### Mock Data Implementation
+- **Angular InMemoryWebAPI** configured for development:
+  - Local mock data for all entities (works, volumes, chapters, glossary)
+  - Simulates backend API responses without running server
+  - 500ms delay to simulate real network latency
+  - Automatic HTTP request interception
+
+#### Mock Data Entities
+- **Languages**: 12 supported languages (en-US, es-MX, fr-FR, de-DE, etc.)
+- **Providers**: 3 LLM providers (NVIDIA, Gemini, Ollama)
+- **Works**: 3 sample works with translation progress
+- **Volumes**: 5 volumes across works
+- **Chapters**: 5 chapters with translation status
+- **Glossary Terms**: 5 glossary entries with entity types
+- **Recent Activities**: 5 activity log entries
+
+#### Core Services
+- `WorkService` - CRUD operations for works
+- `VolumeService` - Volume management by work
+- `GlossaryService` - Glossary term CRUD with filters
+- `DashboardService` - Recent activity fetching
+- `TranslationConfigService` - Languages and providers
+- `NotificationService` - Toast notification system
+
+#### Models
+- `Work`, `WorkCreate`, `WorkUpdate`
+- `Volume`, `VolumeCreate`
+- `Chapter`, `ChapterCreate`, `ChapterType`, `TranslationStatus`
+- `GlossaryTerm`, `GlossaryTermCreate`, `GlossaryTermUpdate`, `EntityType`
+- `TranslationProgress`, `TranslationStartRequest`
+- `DashboardStats`, `RecentActivity`, `TranslationChartData`
+
+#### Feature Components
+
+**Dashboard (with Chart):**
+- Stats cards with metrics (works, terms, translations, progress)
+- Doughnut chart showing translation status distribution
+- Recent activity feed with icons and timestamps
+- Side-by-side layout with responsive grid
+- Real-time data loading from mock API
+
+**Library:**
+- Work cards with title, author, and translation status
+- Progress bars showing chapter translation completion
+- Search functionality by title or author
+- Visual status indicators (complete/in-progress/not-started)
+
+**Split Chapters:**
+- Work and volume selection dropdowns
+- Text editor with block format markers
+- Visual chapter parser with type icons
+- Preview of parsed chapters before saving
+
+**Translate (Updated):**
+- Simulated translation progress without backend
+- File upload with visual feedback
+- Progress animation (upload → processing → complete)
+- Download simulation on completion
+
+**Glossary (Updated):**
+- Entity type filtering (character, place, skill, etc.)
+- Type-specific icons and colors
+- Proper noun badge display
+- Frequency counter for each term
+- Enhanced CRUD operations with mock data
+- Entity distribution doughnut chart
+- Two-column layout with sticky chart sidebar
+- Real-time chart updates on term changes
+- Form validation with inline errors and required state
+
+#### UX/UI Polish (2026-04-11)
+- **Skeleton Loader Component**: 5 variants (card, list, grid, stat, text)
+- **Form Validation**: Inline errors, required indicators, disabled states
+- **Accessibility**: ARIA attributes for language-selector and file-upload
+- **Keyboard Navigation**: :focus-visible for better focus indicators
+- **Empty States**: Icons, helpful hints, and call-to-action buttons
+
+#### Animations (2026-04-11)
+- **Page Transitions**: Fade/slide effects on route changes
+- **Card Hover**: Scale and shadow animations with active states
+- **Button Micro-interactions**: Ripple effect and scale on click
+- **List Stagger**: Animated entry for cards and items
+- **Stats Animation**: Entrance animations for dashboard cards
+- **Shared Animations**: Reusable SCSS mixins for consistency
+
+#### Shared Components
+- `WorkCardComponent` - Reusable work card for Library
+- `StatusBadgeComponent` - Status badges (success/warning/error/info)
+- `EmptyStateComponent` - Empty data displays
+- `NotificationToastComponent` - Toast notification display
+- `FileUploadComponent` - Drag-and-drop file upload
+- `LanguageSelectorComponent` - Language selection dropdown
+- `ProgressIndicatorComponent` - Progress bar display
+
+#### Navigation
+- 5 feature links: Dashboard, Library, Translate, Glossary, Split
+- Active state highlighting for current route
+- SVG icons for each navigation item
+- Responsive layout with theme toggle
+
+#### Styling
+- Responsive grid layouts for mobile/tablet/desktop
+- CSS custom properties for theming
+- Dark/light mode support
+- Smooth transitions and animations
+
+#### Bug Fixes
+- Fixed `ECONNREFUSED` error when backend not running
+- Mock data serves all required API endpoints
+- InMemoryWebAPI compatible with Angular 21 (version 0.21.0)
+- Added FormsModule to Library and Split components
+- Fixed SCSS structure issues in Dashboard
+
 ### Added - Frontend Migration to Angular (2026-04-10)
 
 #### Frontend Migration

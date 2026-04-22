@@ -14,8 +14,8 @@ from pdftranslator.infrastructure.llm.base import BaseLLM
 
 logger = logging.getLogger(__name__)
 
-# Default timeout for LLM calls (30 minutes in seconds)
-DEFAULT_TIMEOUT = 1800
+# Default timeout for LLM calls (1 hour in seconds)
+DEFAULT_TIMEOUT = 3600
 
 
 class NvidiaLLM(BaseLLM):
@@ -46,14 +46,15 @@ class NvidiaLLM(BaseLLM):
             max_bucket_size=rpm,
         )
 
-        # Create model with timeout
+        # Create model with timeout in model_kwargs (deprecated parameter)
+        timeout = config.request_timeout or DEFAULT_TIMEOUT
         self._model = ChatNVIDIA(
             model=config.model_name,
             temperature=config.temperature,
             top_p=config.top_p,
             max_tokens=config.max_output_tokens,
             rate_limiter=rate_limiter,
-            request_timeout=config.request_timeout or DEFAULT_TIMEOUT,
+            model_kwargs={"request_timeout": timeout},
             verbose=True,
         )
 

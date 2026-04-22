@@ -11,6 +11,7 @@ from pdftranslator.cli.commands.split_text import split_text
 from pdftranslator.cli.commands.reset_database import reset_database
 from pdftranslator.cli.commands.build_glossary import build_glossary
 from pdftranslator.cli.commands.translate_chapter import translate_chapter
+from pdftranslator.cli.commands.generate_audio import generate_audio
 
 __all__ = [
     "process",
@@ -19,4 +20,5 @@ __all__ = [
     "reset_database",
     "build_glossary",
     "translate_chapter",
+    "generate_audio",
 ]

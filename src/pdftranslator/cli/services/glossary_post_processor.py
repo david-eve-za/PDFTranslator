@@ -87,7 +87,7 @@ class GlossaryPostProcessor:
             Dict with 'correct' set and 'incorrect' patterns
         """
         # Check if this is a DO_NOT_TRANSLATE entry via notes
-        is_do_not_translate = entry.notes and "DO_NOT_TRANSLATE" in entry.notes
+        is_do_not_translate = entry.context and "DO_NOT_TRANSLATE" in entry.context
 
         variants = {
             "term": entry.term,
@@ -177,7 +177,7 @@ class GlossaryPostProcessor:
         variants = self._variant_maps[entry.term]
         correction_count = 0
 
-        is_do_not_translate = entry.notes and "DO_NOT_TRANSLATE" in entry.notes
+        is_do_not_translate = entry.context and "DO_NOT_TRANSLATE" in entry.context
 
         if is_do_not_translate:
             # Ensure term remains in original language

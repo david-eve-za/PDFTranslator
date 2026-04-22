@@ -1,0 +1,459 @@
+{
+  "info": {
+    "_postman_id": "pdftranslator-api-collection",
+    "name": "PDFTranslator API",
+    "description": "API collection for PDFTranslator - PDF/EPUB document translation with LLM backends",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Works",
+      "item": [
+        {
+          "name": "List Works",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/works/?page=1&page_size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "works", ""],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "List all works with pagination"
+          }
+        },
+        {
+          "name": "Get Work",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/works/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "works", "1"]
+            },
+            "description": "Get a specific work by ID"
+          }
+        },
+        {
+          "name": "Create Work",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sample Book Title\",\n  \"author\": \"Author Name\",\n  \"title_translated\": \"Título Traducido\",\n  \"source_lang\": \"en\",\n  \"target_lang\": \"es\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/works/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "works", ""]
+            },
+            "description": "Create a new work"
+          }
+        },
+        {
+          "name": "Update Work",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Book Title\",\n  \"author\": \"Updated Author\",\n  \"title_translated\": \"Título Actualizado\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/works/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "works", "1"]
+            },
+            "description": "Update an existing work"
+          }
+        },
+        {
+          "name": "Delete Work",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/works/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "works", "1"]
+            },
+            "description": "Delete a work by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Volumes",
+      "item": [
+        {
+          "name": "List Volumes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/volumes/?work_id=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "volumes", ""],
+              "query": [
+                {
+                  "key": "work_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "List all volumes for a work"
+          }
+        },
+        {
+          "name": "Get Volume",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/volumes/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "volumes", "1"]
+            },
+            "description": "Get a specific volume by ID"
+          }
+        },
+        {
+          "name": "Create Volume",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"work_id\": 1,\n  \"volume_number\": 1,\n  \"title\": \"Volume 1\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/volumes/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "volumes", ""]
+            },
+            "description": "Create a new volume"
+          }
+        },
+        {
+          "name": "Delete Volume",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/volumes/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "volumes", "1"]
+            },
+            "description": "Delete a volume by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chapters",
+      "item": [
+        {
+          "name": "List Chapters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/chapters/?volume_id=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chapters", ""],
+              "query": [
+                {
+                  "key": "volume_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "List all chapters for a volume"
+          }
+        },
+        {
+          "name": "Get Chapter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/chapters/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chapters", "1"]
+            },
+            "description": "Get a specific chapter by ID"
+          }
+        },
+        {
+          "name": "Update Chapter",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Chapter Title\",\n  \"translated_text\": \"Translated content here\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/chapters/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chapters", "1"]
+            },
+            "description": "Update a chapter"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Glossary",
+      "item": [
+        {
+          "name": "List Glossary Terms",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/glossary/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "glossary", ""]
+            },
+            "description": "List all glossary terms"
+          }
+        },
+        {
+          "name": "List Glossary by Work",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/glossary/?work_id=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "glossary", ""],
+              "query": [
+                {
+                  "key": "work_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "List glossary terms for a specific work"
+          }
+        },
+        {
+          "name": "Search Glossary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/glossary/?search=term",
+              "host": ["{{base_url}}"],
+              "path": ["api", "glossary", ""],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "term"
+                }
+              ]
+            },
+            "description": "Search glossary terms"
+          }
+        },
+        {
+          "name": "Get Glossary Term",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/glossary/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "glossary", "1"]
+            },
+            "description": "Get a specific glossary term by ID"
+          }
+        },
+        {
+          "name": "Create Glossary Term",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"work_id\": 1,\n  \"term\": \"character_name\",\n  \"translation\": \"nombre_del_personaje\",\n  \"notes\": \"Main character\",\n  \"is_proper_noun\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/glossary/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "glossary", ""]
+            },
+            "description": "Create a new glossary term"
+          }
+        },
+        {
+          "name": "Update Glossary Term",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"translation\": \"updated_translation\",\n  \"notes\": \"Updated notes\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/glossary/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "glossary", "1"]
+            },
+            "description": "Update a glossary term"
+          }
+        },
+        {
+          "name": "Delete Glossary Term",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/glossary/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "glossary", "1"]
+            },
+            "description": "Delete a glossary term by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Files",
+      "item": [
+        {
+          "name": "List Files",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/files/?page=1&page_size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "files", ""],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "List all uploaded files with pagination"
+          }
+        },
+        {
+          "name": "Get File",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/files/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "files", "1"]
+            },
+            "description": "Get a specific file by ID"
+          }
+        },
+        {
+          "name": "Upload File",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/files/upload?source_lang=en&target_lang=es",
+              "host": ["{{base_url}}"],
+              "path": ["api", "files", "upload"],
+              "query": [
+                {
+                  "key": "source_lang",
+                  "value": "en"
+                },
+                {
+                  "key": "target_lang",
+                  "value": "es"
+                }
+              ]
+            },
+            "description": "Upload a PDF or EPUB file for processing"
+          }
+        },
+        {
+          "name": "Delete File",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/files/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "files", "1"]
+            },
+            "description": "Delete a file by ID"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { Component, Input, signal } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export type ProgressStatus = 'idle' | 'uploading' | 'processing' | 'completed' | 'error';
@@ -8,12 +8,12 @@ export type ProgressStatus = 'idle' | 'uploading' | 'processing' | 'completed' |
   standalone: true,
   imports: [CommonModule],
   templateUrl: './progress-indicator.component.html',
-  styleUrls: ['./progress-indicator.component.scss'],
+  styleUrl: './progress-indicator.component.scss',
 })
 export class ProgressIndicatorComponent {
-  @Input() progress = signal(0);
-  @Input() status = signal<ProgressStatus>('idle');
-  @Input() message = signal<string | null>(null);
+  progress = input(0);
+  status = input<ProgressStatus>('idle');
+  message = input<string | null>(null);
 
   get statusIcon(): string {
     switch (this.status()) {

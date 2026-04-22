@@ -1,7 +1,7 @@
 # tests/database/test_models.py
 import pytest
 import numpy as np
-from database.models import (
+from pdftranslator.database.models import (
     Work,
     Volume,
     Chapter,
@@ -12,19 +12,17 @@ from database.models import (
 
 
 def test_work_creation():
-    work = Work(id=1, title="Test Novel", source_lang="en", target_lang="es")
+    work = Work(id=1, title="Test Novel", author="Test Author")
     assert work.id == 1
     assert work.title == "Test Novel"
-    assert work.source_lang == "en"
-    assert work.target_lang == "es"
+    assert work.author == "Test Author"
 
 
 def test_work_defaults():
     work = Work(id=None, title="Test")
     assert work.id is None
     assert work.title == "Test"
-    assert work.source_lang is None
-    assert work.target_lang is None
+    assert work.author is None
 
 
 def test_volume_creation():
@@ -50,16 +48,16 @@ def test_chapter_creation():
 
 
 def test_glossary_entry_creation():
-    entry = GlossaryEntry(id=1, work_id=1, source_term="staff", target_term="personal")
+    entry = GlossaryEntry(id=1, work_id=1, term="staff", translation="personal")
     assert entry.id == 1
-    assert entry.source_term == "staff"
-    assert entry.target_term == "personal"
+    assert entry.term == "staff"
+    assert entry.translation == "personal"
 
 
 def test_glossary_entry_proper_noun():
     """GlossaryEntry no longer has is_proper_noun - test notes instead."""
     entry = GlossaryEntry(
-        id=1, work_id=1, source_term="Tempest", target_term=None, notes="Proper noun"
+        id=1, work_id=1, term="Tempest", translation=None, notes="Proper noun"
     )
     assert entry.notes == "Proper noun"
 
