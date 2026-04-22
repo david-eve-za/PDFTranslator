@@ -1,12 +1,21 @@
 """Repository for uploaded files."""
 
+import warnings
+
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.models import UploadedFile
 
 
 class UploadedFileRepository:
     def __init__(self, pool: DatabasePool | None = None):
-        self._pool = pool or DatabasePool.get_instance()
+        if pool is None:
+            warnings.warn(
+                "Providing pool=None is deprecated. Inject a ConnectionPool explicitly.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            pool = DatabasePool.get_instance()
+        self._pool = pool
 
     def _row_to_uploaded_file(self, row: tuple) -> UploadedFile:
         return UploadedFile(

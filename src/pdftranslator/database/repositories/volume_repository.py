@@ -1,3 +1,4 @@
+import warnings
 from typing import Optional, List
 from datetime import datetime
 from pdftranslator.database.connection import DatabasePool
@@ -7,7 +8,14 @@ from pdftranslator.database.models import Volume
 
 class VolumeRepository(BaseRepository[Volume]):
     def __init__(self, pool: Optional[DatabasePool] = None):
-        self._pool = pool or DatabasePool.get_instance()
+        if pool is None:
+            warnings.warn(
+                "Providing pool=None is deprecated. Inject a ConnectionPool explicitly.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            pool = DatabasePool.get_instance()
+        self._pool = pool
 
     def _row_to_volume(self, row: tuple) -> Volume:
         return Volume(

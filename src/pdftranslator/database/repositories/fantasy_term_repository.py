@@ -1,3 +1,4 @@
+import warnings
 from typing import Optional, Dict
 
 from pdftranslator.database.connection import DatabasePool
@@ -7,7 +8,14 @@ from pdftranslator.database.models import FantasyTerm
 
 class FantasyTermRepository(BaseRepository[FantasyTerm]):
     def __init__(self, pool: Optional[DatabasePool] = None):
-        self._pool = pool or DatabasePool.get_instance()
+        if pool is None:
+            warnings.warn(
+                "Providing pool=None is deprecated. Inject a ConnectionPool explicitly.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            pool = DatabasePool.get_instance()
+        self._pool = pool
 
     def _row_to_fantasy_term(self, row: tuple) -> FantasyTerm:
         return FantasyTerm(
