@@ -6,7 +6,7 @@ from typing import List
 from pdftranslator.core.config.llm import BCP47Language
 from pdftranslator.database.models import GlossaryEntry
 from pdftranslator.services.translator import TranslatorService, TranslationResult
-from pdftranslator.cli.services.glossary_post_processor import GlossaryPostProcessor
+from pdftranslator.domain.services.glossary_post_processor import GlossaryPostProcessor
 
 logger = logging.getLogger(__name__)
 
