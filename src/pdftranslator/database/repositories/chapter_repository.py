@@ -1,3 +1,4 @@
+import warnings
 from typing import Optional, List
 import numpy as np
 
@@ -10,7 +11,14 @@ from langchain_core.documents import Document
 
 class ChapterRepository(BaseRepository[Chapter]):
     def __init__(self, pool: Optional[DatabasePool] = None):
-        self._pool = pool or DatabasePool.get_instance()
+        if pool is None:
+            warnings.warn(
+                "Providing pool=None is deprecated. Inject a ConnectionPool explicitly.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            pool = DatabasePool.get_instance()
+        self._pool = pool
         self._vector_service = VectorStoreService()
 
     def _row_to_chapter(self, row: tuple) -> Chapter:

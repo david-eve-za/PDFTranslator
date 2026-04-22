@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from typing import Optional, List
 
 from pdftranslator.database.connection import DatabasePool
@@ -13,7 +14,14 @@ logger = logging.getLogger(__name__)
 
 class GlossaryBuildProgressRepository:
     def __init__(self, pool: Optional[DatabasePool] = None):
-        self._pool = pool or DatabasePool.get_instance()
+        if pool is None:
+            warnings.warn(
+                "Providing pool=None is deprecated. Inject a ConnectionPool explicitly.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            pool = DatabasePool.get_instance()
+        self._pool = pool
 
     def save_extracted(
         self,
