@@ -1,7 +1,7 @@
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch, call
+from unittest.mock import MagicMock, AsyncMock, patch
 from pathlib import Path
-from database.initializer import DatabaseInitializer
+from pdftranslator.database.initializer import DatabaseInitializer
 
 
 class TestDatabaseInitializer:
@@ -11,7 +11,7 @@ class TestDatabaseInitializer:
         assert "information_schema.tables" in query
         assert "works" in query
 
-    @patch("database.initializer.Path")
+    @patch("pdftranslator.database.initializer.Path")
     def test_ensure_tables_exist_when_tables_missing(self, mock_path):
         initializer = DatabaseInitializer()
         mock_pool = MagicMock()
@@ -22,9 +22,9 @@ class TestDatabaseInitializer:
         mock_cursor.fetchone.return_value = None
 
         mock_script_file = MagicMock()
-        mock_script_file.name = "001_extensions.sql"
+        mock_script_file.name = "001_schema.sql"
         mock_script_file.read_text.return_value = (
-            "CREATE EXTENSION IF NOT EXISTS btree_gin;"
+            "CREATE EXTENSION IF NOT EXISTS vector;"
         )
         mock_path.return_value.glob.return_value = [mock_script_file]
 
@@ -33,7 +33,7 @@ class TestDatabaseInitializer:
         mock_cursor.execute.assert_called()
         assert mock_cursor.execute.call_count >= 2
 
-    @patch("database.initializer.Path")
+    @patch("pdftranslator.database.initializer.Path")
     def test_ensure_tables_exist_when_tables_already_exist(self, mock_path):
         initializer = DatabaseInitializer()
         mock_pool = MagicMock()
@@ -49,7 +49,7 @@ class TestDatabaseInitializer:
 
         assert mock_cursor.execute.call_count == 1
 
-    @patch("database.initializer.Path")
+    @patch("pdftranslator.database.initializer.Path")
     @pytest.mark.asyncio
     async def test_ensure_tables_exist_async_when_tables_missing(self, mock_path):
         initializer = DatabaseInitializer()
@@ -67,9 +67,9 @@ class TestDatabaseInitializer:
         mock_cursor.fetchone = AsyncMock(return_value=None)
 
         mock_script_file = MagicMock()
-        mock_script_file.name = "001_extensions.sql"
+        mock_script_file.name = "001_schema.sql"
         mock_script_file.read_text.return_value = (
-            "CREATE EXTENSION IF NOT EXISTS btree_gin;"
+            "CREATE EXTENSION IF NOT EXISTS vector;"
         )
         mock_path.return_value.glob.return_value = [mock_script_file]
 
@@ -77,7 +77,7 @@ class TestDatabaseInitializer:
 
         assert mock_cursor.execute.call_count >= 2
 
-    @patch("database.initializer.Path")
+    @patch("pdftranslator.database.initializer.Path")
     @pytest.mark.asyncio
     async def test_ensure_tables_exist_async_when_tables_already_exist(self, mock_path):
         initializer = DatabaseInitializer()
@@ -104,9 +104,9 @@ class TestDatabaseInitializer:
         mock_cursor = MagicMock()
 
         scripts = [
-            Path("/database/schemas/005_glossary.sql"),
-            Path("/database/schemas/002_works.sql"),
-            Path("/database/schemas/001_extensions.sql"),
+            Path("/database/schemas/003_other.sql"),
+            Path("/database/schemas/001_schema.sql"),
+            Path("/database/schemas/002_extra.sql"),
         ]
 
         with patch.object(Path, "glob", return_value=scripts):

@@ -13,8 +13,8 @@ from pdftranslator.infrastructure.llm.base import BaseLLM
 
 logger = logging.getLogger(__name__)
 
-# Default timeout for LLM calls (30 minutes in seconds)
-DEFAULT_TIMEOUT = 1800
+# Default timeout for LLM calls (1 hour in seconds)
+DEFAULT_TIMEOUT = 3600
 
 
 class OllamaLLM(BaseLLM):

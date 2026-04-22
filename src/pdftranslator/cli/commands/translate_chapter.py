@@ -443,7 +443,7 @@ class GlossaryAwareTranslator(Translator):
             return translated_chunk if translated_chunk is not None else ""
         except Exception as e:
             logger.error(f"Error during LLM call for chunk {chunk_index + 1}: {e}")
-            return self._ERROR_CHUNK_MARKER_FORMAT.format(index=chunk_index + 1)
+            return self._translate_single_chunk(chunk, chunk_index, base_prompt_template)
 
     def _translate_chunks(
         self, chunks: list[str], source_lang: str, target_lang: str

@@ -68,7 +68,9 @@ class GeminiConfig(BaseModel):
     context_size: int = Field(default=1000000, gt=0)
     rate_limit: int = Field(default=15, gt=0, description="Requests per minute")
     max_bucket_size: int = Field(default=10, gt=0)
-    request_timeout: int = Field(default=60, gt=0)
+    request_timeout: int = Field(
+        default=3600, gt=0, description="Request timeout in seconds"
+    )
     retry_attempts: int = Field(default=3, gt=0)
 
 
@@ -78,10 +80,12 @@ class NvidiaConfig(BaseModel):
     model_name: str = Field(default="mistralai/mistral-large-3-675b-instruct-2512")
     temperature: float = Field(default=0.2, ge=0.0, le=2.0)
     top_p: float = Field(default=0.95, ge=0.0, le=1.0)
-    max_output_tokens: int = Field(default=4096, gt=0)
+    max_output_tokens: int = Field(default=1024, gt=0)
     rate_limit: int = Field(default=30, gt=0, description="Requests per minute")
     retry_attempts: int = Field(default=6, gt=0)
-    request_timeout: int = Field(default=600, gt=0)
+    request_timeout: int = Field(
+        default=3600, gt=0, description="Request timeout in seconds"
+    )
     max_bucket_size: int = Field(default=10, gt=0)
     local_tokenizer_name: str = Field(
         default="mistralai/Mistral-Large-3-675B-Instruct-2512"
