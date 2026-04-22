@@ -1,8 +1,10 @@
-"""Custom exceptions for the application."""
+"""Core exceptions — re-exported from domain for backward compatibility.
 
-from pdftranslator.database.exceptions import (
-    DatabaseError,
-    ConnectionError,
+DEPRECATED: Import from pdftranslator.domain.exceptions instead.
+"""
+from pdftranslator.domain.exceptions.errors import (  # noqa: F401
+    DomainError as DatabaseError,
+    DBConnectionError as ConnectionError,
     QueryError,
     EntityNotFoundError,
     DuplicateEntityError,
