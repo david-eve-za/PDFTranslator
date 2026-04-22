@@ -3,6 +3,8 @@ import numpy as np
 from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings, NVIDIARerank
 from langchain_core.documents import Document
 from pdftranslator.core.config.settings import Settings
+from pdftranslator.domain.protocols.embedding import EmbeddingProvider
+from pdftranslator.domain.protocols.reranking import RerankingProvider
 
 
 class VectorStoreService:
@@ -10,9 +12,17 @@ class VectorStoreService:
     Servicio interno para embeddings y reranking usando NVIDIA NIM.
     Encapsula completamente la funcionalidad de NVIDIA NIM dentro del módulo database.
     Este servicio es usado internamente por los repositorios y no se exporta.
+
+    Now accepts optional injected providers for DIP-2 compliance.
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        embedder: EmbeddingProvider | None = None,
+        reranker: RerankingProvider | None = None,
+    ):
+        self._injected_embedder = embedder
+        self._injected_reranker = reranker
         self._config = Settings.get()
         self._embedder: Optional[NVIDIAEmbeddings] = None
         self._reranker: Optional[NVIDIARerank] = None
@@ -23,8 +33,10 @@ class VectorStoreService:
         return self._config.llm.nvidia
 
     @property
-    def embedder(self) -> NVIDIAEmbeddings:
-        """Lazy initialization del embedder"""
+    def embedder(self):
+        """Lazy initialization del embedder, or use injected provider"""
+        if self._injected_embedder is not None:
+            return self._injected_embedder
         if self._embedder is None:
             self._embedder = NVIDIAEmbeddings(
                 model=self._nvidia.embed_model,
@@ -33,8 +45,10 @@ class VectorStoreService:
         return self._embedder
 
     @property
-    def reranker(self) -> NVIDIARerank:
-        """Lazy initialization del reranker"""
+    def reranker(self):
+        """Lazy initialization del reranker, or use injected provider"""
+        if self._injected_reranker is not None:
+            return self._injected_reranker
         if self._reranker is None:
             self._reranker = NVIDIARerank(
                 model=self._nvidia.rerank_model,
@@ -83,6 +97,9 @@ class VectorStoreService:
         """
         if not documents:
             return []
+
+        if self._injected_reranker is not None:
+            return self._injected_reranker.rerank(query, documents, top_n=top_n or self._nvidia.rerank_top_n)
 
         reranker = NVIDIARerank(
             model=self._nvidia.rerank_model,
