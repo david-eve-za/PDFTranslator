@@ -5,7 +5,7 @@ from typing import Optional, List
 
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.base import BaseRepository
-from pdftranslator.database.models import SubstitutionRule
+from pdftranslator.domain.models.substitution import SubstitutionRule
 
 
 class SubstitutionRuleRepository(BaseRepository[SubstitutionRule]):

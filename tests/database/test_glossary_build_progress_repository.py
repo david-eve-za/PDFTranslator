@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 from pdftranslator.database.repositories.glossary_build_progress_repository import (
     GlossaryBuildProgressRepository,
 )
-from pdftranslator.database.models import EntityCandidate, GlossaryBuildProgress
+from pdftranslator.domain.models.entity import EntityCandidate, GlossaryBuildProgress
 
 
 @pytest.fixture

@@ -3,7 +3,7 @@ from typing import Optional, Set
 
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.base import BaseRepository
-from pdftranslator.database.models import EntityBlacklist
+from pdftranslator.domain.models.entity import EntityBlacklist
 
 
 class EntityBlacklistRepository(BaseRepository[EntityBlacklist]):

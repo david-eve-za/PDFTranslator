@@ -3,7 +3,7 @@ from typing import Optional, Dict
 
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.base import BaseRepository
-from pdftranslator.database.models import FantasyTerm
+from pdftranslator.domain.models.entity import FantasyTerm
 
 
 class FantasyTermRepository(BaseRepository[FantasyTerm]):

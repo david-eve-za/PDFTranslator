@@ -3,7 +3,7 @@ from typing import Optional, List
 from datetime import datetime
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.base import BaseRepository
-from pdftranslator.database.models import Volume
+from pdftranslator.domain.models.work import Volume
 
 
 class VolumeRepository(BaseRepository[Volume]):
@@ -75,7 +75,9 @@ class VolumeRepository(BaseRepository[Volume]):
                     """
                     INSERT INTO volumes (work_id, volume_number, title, full_text, translated_text)
                     VALUES (%s, %s, %s, %s, %s)
-                    RETURNING id, work_id, volume_number, title, full_text, translated_text
+                    RETURNING id, work_id, volume_number, title, full_text, translated_text,
+                    glossary_built_at, created_at, glossary_build_status,
+                    glossary_error_message, glossary_resume_phase
                     """,
                     (
                         entity.work_id,
@@ -97,7 +99,9 @@ class VolumeRepository(BaseRepository[Volume]):
                     UPDATE volumes
                     SET work_id = %s, volume_number = %s, title = %s, full_text = %s, translated_text = %s
                     WHERE id = %s
-                    RETURNING id, work_id, volume_number, title, full_text, translated_text
+                    RETURNING id, work_id, volume_number, title, full_text, translated_text,
+                    glossary_built_at, created_at, glossary_build_status,
+                    glossary_error_message, glossary_resume_phase
                     """,
                     (
                         entity.work_id,

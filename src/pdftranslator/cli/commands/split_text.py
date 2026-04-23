@@ -12,7 +12,7 @@ import typer
 from rich.panel import Panel
 
 from pdftranslator.cli.app import app, console
-from pdftranslator.database.models import Chapter, Work, Volume
+from pdftranslator.domain.models.work import Chapter, Work, Volume
 from pdftranslator.database.repositories.book_repository import BookRepository
 from pdftranslator.database.repositories.chapter_repository import ChapterRepository
 from pdftranslator.database.repositories.volume_repository import VolumeRepository

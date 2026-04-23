@@ -21,7 +21,7 @@ from nltk import word_tokenize, pos_tag, ne_chunk, sent_tokenize
 from nltk.corpus import words as nltk_words
 from nltk.tree import Tree
 
-from pdftranslator.database.models import EntityCandidate
+from pdftranslator.domain.models.entity import EntityCandidate
 from pdftranslator.database.repositories.entity_blacklist_repository import EntityBlacklistRepository
 from pdftranslator.database.repositories.fantasy_term_repository import FantasyTermRepository
 from pdftranslator.database.connection import DatabasePool
