@@ -24,22 +24,26 @@ from pdftranslator.cli.app import (
     DEFAULT_FILE_TYPE_TO_PROCESS,
 )
 from pdftranslator.core.config.settings import Settings
+from pdftranslator.infrastructure.llm.base import BCP47Language
+from pdftranslator.infrastructure.llm.factory import LLMFactory
+from pdftranslator.application.services.translation_service import TranslationService
 from pdftranslator.tools.VideoGenerator import VideoGenerator
 from pdftranslator.tools.AudioGenerator import AudioGenerator
 from pdftranslator.tools.FileFinder import FileFinder, IsFileFilter, ExcludeTranslatedFilter
 from pdftranslator.tools.TextExtractor import TextExtractor
-from pdftranslator.tools.Translator import Translator
 
 
 def translate_text(
-    translator: Translator,
+    translator: TranslationService,
     text: str,
     file_path: Path,
     source_lang: str,
     target_lang: str,
 ) -> Optional[str]:
     logging.info(f" - Translating text for: {os.path.basename(file_path)}")
-    translated_text = translator.translate_text(text, source_lang, target_lang)
+    language = _get_language_for_split(source_lang)
+    result = translator.translate(text, source_lang, target_lang, language=language)
+    translated_text = result.text
     if not translated_text or not translated_text.strip():
         logging.warning(
             f" - Translation failed or resulted in empty text for {os.path.basename(file_path)}. Skipping file."
@@ -49,6 +53,24 @@ def translate_text(
         f" - Text translated and cleaned (length: {len(translated_text)} characters)"
     )
     return translated_text
+
+
+def _get_language_for_split(source_lang: str) -> BCP47Language:
+    lang_map = {
+        "en": BCP47Language.ENGLISH,
+        "es": BCP47Language.SPANISH,
+        "zh": BCP47Language.CHINESE,
+        "ja": BCP47Language.JAPANESE,
+        "ko": BCP47Language.KOREAN,
+        "fr": BCP47Language.FRENCH,
+        "de": BCP47Language.GERMAN,
+        "it": BCP47Language.ITALIAN,
+        "pt": BCP47Language.PORTUGUESE,
+        "ru": BCP47Language.RUSSIAN,
+        "ar": BCP47Language.ARABIC,
+        "hi": BCP47Language.HINDI,
+    }
+    return lang_map.get(source_lang.lower(), BCP47Language.ENGLISH)
 
 
 def generate_audio(
@@ -210,7 +232,8 @@ def process_single_file(
 
 def initialize_services() -> Optional[Tuple]:
     try:
-        translation_agent = Translator()
+        llm_client = LLMFactory.create()
+        translation_agent = TranslationService(llm_client)
         audio_generator = AudioGenerator()
         video_generator = VideoGenerator()
         return (
