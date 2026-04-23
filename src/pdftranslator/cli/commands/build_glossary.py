@@ -21,7 +21,12 @@ from pdftranslator.database.models import Work, Volume, Chapter, BuildResult
 from pdftranslator.database.repositories.book_repository import BookRepository
 from pdftranslator.database.repositories.chapter_repository import ChapterRepository
 from pdftranslator.database.repositories.volume_repository import VolumeRepository
-from pdftranslator.database.services.glossary_manager import GlossaryManager
+from pdftranslator.database.repositories.glossary_repository import GlossaryRepository
+from pdftranslator.database.repositories.glossary_build_progress_repository import (
+    GlossaryBuildProgressRepository,
+)
+from pdftranslator.database.services.entity_extractor import EntityExtractor
+from pdftranslator.application.services.glossary_build_orchestrator import GlossaryBuildOrchestrator
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +149,7 @@ def _concatenate_volume_chapters(
 
 def _process_all_book(
     selected_work: Work,
-    manager: GlossaryManager,
+    orchestrator: GlossaryBuildOrchestrator,
     volume_repo: VolumeRepository,
     chapter_repo: ChapterRepository,
     source_lang: str,
@@ -152,7 +157,7 @@ def _process_all_book(
     dry_run: bool,
     all_entities_by_type: dict,
     resume: bool,
-) -> tuple:
+    ) -> tuple:
     """Process all volumes in a work, concatenating chapters per volume."""
     if selected_work.id is None:
         console.print("[red]Work has no ID.[/red]")
@@ -192,7 +197,7 @@ def _process_all_book(
                 description=f"[cyan]Volume {vol.volume_number} ({len(consolidated_text)} chars)",
             )
 
-            result = manager.build_from_text(
+            result = orchestrator.build_from_text(
                 text=consolidated_text,
                 work_id=selected_work.id,
                 volume_id=vol.id,
@@ -217,7 +222,7 @@ def _process_all_book(
 def _process_volume_consolidated(
     volume: Volume,
     work_id: int,
-    manager: GlossaryManager,
+    orchestrator: GlossaryBuildOrchestrator,
     chapter_repo: ChapterRepository,
     source_lang: str,
     target_lang: str,
@@ -244,7 +249,7 @@ def _process_volume_consolidated(
     ) as progress:
         task = progress.add_task("[cyan]Extracting entities...", total=None)
 
-        result = manager.build_from_text(
+        result = orchestrator.build_from_text(
             text=consolidated_text,
             work_id=work_id,
             volume_id=volume.id,
@@ -344,9 +349,30 @@ def build_glossary(
     """
     setup_logging()
 
-    work_repo = BookRepository()
-    volume_repo = VolumeRepository()
-    chapter_repo = ChapterRepository()
+    pool = DatabasePool.get_instance()
+    work_repo = BookRepository(pool)
+    volume_repo = VolumeRepository(pool)
+    chapter_repo = ChapterRepository(pool)
+    glossary_repo = GlossaryRepository(pool)
+    progress_repo = GlossaryBuildProgressRepository(pool)
+    entity_extractor = EntityExtractor(pool, min_frequency=min_frequency)
+
+    from pdftranslator.core.config.settings import Settings
+    from pdftranslator.infrastructure.llm.factory import LLMFactory
+    from pdftranslator.infrastructure.embedding.nvidia_embedding import NvidiaEmbeddingProvider
+
+    settings = Settings.get()
+    llm_client = LLMFactory.create()
+    embedder = NvidiaEmbeddingProvider(settings)
+
+    orchestrator = GlossaryBuildOrchestrator(
+        llm_client=llm_client,
+        embedder=embedder,
+        progress_tracker=progress_repo,
+        glossary_repo=glossary_repo,
+        entity_extractor=entity_extractor,
+        max_output_tokens=settings.llm.nvidia.max_output_tokens,
+    )
 
     selected_work = _select_work_interactive(work_repo)
     if not selected_work:
@@ -358,21 +384,12 @@ def build_glossary(
     if not selected_scope:
         raise typer.Exit(0)
 
-    pool = DatabasePool.get_instance()
-    manager = GlossaryManager(pool)
-    volume_repo_pool = VolumeRepository(pool)
-
     # Check for failed/in-progress volumes when resume is True
     if resume:
-        from pdftranslator.database.repositories.glossary_build_progress_repository import (
-            GlossaryBuildProgressRepository,
-        )
-
-        progress_repo = GlossaryBuildProgressRepository(pool)
-        failed_volumes = volume_repo_pool.get_volumes_by_status(
+        failed_volumes = volume_repo.get_volumes_by_status(
             selected_work.id, "failed"
         )
-        in_progress_volumes = volume_repo_pool.get_volumes_by_status(
+        in_progress_volumes = volume_repo.get_volumes_by_status(
             selected_work.id, "in_progress"
         )
         if failed_volumes:
@@ -392,16 +409,10 @@ def build_glossary(
     # Handle force_restart flag
     selected_volume = None
     if force_restart:
-        from pdftranslator.database.repositories.glossary_build_progress_repository import (
-            GlossaryBuildProgressRepository,
-        )
-
-        progress_repo = GlossaryBuildProgressRepository(pool)
         console.print("[yellow]Limpiando progreso existente...[/yellow]")
-        # Get volumes based on scope - need to select volume first for certain scopes
         volumes_to_clear = []
         if selected_scope == SCOPE_ALL_BOOK:
-            volumes_to_clear = volume_repo_pool.get_by_work_id(selected_work.id)
+            volumes_to_clear = volume_repo.get_by_work_id(selected_work.id)
         elif selected_scope in (SCOPE_ALL_VOLUME, SCOPE_SINGLE_CHAPTER):
             # Need to select volume interactively first
             selected_volume = _select_volume_interactive(selected_work, volume_repo)
@@ -410,12 +421,12 @@ def build_glossary(
             volumes_to_clear = [selected_volume]
         for vol in volumes_to_clear:
             progress_repo.cleanup_completed(vol.id)
-            volume_repo_pool.update_build_status(vol.id, "pending")
+            volume_repo.update_build_status(vol.id, "pending")
 
     if selected_scope == SCOPE_ALL_BOOK:
         total_extracted, total_new, total_skipped = _process_all_book(
             selected_work=selected_work,
-            manager=manager,
+            orchestrator=orchestrator,
             volume_repo=volume_repo,
             chapter_repo=chapter_repo,
             source_lang=source_lang,
@@ -439,7 +450,7 @@ def build_glossary(
         result = _process_volume_consolidated(
             volume=selected_volume,
             work_id=work_id,
-            manager=manager,
+            orchestrator=orchestrator,
             chapter_repo=chapter_repo,
             source_lang=source_lang,
             target_lang=target_lang,
@@ -471,7 +482,7 @@ def build_glossary(
             console.print("[red]Work has no ID.[/red]")
             raise typer.Exit(1)
 
-        result = manager.build_from_text(
+        result = orchestrator.build_from_text(
             text=selected_chapter.original_text,
             work_id=work_id,
             volume_id=selected_volume.id,
