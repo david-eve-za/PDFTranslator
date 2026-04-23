@@ -3,7 +3,7 @@ from typing import Optional, List
 
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.base import BaseRepository
-from pdftranslator.database.models import Work
+from pdftranslator.domain.models.work import Work
 from pdftranslator.database.services.vector_store import VectorStoreService
 
 

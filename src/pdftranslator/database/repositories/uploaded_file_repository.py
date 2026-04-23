@@ -3,7 +3,7 @@
 import warnings
 
 from pdftranslator.database.connection import DatabasePool
-from pdftranslator.database.models import UploadedFile
+from pdftranslator.domain.models.file import UploadedFile
 
 
 class UploadedFileRepository:

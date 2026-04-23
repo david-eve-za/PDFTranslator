@@ -4,7 +4,7 @@ import numpy as np
 
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.base import BaseRepository
-from pdftranslator.database.models import Chapter
+from pdftranslator.domain.models.work import Chapter
 from pdftranslator.database.services.vector_store import VectorStoreService
 from langchain_core.documents import Document
 

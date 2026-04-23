@@ -80,7 +80,7 @@ async def process_split(
 
     chapter_number = 1
     created_count = 0
-    from pdftranslator.database.models import Chapter
+    from pdftranslator.domain.models.work import Chapter
 
     for block in blocks:
         if block.block_type == "Chapter":

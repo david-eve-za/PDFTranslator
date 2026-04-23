@@ -10,7 +10,7 @@ from pdftranslator.backend.api.models.schemas import (
     FileUploadResponse,
 )
 from pdftranslator.backend.services.file_service import FileService, ProcessingResult
-from pdftranslator.database.models import UploadedFile
+from pdftranslator.domain.models.file import UploadedFile
 
 router = APIRouter(prefix="/api/files", tags=["files"])
 

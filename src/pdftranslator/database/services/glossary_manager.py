@@ -16,12 +16,12 @@ import logging
 from typing import Dict, List, Optional
 
 from pdftranslator.database.connection import DatabasePool
-from pdftranslator.database.models import (
+from pdftranslator.domain.models.entity import (
     BuildResult,
     EntityCandidate,
     GlossaryBuildProgress,
-    GlossaryEntry,
 )
+from pdftranslator.domain.models.glossary import GlossaryEntry
 from pdftranslator.database.repositories.glossary_build_progress_repository import (
     GlossaryBuildProgressRepository,
 )

@@ -63,7 +63,7 @@ async def create_rule(
     repo: SubstitutionRuleRepository = Depends(get_rule_repository),
 ):
     """Create a new substitution rule."""
-    from pdftranslator.database.models import SubstitutionRule
+    from pdftranslator.domain.models.substitution import SubstitutionRule
 
     rule = SubstitutionRule(
         name=data.name,

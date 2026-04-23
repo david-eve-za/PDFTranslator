@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from pdftranslator.backend.api.routes.files import get_file_service, router
 from pdftranslator.backend.services.file_service import FileService, ProcessingResult
-from pdftranslator.database.models import UploadedFile
+from pdftranslator.domain.models.file import UploadedFile
 
 
 @pytest.fixture

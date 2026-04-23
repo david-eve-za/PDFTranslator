@@ -23,7 +23,8 @@ from rich.table import Table
 
 from pdftranslator.cli.app import app, console, setup_logging
 from pdftranslator.database.connection import DatabasePool
-from pdftranslator.database.models import Work, Volume, Chapter, GlossaryEntry
+from pdftranslator.domain.models.work import Work, Volume, Chapter
+from pdftranslator.domain.models.glossary import GlossaryEntry
 from pdftranslator.database.repositories.book_repository import BookRepository
 from pdftranslator.database.repositories.chapter_repository import ChapterRepository
 from pdftranslator.database.repositories.volume_repository import VolumeRepository

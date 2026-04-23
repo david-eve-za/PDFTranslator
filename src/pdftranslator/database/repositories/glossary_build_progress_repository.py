@@ -7,7 +7,7 @@ import warnings
 from typing import Optional, List
 
 from pdftranslator.database.connection import DatabasePool
-from pdftranslator.database.models import EntityCandidate, GlossaryBuildProgress
+from pdftranslator.domain.models.entity import EntityCandidate, GlossaryBuildProgress
 
 logger = logging.getLogger(__name__)
 

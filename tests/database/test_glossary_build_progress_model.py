@@ -3,7 +3,7 @@
 import pytest
 from datetime import datetime
 
-from pdftranslator.database.models import GlossaryBuildProgress
+from pdftranslator.domain.models.entity import GlossaryBuildProgress
 
 
 def test_glossary_build_progress_creation():

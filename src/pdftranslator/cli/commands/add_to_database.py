@@ -16,7 +16,7 @@ from rich.progress import (
 )
 
 from pdftranslator.cli.app import app, console, VALID_EXTENSIONS
-from pdftranslator.database.models import Work, Volume
+from pdftranslator.domain.models.work import Work, Volume
 from pdftranslator.database.repositories.book_repository import BookRepository
 from pdftranslator.database.repositories.volume_repository import VolumeRepository
 from pdftranslator.infrastructure.document.docling_document_parser import DoclingDocumentParser

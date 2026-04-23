@@ -3,7 +3,7 @@ from typing import Optional, List
 from datetime import datetime
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.base import BaseRepository
-from pdftranslator.database.models import Volume
+from pdftranslator.domain.models.work import Volume
 
 
 class VolumeRepository(BaseRepository[Volume]):

@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
-from pdftranslator.database.models import EntityCandidate, GlossaryBuildProgress
+from pdftranslator.domain.models.entity import EntityCandidate, GlossaryBuildProgress
 from pdftranslator.database.services.glossary_manager import GlossaryManager
 
 

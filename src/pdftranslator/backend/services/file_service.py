@@ -8,7 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from pdftranslator.core.config.settings import Settings
-from pdftranslator.database.models import UploadedFile, Volume, Work
+from pdftranslator.domain.models.file import UploadedFile
+from pdftranslator.domain.models.work import Volume, Work
 from pdftranslator.database.repositories.book_repository import BookRepository
 from pdftranslator.database.repositories.uploaded_file_repository import (
     UploadedFileRepository,

@@ -4,7 +4,7 @@ import numpy as np
 
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.base import BaseRepository
-from pdftranslator.database.models import GlossaryEntry, TermContext, ContextExample
+from pdftranslator.domain.models.glossary import GlossaryEntry, TermContext, ContextExample
 from pdftranslator.database.services.vector_store import VectorStoreService
 from langchain_core.documents import Document
 

@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 from pdftranslator.database.services.glossary_manager import GlossaryManager
-from pdftranslator.database.models import EntityCandidate, BuildResult
+from pdftranslator.domain.models.entity import EntityCandidate, BuildResult
 from pdftranslator.database.connection import DatabasePool
 
 
