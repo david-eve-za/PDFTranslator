@@ -30,7 +30,7 @@ from pdftranslator.application.services.translation_service import TranslationSe
 from pdftranslator.tools.VideoGenerator import VideoGenerator
 from pdftranslator.tools.AudioGenerator import AudioGenerator
 from pdftranslator.tools.FileFinder import FileFinder, IsFileFilter, ExcludeTranslatedFilter
-from pdftranslator.tools.TextExtractor import TextExtractor
+from pdftranslator.infrastructure.document.docling_document_parser import DoclingDocumentParser
 
 
 def translate_text(
@@ -162,8 +162,8 @@ def process_single_file(
         )
         return True
 
-    text_extractor = TextExtractor()
-    original_text = text_extractor.extract_text(file_path=file_path)
+    text_extractor = DoclingDocumentParser()
+    original_text = text_extractor.parse(file_path=str(file_path))
 
     if not original_text or not original_text.strip():
         logging.warning(

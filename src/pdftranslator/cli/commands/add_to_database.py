@@ -19,7 +19,7 @@ from pdftranslator.cli.app import app, console, VALID_EXTENSIONS
 from pdftranslator.database.models import Work, Volume
 from pdftranslator.database.repositories.book_repository import BookRepository
 from pdftranslator.database.repositories.volume_repository import VolumeRepository
-from pdftranslator.tools.TextExtractor import TextExtractor
+from pdftranslator.infrastructure.document.docling_document_parser import DoclingDocumentParser
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +73,7 @@ def process_single_file(
     file_path: Path,
     work_repo: BookRepository,
     volume_repo: VolumeRepository,
-    extractor: TextExtractor,
+    extractor: DoclingDocumentParser,
 ) -> ProcessingResult:
     parsed = parse_filename(file_path)
     if not parsed:
@@ -98,7 +98,7 @@ def process_single_file(
                 error_message=f"El volumen {parsed.volume_number} ya existe para '{work.title}'",
             )
 
-        text = extractor.extract_text(str(file_path))
+        text = extractor.parse(str(file_path))
         if not text:
             return ProcessingResult(
                 filename=file_path.name,
@@ -139,7 +139,7 @@ def process_files(files: List[Path]) -> List[ProcessingResult]:
     results: List[ProcessingResult] = []
     work_repo = BookRepository()
     volume_repo = VolumeRepository()
-    extractor = TextExtractor()
+    extractor = DoclingDocumentParser()
 
     with Progress(
         SpinnerColumn(),
