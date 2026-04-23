@@ -7,8 +7,7 @@ para proporcionar contexto de traducción más preciso.
 """
 
 import logging
-import re
-from typing import List, Optional
+from typing import Optional
 
 import questionary
 import typer
@@ -23,15 +22,15 @@ from rich.progress import (
 from rich.table import Table
 
 from pdftranslator.cli.app import app, console, setup_logging
-from pdftranslator.cli.services.glossary_post_processor import GlossaryPostProcessor
+from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.models import Work, Volume, Chapter, GlossaryEntry
 from pdftranslator.database.repositories.book_repository import BookRepository
 from pdftranslator.database.repositories.chapter_repository import ChapterRepository
 from pdftranslator.database.repositories.volume_repository import VolumeRepository
 from pdftranslator.database.repositories.glossary_repository import GlossaryRepository
+from pdftranslator.application.services.translation_service import TranslationService
+from pdftranslator.services.glossary_translator import GlossaryAwareTranslator
 from pdftranslator.infrastructure.llm.base import BCP47Language
-from pdftranslator.tools.Translator import Translator
-from pdftranslator.core.config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -310,163 +309,22 @@ def _select_chapter_interactive(
     return selected_chapter
 
 
-class GlossaryAwareTranslator(Translator):
-    """
-    Translator with glossary consistency through post-processing.
-
-    Instead of injecting glossary terms into the translation prompt,
-    this translator applies glossary validation and correction after
-    translation, ensuring 100% consistency of terms.
-
-    Benefits:
-    - Larger chunks (no glossary overhead in prompt)
-    - Guaranteed consistency through post-processing
-    - Fewer API calls for same text
-    """
-
-    def __init__(
-        self,
-        glossary_entries: List[GlossaryEntry],
-        progress=None,
-    ):
-        """
-        Initialize with glossary entries for context-aware translation.
-
-        Args:
-            glossary_entries: List of glossary terms for post-processing
-            progress: Optional progress tracker
-        """
-        super().__init__(progress=progress)
-        self.glossary_entries = glossary_entries
-        self._post_processor = None
-
-    def _get_translation_prompt_template(
-        self, source_lang: str, target_lang: str
-    ) -> str:
-        """
-        Get the standard translation prompt template.
-
-        Note: Glossary is no longer included in prompt.
-        Use GlossaryPostProcessor for term consistency.
-
-        Returns:
-            The translation prompt template.
-        """
-        with open(
-            self._settings.paths.translation_prompt_path, "r", encoding="utf-8"
-        ) as f:
-            return f.read()
-
-    def _get_language_for_split(self, source_lang: str) -> BCP47Language:
-        """Map source language to BCP47Language enum."""
-        lang_map = {
-            "en": BCP47Language.ENGLISH,
-            "es": BCP47Language.SPANISH,
-            "zh": BCP47Language.CHINESE,
-            "ja": BCP47Language.JAPANESE,
-            "ko": BCP47Language.KOREAN,
-            "fr": BCP47Language.FRENCH,
-            "de": BCP47Language.GERMAN,
-            "it": BCP47Language.ITALIAN,
-            "pt": BCP47Language.PORTUGUESE,
-            "ru": BCP47Language.RUSSIAN,
-            "ar": BCP47Language.ARABIC,
-            "hi": BCP47Language.HINDI,
-        }
-        return lang_map.get(source_lang.lower(), BCP47Language.ENGLISH)
-
-    def translate_text(self, full_text: str, source_lang: str, target_lang: str) -> str:
-        """
-        Translate text with post-processing for glossary consistency.
-
-        Args:
-            full_text: Text to translate
-            source_lang: Source language code
-            target_lang: Target language code
-
-        Returns:
-            Translated text with glossary terms consistently applied
-        """
-        split_lang = self._get_language_for_split(source_lang)
-        chunks = self.llm_client.split_into_limit(full_text, language=split_lang)
-
-        logger.info(f"Text split into {len(chunks)} chunks for translation.")
-
-        if not chunks:
-            logger.warning("No chunks to translate.")
-            return ""
-
-        translated_parts = self._translate_chunks(chunks, source_lang, target_lang)
-
-        logger.info("Translation of all chunks completed.")
-
-        full_translated_text = "\n\n".join(translated_parts)
-        full_translated_text = re.sub(r"\n{3,}", "\n\n", full_translated_text).strip()
-
-        if self.glossary_entries:
-            logger.info(
-                f"Applying glossary post-processing ({len(self.glossary_entries)} entries)"
-            )
-            self._post_processor = GlossaryPostProcessor(
-                self.glossary_entries, target_lang
-            )
-            full_translated_text = self._post_processor.process(full_translated_text)
-            logger.info("Glossary post-processing completed")
-
-        return full_translated_text
-
-    def _translate_single_chunk(
-        self, chunk: str, chunk_index: int, base_prompt_template: str
-    ) -> str:
-        """
-        Translate a single chunk (no glossary in prompt).
-
-        Args:
-            chunk: Text chunk to translate
-            chunk_index: Index of the chunk (for logging)
-            base_prompt_template: Prompt template to use
-
-        Returns:
-            Translated chunk or error marker
-        """
-        prompt = base_prompt_template.format(
-            text_chunk=chunk,
-            source_lang=self._current_source_lang,
-            target_lang=self._current_target_lang,
-        )
-
-        prompt_tokens = self.llm_client.count_tokens(prompt)
-        logger.debug(f"Chunk {chunk_index + 1}: Prompt total = {prompt_tokens} tokens")
-
-        try:
-            translated_chunk = self.llm_client.call_model(prompt)
-            return translated_chunk if translated_chunk is not None else ""
-        except Exception as e:
-            logger.error(f"Error during LLM call for chunk {chunk_index + 1}: {e}")
-            return self._translate_single_chunk(chunk, chunk_index, base_prompt_template)
-
-    def _translate_chunks(
-        self, chunks: list[str], source_lang: str, target_lang: str
-    ) -> list[str]:
-        """Translate all chunks with progress tracking."""
-        self._current_source_lang = source_lang
-        self._current_target_lang = target_lang
-
-        translated_chunks = []
-        prompt_template = self._get_translation_prompt_template(
-            source_lang, target_lang
-        )
-
-        if self._progress:
-            iterator = self._progress(enumerate(chunks), desc="Translating Chunks...")
-        else:
-            iterator = enumerate(chunks)
-
-        for i, chunk in iterator:
-            translated_chunk = self._translate_single_chunk(chunk, i, prompt_template)
-            translated_chunks.append(translated_chunk)
-
-        return translated_chunks
+def _get_language_for_split(source_lang: str) -> BCP47Language:
+    lang_map = {
+        "en": BCP47Language.ENGLISH,
+        "es": BCP47Language.SPANISH,
+        "zh": BCP47Language.CHINESE,
+        "ja": BCP47Language.JAPANESE,
+        "ko": BCP47Language.KOREAN,
+        "fr": BCP47Language.FRENCH,
+        "de": BCP47Language.GERMAN,
+        "it": BCP47Language.ITALIAN,
+        "pt": BCP47Language.PORTUGUESE,
+        "ru": BCP47Language.RUSSIAN,
+        "ar": BCP47Language.ARABIC,
+        "hi": BCP47Language.HINDI,
+    }
+    return lang_map.get(source_lang.lower(), BCP47Language.ENGLISH)
 
 
 def _translate_chapter(
@@ -478,11 +336,6 @@ def _translate_chapter(
     progress: Progress,
     task_id,
 ) -> bool:
-    """
-    Translate a single chapter and save to database.
-
-    Returns True on success, False on failure.
-    """
     if not chapter.original_text:
         progress.update(task_id, description="[dim]No original text, skipping[/dim]")
         return False
@@ -492,12 +345,17 @@ def _translate_chapter(
         return False
 
     try:
-        translated_text = translator.translate_text(
-            chapter.original_text, source_lang, target_lang
+        language = _get_language_for_split(source_lang)
+        result = translator.translate(
+            chapter.original_text,
+            source_lang,
+            target_lang,
+            target_lang,
+            language=language,
         )
 
-        if translated_text:
-            chapter.translated_text = translated_text
+        if result.text:
+            chapter.translated_text = result.text
             chapter_repo.update(chapter)
             progress.update(task_id, description="[green]✓ Translated[/green]")
             return True
@@ -678,10 +536,11 @@ def translate_chapter(
     """
     setup_logging()
 
-    work_repo = BookRepository()
-    volume_repo = VolumeRepository()
-    chapter_repo = ChapterRepository()
-    glossary_repo = GlossaryRepository()
+    pool = DatabasePool.get_instance()
+    work_repo = BookRepository(pool)
+    volume_repo = VolumeRepository(pool)
+    chapter_repo = ChapterRepository(pool)
+    glossary_repo = GlossaryRepository(pool)
 
     # Select work
     selected_work = _select_work_interactive(work_repo)
@@ -723,7 +582,14 @@ def translate_chapter(
         f"[dim]Translating from {effective_source} to {effective_target}[/dim]"
     )
 
-    translator = GlossaryAwareTranslator(glossary_entries=glossary_entries)
+    from pdftranslator.infrastructure.llm.factory import LLMFactory
+
+    llm_client = LLMFactory.create()
+    translation_service = TranslationService(llm_client)
+    translator = GlossaryAwareTranslator(
+        translator=translation_service,
+        glossary_entries=glossary_entries,
+    )
 
     total_success = 0
     total_failure = 0
