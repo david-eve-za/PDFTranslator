@@ -1,8 +1,9 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from database.connection import DatabasePool
-from database.services.entity_extractor import (
+
+from pdftranslator.database.connection import DatabasePool
+from pdftranslator.database.services.entity_extractor import (
     SKILL_PATTERN,
     TITLE_PATTERN,
     EntityExtractor,
@@ -49,9 +50,9 @@ class TestEntityExtractor:
         mock_connection[1].fetchone.return_value = None
 
         with patch(
-            "database.services.entity_extractor.EntityBlacklistRepository"
+            "pdftranslator.database.services.entity_extractor.EntityBlacklistRepository"
         ) as mock_blacklist_cls, patch(
-            "database.services.entity_extractor.FantasyTermRepository"
+            "pdftranslator.database.services.entity_extractor.FantasyTermRepository"
         ) as mock_fantasy_cls:
             mock_blacklist = MagicMock()
             mock_blacklist.get_all_terms.return_value = set()
@@ -76,9 +77,9 @@ class TestEntityExtractor:
         mock_connection[1].fetchone.return_value = None
 
         with patch(
-            "database.services.entity_extractor.EntityBlacklistRepository"
+            "pdftranslator.database.services.entity_extractor.EntityBlacklistRepository"
         ) as mock_blacklist_cls, patch(
-            "database.services.entity_extractor.FantasyTermRepository"
+            "pdftranslator.database.services.entity_extractor.FantasyTermRepository"
         ) as mock_fantasy_cls:
             mock_blacklist = MagicMock()
             mock_blacklist.get_all_terms.return_value = {"chapter"}
@@ -103,9 +104,9 @@ class TestEntityExtractor:
         mock_connection[1].fetchone.return_value = None
 
         with patch(
-            "database.services.entity_extractor.EntityBlacklistRepository"
+            "pdftranslator.database.services.entity_extractor.EntityBlacklistRepository"
         ) as mock_blacklist_cls, patch(
-            "database.services.entity_extractor.FantasyTermRepository"
+            "pdftranslator.database.services.entity_extractor.FantasyTermRepository"
         ) as mock_fantasy_cls:
             mock_blacklist = MagicMock()
             mock_blacklist.get_all_terms.return_value = set()
@@ -142,9 +143,9 @@ class TestEntityExtractor:
         mock_connection[1].fetchone.return_value = None
 
         with patch(
-            "database.services.entity_extractor.EntityBlacklistRepository"
+            "pdftranslator.database.services.entity_extractor.EntityBlacklistRepository"
         ) as mock_blacklist_cls, patch(
-            "database.services.entity_extractor.FantasyTermRepository"
+            "pdftranslator.database.services.entity_extractor.FantasyTermRepository"
         ) as mock_fantasy_cls:
             mock_blacklist = MagicMock()
             mock_blacklist.get_all_terms.return_value = set()
@@ -168,9 +169,9 @@ class TestEntityExtractor:
         mock_connection[1].fetchone.return_value = None
 
         with patch(
-            "database.services.entity_extractor.EntityBlacklistRepository"
+            "pdftranslator.database.services.entity_extractor.EntityBlacklistRepository"
         ) as mock_blacklist_cls, patch(
-            "database.services.entity_extractor.FantasyTermRepository"
+            "pdftranslator.database.services.entity_extractor.FantasyTermRepository"
         ) as mock_fantasy_cls:
             mock_blacklist = MagicMock()
             mock_blacklist.get_all_terms.return_value = set()

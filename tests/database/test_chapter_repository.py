@@ -1,9 +1,10 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from database.connection import DatabasePool
-from database.models import Chapter
-from database.repositories.chapter_repository import ChapterRepository
+
+from pdftranslator.database import Chapter
+from pdftranslator.database.connection import DatabasePool
+from pdftranslator.database.repositories.chapter_repository import ChapterRepository
 
 
 @pytest.fixture
@@ -28,7 +29,7 @@ def reset_database_pool():
 
 
 def test_chapter_repository_inherits_from_base():
-    from database.repositories.base import BaseRepository
+    from pdftranslator.database.repositories.base import BaseRepository
 
     assert issubclass(ChapterRepository, BaseRepository)
 
@@ -107,7 +108,7 @@ def test_create_chapter(mock_pool, mock_connection):
     assert result.chapter_number == 1
 
 
-@patch("database.repositories.chapter_repository.VectorStoreService")
+@patch("pdftranslator.database.repositories.chapter_repository.VectorStoreService")
 def test_search_with_rerank(mock_vector_service, mock_pool, mock_connection):
     mock_pool.get_sync_pool.return_value.connection.return_value.__enter__ = MagicMock(
         return_value=mock_connection[0]

@@ -1,8 +1,11 @@
 from unittest.mock import MagicMock
 
 import pytest
-from database.connection import DatabasePool
-from database.repositories.entity_blacklist_repository import EntityBlacklistRepository
+
+from pdftranslator.database.connection import DatabasePool
+from pdftranslator.database.repositories.entity_blacklist_repository import (
+    EntityBlacklistRepository,
+)
 
 
 @pytest.fixture

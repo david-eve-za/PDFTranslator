@@ -8,7 +8,8 @@ from docling_core.types.doc import (
     TextItem,
     TitleItem,
 )
-from infrastructure.document.section_grouper import SectionGrouper
+
+from pdftranslator.infrastructure.document.section_grouper import SectionGrouper
 
 
 def _create_mock_document_with_sections():

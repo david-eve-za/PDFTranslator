@@ -3,9 +3,10 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from config.document import DoclingConfig
 from docling_core.types.doc import DoclingDocument
-from infrastructure.document.docling_extractor import DoclingExtractor
+
+from pdftranslator.core.config.settings import DoclingConfig
+from pdftranslator.infrastructure.document.docling_extractor import DoclingExtractor
 
 
 def test_docling_extractor_initializes_with_defaults():
@@ -80,8 +81,8 @@ def test_docling_extractor_invalid_device_rejected_by_config():
     assert "accelerator_device must be one of" in str(exc_info.value)
 
 
-@patch("infrastructure.document.docling_extractor.DocumentConverter")
-@patch("infrastructure.document.docling_extractor.Path")
+@patch("pdftranslator.infrastructure.document.docling_extractor.DocumentConverter")
+@patch("pdftranslator.infrastructure.document.docling_extractor.Path")
 def test_docling_extractor_extract_returns_document(mock_path, mock_converter_class):
     """Test extract() returns DoclingDocument."""
     # Setup mock path

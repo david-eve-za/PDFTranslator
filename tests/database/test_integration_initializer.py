@@ -1,8 +1,9 @@
 import os
 
 import pytest
-from database.initializer import DatabaseInitializer
 from psycopg_pool import ConnectionPool
+
+from pdftranslator.database.initializer import DatabaseInitializer
 
 pytestmark = pytest.mark.integration
 

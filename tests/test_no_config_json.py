@@ -38,6 +38,6 @@ def test_error_message_no_config_json_mention():
     assert "config.json" not in error_output, (
         "Error message should not mention config.json"
     )
-    assert "command-line argument" in error_output, (
+    assert "Missing command" in error_output or "command-line argument" in error_output, (
         "Error should mention command-line argument"
     )

@@ -63,10 +63,14 @@ class GlossaryBuildProgress:
     def is_complete(self) -> bool:
         return self.phase == "saved"
 
-    def next_phase(self) -> str:
+    def next_phase(self) -> str | None:
         phases = ["extracted", "validated", "translated", "saved"]
-        current = phases.index(self.phase) if self.phase in phases else 0
-        return phases[min(current + 1, len(phases) - 1)]
+        if self.phase not in phases:
+            return phases[0]
+        current = phases.index(self.phase)
+        if current >= len(phases) - 1:
+            return None
+        return phases[current + 1]
 
 
 @dataclass
