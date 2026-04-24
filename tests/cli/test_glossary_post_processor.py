@@ -10,14 +10,14 @@ def create_entry(
     do_not_translate: bool = False,
     entity_type: str = "other",
 ) -> GlossaryEntry:
-    """Helper to create GlossaryEntry for testing."""
-    # GlossaryEntry is a dataclass with simplified fields after refactoring
     return GlossaryEntry(
         id=None,
-        work_id=1,  # Dummy work_id for testing
-        source_term=term,
-        target_term=translation,
+        work_id=1,
+        term=term,
+        translation=translation,
         notes="DO_NOT_TRANSLATE" if do_not_translate else None,
+        do_not_translate=do_not_translate,
+        entity_type=entity_type,
     )
 
 
