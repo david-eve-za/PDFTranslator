@@ -17,7 +17,7 @@ class BookRepository(BaseRepository[Work]):
             author=row[5] if len(row) > 5 else None,
         )
 
-    def __init__(self, pool: DatabasePool | None = None):
+    def __init__(self, pool: DatabasePool | None = None, vector_service: VectorStoreService | None = None):
         if pool is None:
             warnings.warn(
                 "Providing pool=None is deprecated. Inject a ConnectionPool explicitly.",
@@ -26,7 +26,13 @@ class BookRepository(BaseRepository[Work]):
             )
             pool = DatabasePool.get_instance()
         self._pool = pool
-        self._vector_service = VectorStoreService()
+        if vector_service is None:
+            warnings.warn(
+                "Providing vector_service=None is deprecated. Inject a VectorStoreService explicitly.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        self._vector_service = vector_service or VectorStoreService()
 
     def get_by_id(self, id: int) -> Work | None:
         pool = self._pool.get_sync_pool()

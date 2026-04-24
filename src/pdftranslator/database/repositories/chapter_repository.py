@@ -10,7 +10,7 @@ from pdftranslator.domain.models.work import Chapter
 
 
 class ChapterRepository(BaseRepository[Chapter]):
-    def __init__(self, pool: DatabasePool | None = None):
+    def __init__(self, pool: DatabasePool | None = None, vector_service: VectorStoreService | None = None):
         if pool is None:
             warnings.warn(
                 "Providing pool=None is deprecated. Inject a ConnectionPool explicitly.",
@@ -19,7 +19,13 @@ class ChapterRepository(BaseRepository[Chapter]):
             )
             pool = DatabasePool.get_instance()
         self._pool = pool
-        self._vector_service = VectorStoreService()
+        if vector_service is None:
+            warnings.warn(
+                "Providing vector_service=None is deprecated. Inject a VectorStoreService explicitly.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        self._vector_service = vector_service or VectorStoreService()
 
     def _row_to_chapter(self, row: tuple) -> Chapter:
         return Chapter(

@@ -1,3 +1,4 @@
+import warnings
 
 import numpy as np
 from langchain_core.documents import Document
@@ -21,10 +22,17 @@ class VectorStoreService:
         self,
         embedder: EmbeddingProvider | None = None,
         reranker: RerankingProvider | None = None,
+        config: Settings | None = None,
     ):
         self._injected_embedder = embedder
         self._injected_reranker = reranker
-        self._config = Settings.get()
+        if config is None:
+            warnings.warn(
+                "Providing config=None is deprecated. Inject Settings explicitly.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        self._config = config or Settings.get()
         self._embedder: NVIDIAEmbeddings | None = None
         self._reranker: NVIDIARerank | None = None
 
