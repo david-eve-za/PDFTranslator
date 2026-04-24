@@ -1,8 +1,6 @@
 """Integration tests for glossary resume functionality."""
 
-import os
 import pytest
-from unittest.mock import MagicMock
 from psycopg.errors import UndefinedTable
 
 from pdftranslator.database.connection import DatabasePool

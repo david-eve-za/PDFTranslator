@@ -1,7 +1,8 @@
-from typing import List, Optional
+
 import numpy as np
-from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings, NVIDIARerank
 from langchain_core.documents import Document
+from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings, NVIDIARerank
+
 from pdftranslator.core.config.settings import Settings
 from pdftranslator.domain.protocols.embedding import EmbeddingProvider
 from pdftranslator.domain.protocols.reranking import RerankingProvider
@@ -24,8 +25,8 @@ class VectorStoreService:
         self._injected_embedder = embedder
         self._injected_reranker = reranker
         self._config = Settings.get()
-        self._embedder: Optional[NVIDIAEmbeddings] = None
-        self._reranker: Optional[NVIDIARerank] = None
+        self._embedder: NVIDIAEmbeddings | None = None
+        self._reranker: NVIDIARerank | None = None
 
     @property
     def _nvidia(self):
@@ -57,7 +58,7 @@ class VectorStoreService:
             )
         return self._reranker
 
-    def embed_query(self, text: str) -> List[float]:
+    def embed_query(self, text: str) -> list[float]:
         """
         Genera embedding para una consulta.
 
@@ -69,7 +70,7 @@ class VectorStoreService:
         """
         return self.embedder.embed_query(text)
 
-    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
         """
         Genera embeddings para múltiples documentos.
 
@@ -82,8 +83,8 @@ class VectorStoreService:
         return self.embedder.embed_documents(texts)
 
     def rerank_documents(
-        self, query: str, documents: List[Document], top_n: Optional[int] = None
-    ) -> List[Document]:
+        self, query: str, documents: list[Document], top_n: int | None = None
+    ) -> list[Document]:
         """
         Rerankear documentos basado en relevancia con la query.
 
@@ -109,8 +110,8 @@ class VectorStoreService:
         return reranker.compress_documents(documents=documents, query=query)
 
     def cosine_similarity(
-        self, query_embedding: List[float], doc_embeddings: List[List[float]]
-    ) -> List[float]:
+        self, query_embedding: list[float], doc_embeddings: list[list[float]]
+    ) -> list[float]:
         """
         Calcula similitud coseno entre un embedding de consulta y múltiples documentos.
 
@@ -135,10 +136,10 @@ class VectorStoreService:
 
     def find_most_similar(
         self,
-        query_embedding: List[float],
-        doc_embeddings: List[List[float]],
+        query_embedding: list[float],
+        doc_embeddings: list[list[float]],
         top_k: int = 5,
-    ) -> List[int]:
+    ) -> list[int]:
         """
         Encuentra los índices de los documentos más similares a la consulta.
 
@@ -157,8 +158,8 @@ class VectorStoreService:
 
     def embed_entities_for_glossary(
         self,
-        entities: List,
-    ) -> List[tuple]:
+        entities: list,
+    ) -> list[tuple]:
         """
         Genera embeddings para entidades candidatas.
         El texto a embeddear combina: término + tipo + contexto
@@ -173,4 +174,4 @@ class VectorStoreService:
             return []
         texts = [f"{e.text} {e.entity_type} {e.best_context()}" for e in entities]
         embeddings = self.embedder.embed_documents(texts)
-        return list(zip(entities, embeddings))
+        return list(zip(entities, embeddings, strict=False))

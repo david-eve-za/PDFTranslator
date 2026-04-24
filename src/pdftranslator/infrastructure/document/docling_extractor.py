@@ -3,17 +3,17 @@
 import logging
 from pathlib import Path
 
-from docling.document_converter import DocumentConverter, PdfFormatOption
-from docling.datamodel.base_models import InputFormat
-from docling.datamodel.pipeline_options import (
-    PdfPipelineOptions,
-    EasyOcrOptions,
-)
 from docling.datamodel.accelerator_options import (
-    AcceleratorOptions,
     AcceleratorDevice,
+    AcceleratorOptions,
 )
+from docling.datamodel.base_models import InputFormat
 from docling.datamodel.document import ConversionResult
+from docling.datamodel.pipeline_options import (
+    EasyOcrOptions,
+    PdfPipelineOptions,
+)
+from docling.document_converter import DocumentConverter, PdfFormatOption
 from docling_core.types.doc import DoclingDocument
 
 from pdftranslator.core.config.document import DoclingConfig

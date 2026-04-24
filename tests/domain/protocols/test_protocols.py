@@ -1,13 +1,11 @@
 """Tests for all domain protocols."""
-from pdftranslator.domain.protocols.embedding import EmbeddingProvider
-from pdftranslator.domain.protocols.reranking import RerankingProvider
 from pdftranslator.domain.protocols.audio_synthesizer import AudioSynthesizer
 from pdftranslator.domain.protocols.document_parser import DocumentParser
+from pdftranslator.domain.protocols.embedding import EmbeddingProvider
 from pdftranslator.domain.protocols.repositories import (
-    ReadRepository,
-    WriteRepository,
     GlossaryProgressTracker,
 )
+from pdftranslator.domain.protocols.reranking import RerankingProvider
 
 
 def test_embedding_provider_protocol():

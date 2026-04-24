@@ -3,9 +3,9 @@
 from rich.console import Console
 from rich.table import Table
 
-from pdftranslator.domain.models.work import Work, Volume, Chapter
-from pdftranslator.database.repositories.volume_repository import VolumeRepository
 from pdftranslator.database.repositories.chapter_repository import ChapterRepository
+from pdftranslator.database.repositories.volume_repository import VolumeRepository
+from pdftranslator.domain.models.work import Chapter, Work
 
 console = Console()
 

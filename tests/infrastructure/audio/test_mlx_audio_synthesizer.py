@@ -1,5 +1,4 @@
 """Tests for MlxAudioSynthesizer."""
-from unittest.mock import MagicMock, patch
 from pathlib import Path
 
 from pdftranslator.infrastructure.audio.mlx_audio_synthesizer import MlxAudioSynthesizer

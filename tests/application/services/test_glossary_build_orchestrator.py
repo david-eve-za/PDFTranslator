@@ -1,8 +1,11 @@
 """Tests for GlossaryBuildOrchestrator."""
 from unittest.mock import MagicMock
-from pdftranslator.application.services.glossary_build_orchestrator import GlossaryBuildOrchestrator
-from pdftranslator.domain.protocols.llm import TextGenerator
+
+from pdftranslator.application.services.glossary_build_orchestrator import (
+    GlossaryBuildOrchestrator,
+)
 from pdftranslator.domain.protocols.embedding import EmbeddingProvider
+from pdftranslator.domain.protocols.llm import TextGenerator
 from pdftranslator.domain.protocols.repositories import GlossaryProgressTracker
 
 

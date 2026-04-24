@@ -1,7 +1,8 @@
 """Tests that VectorStoreService accepts injected providers."""
 from unittest.mock import MagicMock
-from pdftranslator.domain.protocols.embedding import EmbeddingProvider
+
 from pdftranslator.database.services.vector_store import VectorStoreService
+from pdftranslator.domain.protocols.embedding import EmbeddingProvider
 
 
 def test_vector_store_accepts_injected_embedder():

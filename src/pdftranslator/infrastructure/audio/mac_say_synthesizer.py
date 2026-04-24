@@ -10,7 +10,7 @@ import subprocess
 from pathlib import Path
 
 from pdftranslator.core.config.settings import Settings
-from pdftranslator.domain.protocols.audio_synthesizer import AudioSynthesizer
+from pdftranslator.infrastructure.audio.ffmpeg_merger import merge_audio_files
 
 logger = logging.getLogger(__name__)
 

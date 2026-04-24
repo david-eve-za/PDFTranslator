@@ -1,6 +1,8 @@
-import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from pdftranslator.database.initializer import DatabaseInitializer
 
 
@@ -109,10 +111,9 @@ class TestDatabaseInitializer:
             Path("/database/schemas/002_extra.sql"),
         ]
 
-        with patch.object(Path, "glob", return_value=scripts):
-            with patch.object(Path, "read_text") as mock_read:
-                mock_read.return_value = "SELECT 1;"
-                initializer._execute_schema_scripts(mock_cursor)
+        with patch.object(Path, "glob", return_value=scripts), patch.object(Path, "read_text") as mock_read:
+            mock_read.return_value = "SELECT 1;"
+            initializer._execute_schema_scripts(mock_cursor)
 
-        calls = mock_cursor.execute.call_args_list
-        assert len(calls) == 3
+            calls = mock_cursor.execute.call_args_list
+            assert len(calls) == 3

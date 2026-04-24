@@ -1,8 +1,11 @@
 """Tests for EntityValidationService (extracted from GlossaryManager)."""
 from unittest.mock import MagicMock
-from pdftranslator.domain.protocols.llm import TextGenerator
-from pdftranslator.application.services.entity_validation_service import EntityValidationService
+
+from pdftranslator.application.services.entity_validation_service import (
+    EntityValidationService,
+)
 from pdftranslator.domain.models.entity import EntityCandidate
+from pdftranslator.domain.protocols.llm import TextGenerator
 
 
 def test_entity_validation_service_accepts_text_generator():

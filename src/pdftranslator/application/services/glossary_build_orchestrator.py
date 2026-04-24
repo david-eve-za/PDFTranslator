@@ -17,12 +17,16 @@ from __future__ import annotations
 
 import logging
 
-from pdftranslator.domain.protocols.llm import TextGenerator
-from pdftranslator.domain.protocols.embedding import EmbeddingProvider
-from pdftranslator.domain.protocols.repositories import GlossaryProgressTracker
+from pdftranslator.application.services.entity_validation_service import (
+    EntityValidationService,
+)
+from pdftranslator.application.services.translation_suggestion_service import (
+    TranslationSuggestionService,
+)
 from pdftranslator.domain.models.entity import BuildResult, EntityCandidate
-from pdftranslator.application.services.entity_validation_service import EntityValidationService
-from pdftranslator.application.services.translation_suggestion_service import TranslationSuggestionService
+from pdftranslator.domain.protocols.embedding import EmbeddingProvider
+from pdftranslator.domain.protocols.llm import TextGenerator
+from pdftranslator.domain.protocols.repositories import GlossaryProgressTracker
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +134,7 @@ class GlossaryBuildOrchestrator:
             return []
         texts = [e.to_embed_text() for e in entities]
         embeddings = self._embedder.embed_documents(texts)
-        return list(zip(entities, embeddings))
+        return list(zip(entities, embeddings, strict=False))
 
     def _save_entities(
         self,

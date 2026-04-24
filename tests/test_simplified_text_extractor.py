@@ -1,8 +1,7 @@
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
-import pytest
+from unittest.mock import patch
 
 from tools.TextExtractor import TextExtractor
 
@@ -40,7 +39,7 @@ def test_no_image_extraction_occurs():
         # Mock the PDF extraction to return text
         with patch.object(extractor, "_extract_from_pdf") as mock_extract:
             mock_extract.return_value = "test text"
-            result = extractor.extract_text(str(test_pdf))
+            extractor.extract_text(str(test_pdf))
 
             # Verify no images directory was created
             images_dir = test_pdf.parent / f"images_{test_pdf.stem}"

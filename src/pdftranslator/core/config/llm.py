@@ -1,10 +1,11 @@
 """LLM configuration models."""
 
-from enum import Enum
+from enum import StrEnum
+
 from pydantic import BaseModel, Field
 
 
-class LLMProvider(str, Enum):
+class LLMProvider(StrEnum):
     """Supported LLM providers."""
 
     GEMINI = "gemini"
@@ -12,7 +13,7 @@ class LLMProvider(str, Enum):
     OLLAMA = "ollama"
 
 
-class BCP47Language(str, Enum):
+class BCP47Language(StrEnum):
     """BCP 47 language codes for text splitting."""
 
     ENGLISH = "en"

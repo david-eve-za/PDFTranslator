@@ -8,10 +8,10 @@ from pdftranslator.backend.api.models.schemas import (
     SplitProcessRequest,
     SplitProcessResponse,
 )
-from pdftranslator.cli.commands.split_text import parse_blocks, BlockParseError
+from pdftranslator.cli.commands.split_text import BlockParseError, parse_blocks
 from pdftranslator.database.connection import DatabasePool
-from pdftranslator.database.repositories.volume_repository import VolumeRepository
 from pdftranslator.database.repositories.chapter_repository import ChapterRepository
+from pdftranslator.database.repositories.volume_repository import VolumeRepository
 
 router = APIRouter(prefix="/api/split", tags=["split"])
 

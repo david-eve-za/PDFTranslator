@@ -11,20 +11,24 @@ Detects entities that need special treatment in translation:
 
 from __future__ import annotations
 
-import re
+import contextlib
 import logging
+import re
 from collections import Counter
-from typing import Dict, List, Optional, Set
 
 import nltk
-from nltk import word_tokenize, pos_tag, ne_chunk, sent_tokenize
+from nltk import ne_chunk, pos_tag, sent_tokenize, word_tokenize
 from nltk.corpus import words as nltk_words
 from nltk.tree import Tree
 
-from pdftranslator.domain.models.entity import EntityCandidate
-from pdftranslator.database.repositories.entity_blacklist_repository import EntityBlacklistRepository
-from pdftranslator.database.repositories.fantasy_term_repository import FantasyTermRepository
 from pdftranslator.database.connection import DatabasePool
+from pdftranslator.database.repositories.entity_blacklist_repository import (
+    EntityBlacklistRepository,
+)
+from pdftranslator.database.repositories.fantasy_term_repository import (
+    FantasyTermRepository,
+)
+from pdftranslator.domain.models.entity import EntityCandidate
 
 logger = logging.getLogger(__name__)
 
@@ -38,13 +42,11 @@ NLTK_PACKAGES = [
 ]
 
 for pkg in NLTK_PACKAGES:
-    try:
+    with contextlib.suppress(Exception):
         nltk.download(pkg, quiet=True)
-    except Exception:
-        pass
 
 try:
-    ENGLISH_WORDS: Set[str] = set(w.lower() for w in nltk_words.words())
+    ENGLISH_WORDS: set[str] = {w.lower() for w in nltk_words.words()}
 except Exception:
     ENGLISH_WORDS = set()
 
@@ -79,19 +81,19 @@ TITLE_PATTERN = re.compile(
 
 
 class EntityExtractor:
-    _english_words: Set[str] = ENGLISH_WORDS
+    _english_words: set[str] = ENGLISH_WORDS
 
     def __init__(
         self,
-        pool: Optional[DatabasePool] = None,
+        pool: DatabasePool | None = None,
         min_frequency: int = 2,
     ):
         self._pool = pool or DatabasePool.get_instance()
         self._blacklist_repo = EntityBlacklistRepository(pool)
         self._fantasy_repo = FantasyTermRepository(pool)
         self.min_frequency = min_frequency
-        self._blacklist: Set[str] = set()
-        self._fantasy_terms: Dict[str, any] = {}
+        self._blacklist: set[str] = set()
+        self._fantasy_terms: dict[str, any] = {}
 
     def _ensure_loaded(self):
         if not self._blacklist:
@@ -105,9 +107,9 @@ class EntityExtractor:
             return False
         return name.lower() in self._english_words
 
-    def extract(self, text: str, source_language: str = "en") -> List[EntityCandidate]:
+    def extract(self, text: str, source_language: str = "en") -> list[EntityCandidate]:
         self._ensure_loaded()
-        entity_counts: Dict[str, EntityCandidate] = {}
+        entity_counts: dict[str, EntityCandidate] = {}
 
         if source_language in ("en", "en-US", "en-GB"):
             nltk_entities = self._extract_nltk(text)
@@ -170,8 +172,8 @@ class EntityExtractor:
         logger.info(f"Extracted {len(filtered)} entities from text ({len(text)} chars)")
         return filtered
 
-    def _extract_nltk(self, text: str) -> List[EntityCandidate]:
-        candidates: Dict[str, EntityCandidate] = {}
+    def _extract_nltk(self, text: str) -> list[EntityCandidate]:
+        candidates: dict[str, EntityCandidate] = {}
         sentences = sent_tokenize(text)
 
         for sent in sentences:
@@ -213,8 +215,8 @@ class EntityExtractor:
 
         return list(candidates.values())
 
-    def _extract_patterns(self, text: str) -> List[EntityCandidate]:
-        candidates: Dict[str, EntityCandidate] = {}
+    def _extract_patterns(self, text: str) -> list[EntityCandidate]:
+        candidates: dict[str, EntityCandidate] = {}
 
         for m in SKILL_PATTERN.finditer(text):
             name = next((g for g in m.groups() if g), None)
@@ -252,8 +254,8 @@ class EntityExtractor:
 
         return list(candidates.values())
 
-    def _extract_by_pos_frequency(self, text: str) -> List[EntityCandidate]:
-        candidates: Dict[str, EntityCandidate] = {}
+    def _extract_by_pos_frequency(self, text: str) -> list[EntityCandidate]:
+        candidates: dict[str, EntityCandidate] = {}
         word_pos_counts: Counter = Counter()
 
         sentences = sent_tokenize(text)

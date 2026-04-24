@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
-from psycopg_pool import ConnectionPool, AsyncConnectionPool
+
+from psycopg_pool import AsyncConnectionPool, ConnectionPool
 
 logger = logging.getLogger(__name__)
 
@@ -10,31 +11,29 @@ class DatabaseInitializer:
 
     def ensure_tables_exist(self, pool: ConnectionPool) -> None:
         logger.debug("Checking if database tables exist")
-        with pool.connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(self._table_exists_query("works"))
-                result = cursor.fetchone()
-                if result is None:
-                    logger.info("Tables not found, initializing database schema")
-                    self._execute_schema_scripts(cursor)
-                    conn.commit()
-                    logger.info("Database schema initialized successfully")
-                else:
-                    logger.debug("Database tables already exist")
+        with pool.connection() as conn, conn.cursor() as cursor:
+            cursor.execute(self._table_exists_query("works"))
+            result = cursor.fetchone()
+            if result is None:
+                logger.info("Tables not found, initializing database schema")
+                self._execute_schema_scripts(cursor)
+                conn.commit()
+                logger.info("Database schema initialized successfully")
+            else:
+                logger.debug("Database tables already exist")
 
     async def ensure_tables_exist_async(self, pool: AsyncConnectionPool) -> None:
         logger.debug("Checking if database tables exist")
-        async with pool.connection() as conn:
-            async with conn.cursor() as cursor:
-                await cursor.execute(self._table_exists_query("works"))
-                result = await cursor.fetchone()
-                if result is None:
-                    logger.info("Tables not found, initializing database schema")
-                    await self._execute_schema_scripts_async(cursor)
-                    await conn.commit()
-                    logger.info("Database schema initialized successfully")
-                else:
-                    logger.debug("Database tables already exist")
+        async with pool.connection() as conn, conn.cursor() as cursor:
+            await cursor.execute(self._table_exists_query("works"))
+            result = await cursor.fetchone()
+            if result is None:
+                logger.info("Tables not found, initializing database schema")
+                await self._execute_schema_scripts_async(cursor)
+                await conn.commit()
+                logger.info("Database schema initialized successfully")
+            else:
+                logger.debug("Database tables already exist")
 
     def _table_exists_query(self, table_name: str) -> str:
         return (

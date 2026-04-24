@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 
 from pdftranslator.core.config.llm import BCP47Language
 from pdftranslator.core.config.settings import Settings
-from pdftranslator.domain.protocols.llm import TextGenerator, TextSplitter, LLMClient
+from pdftranslator.domain.protocols.llm import LLMClient, TextGenerator, TextSplitter
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +110,7 @@ class TranslationService:
 
     def _load_prompt_template(self) -> str:
         prompt_path = self._settings.paths.translation_prompt_path
-        with open(prompt_path, "r", encoding="utf-8") as f:
+        with open(prompt_path, encoding="utf-8") as f:
             return f.read()
 
     def _translate_chunk(

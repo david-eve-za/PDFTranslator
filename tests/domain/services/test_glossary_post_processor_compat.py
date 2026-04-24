@@ -1,7 +1,11 @@
 """Tests that GlossaryPostProcessor is importable from domain."""
-from pdftranslator.domain.services.glossary_post_processor import GlossaryPostProcessor as DomainProcessor
-from pdftranslator.cli.services.glossary_post_processor import GlossaryPostProcessor as CliProcessor
+from pdftranslator.cli.services.glossary_post_processor import (
+    GlossaryPostProcessor as CliProcessor,
+)
 from pdftranslator.domain.models.glossary import GlossaryEntry
+from pdftranslator.domain.services.glossary_post_processor import (
+    GlossaryPostProcessor as DomainProcessor,
+)
 
 
 def test_domain_processor_same_interface():

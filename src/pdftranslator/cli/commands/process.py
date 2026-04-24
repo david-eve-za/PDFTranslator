@@ -1,36 +1,41 @@
 import logging
 import os
 from pathlib import Path
-from typing import Optional, List, Tuple
 
 import typer
 from rich.panel import Panel
 from rich.progress import (
+    BarColumn,
     Progress,
     SpinnerColumn,
-    TextColumn,
-    BarColumn,
     TaskProgressColumn,
+    TextColumn,
 )
 
+from pdftranslator.application.services.translation_service import TranslationService
 from pdftranslator.cli.app import (
+    DEFAULT_FILE_TYPE_TO_PROCESS,
+    DEFAULT_OUTPUT_SUBDIR,
     app,
     console,
-    setup_logging,
     print_summary_table,
+    setup_logging,
     validate_output_format,
-    LOG_FILE_NAME,
-    DEFAULT_OUTPUT_SUBDIR,
-    DEFAULT_FILE_TYPE_TO_PROCESS,
 )
-from pdftranslator.core.config.settings import Settings
+from pdftranslator.domain.protocols.audio_synthesizer import AudioSynthesizer
+from pdftranslator.infrastructure.audio.audio_synthesizer_factory import (
+    AudioSynthesizerFactory,
+)
+from pdftranslator.infrastructure.document.docling_document_parser import (
+    DoclingDocumentParser,
+)
 from pdftranslator.infrastructure.llm.base import BCP47Language
 from pdftranslator.infrastructure.llm.factory import LLMFactory
-from pdftranslator.application.services.translation_service import TranslationService
-from pdftranslator.tools.FileFinder import FileFinder, IsFileFilter, ExcludeTranslatedFilter
-from pdftranslator.infrastructure.document.docling_document_parser import DoclingDocumentParser
-from pdftranslator.infrastructure.audio.audio_synthesizer_factory import AudioSynthesizerFactory
-from pdftranslator.domain.protocols.audio_synthesizer import AudioSynthesizer
+from pdftranslator.tools.FileFinder import (
+    ExcludeTranslatedFilter,
+    FileFinder,
+    IsFileFilter,
+)
 
 
 def translate_text(
@@ -39,7 +44,7 @@ def translate_text(
     file_path: Path,
     source_lang: str,
     target_lang: str,
-) -> Optional[str]:
+) -> str | None:
     logging.info(f" - Translating text for: {os.path.basename(file_path)}")
     language = _get_language_for_split(source_lang)
     result = translator.translate(text, source_lang, target_lang, language=language)
@@ -92,7 +97,7 @@ def generate_audio(
 
 def prepare_output_paths(
     file_path: Path, target_lang: str, output_format: str
-) -> Optional[Tuple[Path, Path]]:
+) -> tuple[Path, Path] | None:
     try:
         file_parent_dir = file_path.parent.resolve()
         dynamic_output_dir = file_parent_dir / DEFAULT_OUTPUT_SUBDIR
@@ -160,7 +165,7 @@ def process_single_file(
         )
         input()
 
-        with open(temp_text_file_path, "r", encoding="utf-8") as f:
+        with open(temp_text_file_path, encoding="utf-8") as f:
             original_text = f.read()
 
     except Exception as e:
@@ -190,7 +195,7 @@ def process_single_file(
     return True
 
 
-def initialize_services() -> Optional[Tuple]:
+def initialize_services() -> tuple | None:
     try:
         llm_client = LLMFactory.create()
         translation_agent = TranslationService(llm_client)
@@ -211,10 +216,10 @@ def process_files_with_progress(
     source_lang: str,
     target_lang: str,
     output_format: str,
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     file_finder = FileFinder(input_path)
 
-    files_to_process: List[Path] = file_finder.get_files(
+    files_to_process: list[Path] = file_finder.get_files(
         file_type=DEFAULT_FILE_TYPE_TO_PROCESS,
         filters=[IsFileFilter(), ExcludeTranslatedFilter()],
     )
@@ -286,7 +291,7 @@ def process(
 
     console.print(
         Panel.fit(
-            f"[bold blue]PDFAgent[/bold blue] - Audiobook Generator",
+            "[bold blue]PDFAgent[/bold blue] - Audiobook Generator",
             subtitle=f"Processing: {input_path.name}",
         )
     )

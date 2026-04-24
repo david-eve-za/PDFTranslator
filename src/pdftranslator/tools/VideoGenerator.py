@@ -2,14 +2,13 @@
 import logging
 import os
 from pathlib import Path
-from typing import List
 
 # --- Start of Monkey-Patch ---
 # This monkey-patch is necessary because moviepy versions prior to 2.0.0rc1 expect
 # PIL.Image.ANTIALIAS, which was removed in Pillow 10.0.0. This code restores
 # the alias to ensure compatibility with older moviepy versions.
 import PIL.Image
-from moviepy import AudioFileClip, ImageClip, CompositeVideoClip, concatenate_videoclips
+from moviepy import AudioFileClip, CompositeVideoClip, ImageClip, concatenate_videoclips
 
 # Try to patch PIL.Image.ANTIALIAS if missing (Pillow >= 9.0.0)
 # and an older version of MoviePy expects it.
@@ -61,7 +60,7 @@ class VideoGenerator:
 
     def create_video_from_images_and_audio(
         self,
-        image_paths: List[str],
+        image_paths: list[str],
         audio_path: str,
         output_video_path: str,
         fps: int = None,

@@ -9,8 +9,8 @@ from __future__ import annotations
 import json
 import logging
 
-from pdftranslator.domain.protocols.llm import TextGenerator
 from pdftranslator.domain.models.entity import EntityCandidate
+from pdftranslator.domain.protocols.llm import TextGenerator
 
 logger = logging.getLogger(__name__)
 

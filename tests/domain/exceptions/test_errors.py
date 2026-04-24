@@ -1,10 +1,10 @@
 """Tests for domain exceptions."""
 from pdftranslator.domain.exceptions.errors import (
-    DomainError,
     DBConnectionError,
-    QueryError,
-    EntityNotFoundError,
+    DomainError,
     DuplicateEntityError,
+    EntityNotFoundError,
+    QueryError,
 )
 
 
@@ -23,21 +23,15 @@ def test_db_connection_error_does_not_shadow_builtin():
 
 def test_backward_compat_database_imports():
     from pdftranslator.database.exceptions import (
-        DatabaseError,
         ConnectionError,
-        QueryError,
-        EntityNotFoundError,
-        DuplicateEntityError,
+        DatabaseError,
     )
     assert issubclass(ConnectionError, DatabaseError)
 
 
 def test_backward_compat_core_imports():
     from pdftranslator.core.exceptions import (
-        DatabaseError,
         ConnectionError,
-        QueryError,
-        EntityNotFoundError,
-        DuplicateEntityError,
+        DatabaseError,
     )
     assert issubclass(ConnectionError, DatabaseError)

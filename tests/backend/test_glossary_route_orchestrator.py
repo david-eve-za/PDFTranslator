@@ -19,7 +19,6 @@ def test_no_glossary_manager_import():
 
 
 def test_orchestrator_provider_returns_orchestrator():
-    from pdftranslator.application.services.glossary_build_orchestrator import GlossaryBuildOrchestrator
 
     result = get_glossary_build_orchestrator
     assert callable(result)

@@ -1,16 +1,20 @@
 import warnings
-from typing import Optional, List
+
 import numpy as np
+from langchain_core.documents import Document
 
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.base import BaseRepository
-from pdftranslator.domain.models.glossary import GlossaryEntry, TermContext, ContextExample
 from pdftranslator.database.services.vector_store import VectorStoreService
-from langchain_core.documents import Document
+from pdftranslator.domain.models.glossary import (
+    ContextExample,
+    GlossaryEntry,
+    TermContext,
+)
 
 
 class GlossaryRepository(BaseRepository[GlossaryEntry]):
-    def __init__(self, pool: Optional[DatabasePool] = None):
+    def __init__(self, pool: DatabasePool | None = None):
         if pool is None:
             warnings.warn(
                 "Providing pool=None is deprecated. Inject a ConnectionPool explicitly.",
@@ -56,47 +60,44 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
             chapter_id=row[4] if len(row) > 4 else None,
         )
 
-    def get_by_id(self, id: int) -> Optional[GlossaryEntry]:
+    def get_by_id(self, id: int) -> GlossaryEntry | None:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
                     SELECT id, work_id, term, translation, entity_type, context,
                            is_proper_noun, frequency, source_lang, target_lang,
                            created_at, updated_at
                     FROM glossary_terms
                     WHERE id = %s
                     """,
-                    (id,),
-                )
-                row = cur.fetchone()
-                if row is None:
-                    return None
-                return self._row_to_glossary_entry(row)
+                (id,),
+            )
+            row = cur.fetchone()
+            if row is None:
+                return None
+            return self._row_to_glossary_entry(row)
 
-    def get_all(self) -> List[GlossaryEntry]:
+    def get_all(self) -> list[GlossaryEntry]:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
                     SELECT id, work_id, term, translation, entity_type, context,
                            is_proper_noun, frequency, source_lang, target_lang,
                            created_at, updated_at
                     FROM glossary_terms
                     ORDER BY term
                     """
-                )
-                rows = cur.fetchall()
-                return [self._row_to_glossary_entry(row) for row in rows]
+            )
+            rows = cur.fetchall()
+            return [self._row_to_glossary_entry(row) for row in rows]
 
     def create(self, entity: GlossaryEntry) -> GlossaryEntry:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
                     INSERT INTO glossary_terms (work_id, term, translation, entity_type,
                                                 context, is_proper_noun, frequency,
                                                 source_lang, target_lang)
@@ -105,27 +106,26 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                               is_proper_noun, frequency, source_lang, target_lang,
                               created_at, updated_at
                     """,
-                    (
-                        entity.work_id,
-                        entity.term,
-                        entity.translation,
-                        entity.entity_type,
-                        entity.context,
-                        entity.is_proper_noun,
-                        entity.frequency,
-                        entity.source_lang,
-                        entity.target_lang,
-                    ),
-                )
-                row = cur.fetchone()
-                return self._row_to_glossary_entry(row)
+                (
+                    entity.work_id,
+                    entity.term,
+                    entity.translation,
+                    entity.entity_type,
+                    entity.context,
+                    entity.is_proper_noun,
+                    entity.frequency,
+                    entity.source_lang,
+                    entity.target_lang,
+                ),
+            )
+            row = cur.fetchone()
+            return self._row_to_glossary_entry(row)
 
     def update(self, entity: GlossaryEntry) -> GlossaryEntry:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
                     UPDATE glossary_terms
                     SET work_id = %s, term = %s, translation = %s, entity_type = %s,
                         context = %s, is_proper_noun = %s, frequency = %s,
@@ -135,37 +135,35 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                               is_proper_noun, frequency, source_lang, target_lang,
                               created_at, updated_at
                     """,
-                    (
-                        entity.work_id,
-                        entity.term,
-                        entity.translation,
-                        entity.entity_type,
-                        entity.context,
-                        entity.is_proper_noun,
-                        entity.frequency,
-                        entity.source_lang,
-                        entity.target_lang,
-                        entity.id,
-                    ),
-                )
-                row = cur.fetchone()
-                if row is None:
-                    return None
-                return self._row_to_glossary_entry(row)
+                (
+                    entity.work_id,
+                    entity.term,
+                    entity.translation,
+                    entity.entity_type,
+                    entity.context,
+                    entity.is_proper_noun,
+                    entity.frequency,
+                    entity.source_lang,
+                    entity.target_lang,
+                    entity.id,
+                ),
+            )
+            row = cur.fetchone()
+            if row is None:
+                return None
+            return self._row_to_glossary_entry(row)
 
     def delete(self, id: int) -> bool:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("DELETE FROM glossary_terms WHERE id = %s", (id,))
-                return cur.rowcount > 0
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute("DELETE FROM glossary_terms WHERE id = %s", (id,))
+            return cur.rowcount > 0
 
-    def get_by_work(self, work_id: int) -> List[GlossaryEntry]:
+    def get_by_work(self, work_id: int) -> list[GlossaryEntry]:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
                     SELECT id, work_id, term, translation, entity_type, context,
                     is_proper_noun, frequency, source_lang, target_lang,
                     created_at, updated_at
@@ -173,14 +171,14 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                     WHERE work_id = %s
                     ORDER BY term
                     """,
-                    (work_id,),
-                )
-                rows = cur.fetchall()
-                return [self._row_to_glossary_entry(row) for row in rows]
+                (work_id,),
+            )
+            rows = cur.fetchall()
+            return [self._row_to_glossary_entry(row) for row in rows]
 
     def get_by_work_and_volume(
         self, work_id: int, volume_id: int
-    ) -> List[GlossaryEntry]:
+    ) -> list[GlossaryEntry]:
         """
         Get glossary entries for a specific work and volume.
 
@@ -193,8 +191,8 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
         return self.get_by_work(work_id)
 
     def find_by_term(
-        self, term: str, work_id: Optional[int] = None, fuzzy: bool = False
-    ) -> List[GlossaryEntry]:
+        self, term: str, work_id: int | None = None, fuzzy: bool = False
+    ) -> list[GlossaryEntry]:
         pool = self._pool.get_sync_pool()
         base_query = """
             SELECT id, work_id, term, translation, entity_type, context,
@@ -202,54 +200,53 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                    created_at, updated_at
             FROM glossary_terms
         """
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                if fuzzy:
-                    if work_id is not None:
-                        cur.execute(
-                            f"""
+        with pool.connection() as conn, conn.cursor() as cur:
+            if fuzzy:
+                if work_id is not None:
+                    cur.execute(
+                        f"""
                             {base_query}
                             WHERE work_id = %s AND term % %s
                             ORDER BY similarity(term, %s) DESC
                             """,
-                            (work_id, term, term),
-                        )
-                    else:
-                        cur.execute(
-                            f"""
+                        (work_id, term, term),
+                    )
+                else:
+                    cur.execute(
+                        f"""
                             {base_query}
                             WHERE term % %s
                             ORDER BY similarity(term, %s) DESC
                             """,
-                            (term, term),
-                        )
-                else:
-                    if work_id is not None:
-                        cur.execute(
-                            f"""
+                        (term, term),
+                    )
+            else:
+                if work_id is not None:
+                    cur.execute(
+                        f"""
                             {base_query}
                             WHERE work_id = %s AND term = %s
                             """,
-                            (work_id, term),
-                        )
-                    else:
-                        cur.execute(
-                            f"""
+                        (work_id, term),
+                    )
+                else:
+                    cur.execute(
+                        f"""
                             {base_query}
                             WHERE term = %s
                             """,
-                            (term,),
-                        )
-                rows = cur.fetchall()
-                return [self._row_to_glossary_entry(row) for row in rows]
+                        (term,),
+                    )
+            rows = cur.fetchall()
+            return [self._row_to_glossary_entry(row) for row in rows]
 
     def find_similar_terms(
         self,
         embedding: np.ndarray,
-        work_id: Optional[int] = None,
+        work_id: int | None = None,
         limit: int = 10,
         threshold: float = 0.8,
-    ) -> List[GlossaryEntry]:
+    ) -> list[GlossaryEntry]:
         pool = self._pool.get_sync_pool()
         base_query = """
             SELECT id, work_id, term, translation, entity_type, context,
@@ -257,168 +254,159 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
                    created_at, updated_at
             FROM glossary_terms
         """
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                if work_id:
-                    cur.execute(
-                        f"""
+        with pool.connection() as conn, conn.cursor() as cur:
+            if work_id:
+                cur.execute(
+                    f"""
                         {base_query}
                         WHERE work_id = %s
                         ORDER BY embedding <=> %s
                         LIMIT %s
                         """,
-                        (work_id, embedding.tolist(), limit),
-                    )
-                else:
-                    cur.execute(
-                        f"""
+                    (work_id, embedding.tolist(), limit),
+                )
+            else:
+                cur.execute(
+                    f"""
                         {base_query}
                         ORDER BY embedding <=> %s
                         LIMIT %s
                         """,
-                        (embedding.tolist(), limit),
-                    )
-                rows = cur.fetchall()
-                return [self._row_to_glossary_entry(row) for row in rows]
+                    (embedding.tolist(), limit),
+                )
+            rows = cur.fetchall()
+            return [self._row_to_glossary_entry(row) for row in rows]
 
     def add_context(self, term_id: int, context: TermContext) -> TermContext:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO term_contexts (term_id, context_hint, translation, example_usage)
-                    VALUES (%s, %s, %s, %s)
-                    RETURNING id, term_id, context_hint, translation, example_usage
-                    """,
-                    (
-                        term_id,
-                        context.context_hint,
-                        context.translation,
-                        context.example_usage,
-                    ),
-                )
-                row = cur.fetchone()
-                return self._row_to_term_context(row)
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO term_contexts (term_id, context_hint, translation, example_usage)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id, term_id, context_hint, translation, example_usage
+                """,
+                (
+                    term_id,
+                    context.context_hint,
+                    context.translation,
+                    context.example_usage,
+                ),
+            )
+            row = cur.fetchone()
+            return self._row_to_term_context(row)
 
-    def get_contexts(self, term_id: int) -> List[TermContext]:
+    def get_contexts(self, term_id: int) -> list[TermContext]:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
                     SELECT id, term_id, context_hint, translation, example_usage
                     FROM term_contexts
                     WHERE term_id = %s
                     ORDER BY context_hint
                     """,
-                    (term_id,),
-                )
-                rows = cur.fetchall()
-                contexts = [self._row_to_term_context(row) for row in rows]
-                for ctx in contexts:
-                    ctx.examples = self.get_examples(ctx.id)
-                return contexts
+                (term_id,),
+            )
+            rows = cur.fetchall()
+            contexts = [self._row_to_term_context(row) for row in rows]
+            for ctx in contexts:
+                ctx.examples = self.get_examples(ctx.id)
+            return contexts
 
     def update_context(self, context: TermContext) -> TermContext:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
                     UPDATE term_contexts
                     SET context_hint = %s, translation = %s, example_usage = %s
                     WHERE id = %s
                     RETURNING id, term_id, context_hint, translation, example_usage
                     """,
-                    (
-                        context.context_hint,
-                        context.translation,
-                        context.example_usage,
-                        context.id,
-                    ),
-                )
-                row = cur.fetchone()
-                if row is None:
-                    return None
-                return self._row_to_term_context(row)
+                (
+                    context.context_hint,
+                    context.translation,
+                    context.example_usage,
+                    context.id,
+                ),
+            )
+            row = cur.fetchone()
+            if row is None:
+                return None
+            return self._row_to_term_context(row)
 
     def delete_context(self, context_id: int) -> bool:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("DELETE FROM term_contexts WHERE id = %s", (context_id,))
-                return cur.rowcount > 0
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute("DELETE FROM term_contexts WHERE id = %s", (context_id,))
+            return cur.rowcount > 0
 
     def add_example(self, context_id: int, example: ContextExample) -> ContextExample:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO context_examples (context_id, original_sentence, translated_sentence, chapter_id)
-                    VALUES (%s, %s, %s, %s)
-                    RETURNING id, context_id, original_sentence, translated_sentence, chapter_id
-                    """,
-                    (
-                        context_id,
-                        example.original_sentence,
-                        example.translated_sentence,
-                        example.chapter_id,
-                    ),
-                )
-                row = cur.fetchone()
-                return self._row_to_context_example(row)
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO context_examples (context_id, original_sentence, translated_sentence, chapter_id)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id, context_id, original_sentence, translated_sentence, chapter_id
+                """,
+                (
+                    context_id,
+                    example.original_sentence,
+                    example.translated_sentence,
+                    example.chapter_id,
+                ),
+            )
+            row = cur.fetchone()
+            return self._row_to_context_example(row)
 
-    def get_examples(self, context_id: int) -> List[ContextExample]:
+    def get_examples(self, context_id: int) -> list[ContextExample]:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    SELECT id, context_id, original_sentence, translated_sentence, chapter_id
-                    FROM context_examples
-                    WHERE context_id = %s
-                    ORDER BY id
-                    """,
-                    (context_id,),
-                )
-                rows = cur.fetchall()
-                return [self._row_to_context_example(row) for row in rows]
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, context_id, original_sentence, translated_sentence, chapter_id
+                FROM context_examples
+                WHERE context_id = %s
+                ORDER BY id
+                """,
+                (context_id,),
+            )
+            rows = cur.fetchall()
+            return [self._row_to_context_example(row) for row in rows]
 
     def update_example(self, example: ContextExample) -> ContextExample:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    UPDATE context_examples
-                    SET original_sentence = %s, translated_sentence = %s, chapter_id = %s
-                    WHERE id = %s
-                    RETURNING id, context_id, original_sentence, translated_sentence, chapter_id
-                    """,
-                    (
-                        example.original_sentence,
-                        example.translated_sentence,
-                        example.chapter_id,
-                        example.id,
-                    ),
-                )
-                row = cur.fetchone()
-                if row is None:
-                    return None
-                return self._row_to_context_example(row)
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE context_examples
+                SET original_sentence = %s, translated_sentence = %s, chapter_id = %s
+                WHERE id = %s
+                RETURNING id, context_id, original_sentence, translated_sentence, chapter_id
+                """,
+                (
+                    example.original_sentence,
+                    example.translated_sentence,
+                    example.chapter_id,
+                    example.id,
+                ),
+            )
+            row = cur.fetchone()
+            if row is None:
+                return None
+            return self._row_to_context_example(row)
 
     def delete_example(self, example_id: int) -> bool:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("DELETE FROM context_examples WHERE id = %s", (example_id,))
-                return cur.rowcount > 0
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute("DELETE FROM context_examples WHERE id = %s", (example_id,))
+            return cur.rowcount > 0
 
     def search_terms_with_rerank(
         self, query: str, work_id: int, top_n: int = 10
-    ) -> List[GlossaryEntry]:
+    ) -> list[GlossaryEntry]:
         """
         Busca términos usando fuzzy search + reranking semántico.
 
@@ -454,13 +442,12 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
 
     def _get_existing_terms(self, work_id: int) -> set:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT LOWER(term) FROM glossary_terms WHERE work_id = %s",
-                    (work_id,),
-                )
-                return {row[0] for row in cur.fetchall()}
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT LOWER(term) FROM glossary_terms WHERE work_id = %s",
+                (work_id,),
+            )
+            return {row[0] for row in cur.fetchall()}
 
     def batch_create_with_embeddings(
         self,
@@ -468,7 +455,7 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
         work_id: int,
         source_language: str,
         target_language: str,
-    ) -> List[GlossaryEntry]:
+    ) -> list[GlossaryEntry]:
         """Batch create glossary entries with embeddings."""
         pool = self._pool.get_sync_pool()
         results = []

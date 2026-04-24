@@ -6,12 +6,16 @@ NOTE: ConnectionError is kept as alias for DBConnectionError
 to maintain backward compatibility, but prefer DBConnectionError
 to avoid shadowing the Python builtin.
 """
+from pdftranslator.domain.exceptions.errors import (
+    DBConnectionError as ConnectionError,
+)
 from pdftranslator.domain.exceptions.errors import (  # noqa: F401
     DomainError as DatabaseError,
-    DBConnectionError as ConnectionError,
-    QueryError,
-    EntityNotFoundError,
+)
+from pdftranslator.domain.exceptions.errors import (
     DuplicateEntityError,
+    EntityNotFoundError,
+    QueryError,
 )
 
 __all__ = [

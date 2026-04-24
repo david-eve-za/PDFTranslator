@@ -4,11 +4,9 @@ Resolves DIP-2: Embedding logic decoupled from VectorStoreService.
 """
 from __future__ import annotations
 
-from typing import Optional
-
 from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
+
 from pdftranslator.core.config.settings import Settings
-from pdftranslator.domain.protocols.embedding import EmbeddingProvider
 
 
 class NvidiaEmbeddingProvider:
@@ -16,7 +14,7 @@ class NvidiaEmbeddingProvider:
 
     def __init__(self, settings: Settings | None = None):
         self._settings = settings or Settings.get()
-        self._embedder: Optional[NVIDIAEmbeddings] = None
+        self._embedder: NVIDIAEmbeddings | None = None
 
     @property
     def embedder(self) -> NVIDIAEmbeddings:

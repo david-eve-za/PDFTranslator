@@ -1,8 +1,11 @@
 """Tests for TextSubstitutionService DI fix."""
 from unittest.mock import MagicMock
-from pdftranslator.services.text_substitution_service import TextSubstitutionService
-from pdftranslator.database.repositories.substitution_rule_repository import SubstitutionRuleRepository
+
+from pdftranslator.database.repositories.substitution_rule_repository import (
+    SubstitutionRuleRepository,
+)
 from pdftranslator.database.repositories.volume_repository import VolumeRepository
+from pdftranslator.services.text_substitution_service import TextSubstitutionService
 
 
 def test_text_substitution_service_accepts_injected_repos():

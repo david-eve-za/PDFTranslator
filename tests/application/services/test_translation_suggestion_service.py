@@ -1,8 +1,11 @@
 """Tests for TranslationSuggestionService (extracted from GlossaryManager)."""
 from unittest.mock import MagicMock
-from pdftranslator.domain.protocols.llm import TextGenerator
-from pdftranslator.application.services.translation_suggestion_service import TranslationSuggestionService
+
+from pdftranslator.application.services.translation_suggestion_service import (
+    TranslationSuggestionService,
+)
 from pdftranslator.domain.models.entity import EntityCandidate
+from pdftranslator.domain.protocols.llm import TextGenerator
 
 
 def test_translation_suggestion_service_accepts_text_generator():

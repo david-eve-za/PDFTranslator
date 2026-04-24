@@ -1,5 +1,5 @@
 """Tests for works.py N+1 query fix."""
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
 
 from pdftranslator.backend.api.routes.works import _work_to_response
 
@@ -45,6 +45,7 @@ def test_work_to_response_reuses_chapter_repo():
 
 def test_work_to_response_no_database_pool_in_function():
     import inspect
+
     from pdftranslator.backend.api.routes.works import _work_to_response
 
     source = inspect.getsource(_work_to_response)

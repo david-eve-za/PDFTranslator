@@ -1,12 +1,13 @@
 """Tests for GlossaryBuildProgressRepository."""
 
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import MagicMock, patch
 
 from pdftranslator.database.repositories.glossary_build_progress_repository import (
     GlossaryBuildProgressRepository,
 )
-from pdftranslator.domain.models.entity import EntityCandidate, GlossaryBuildProgress
+from pdftranslator.domain.models.entity import EntityCandidate
 
 
 @pytest.fixture
@@ -171,6 +172,6 @@ class TestGlossaryBuildProgressRepository:
         cursor.rowcount = 10
 
         repo = GlossaryBuildProgressRepository(mock_pool)
-        result = repo.cleanup_completed(1)
+        repo.cleanup_completed(1)
 
         assert cursor.execute.called

@@ -12,8 +12,8 @@ from pdftranslator.backend.api.models.schemas import (
 )
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.book_repository import BookRepository
-from pdftranslator.database.repositories.volume_repository import VolumeRepository
 from pdftranslator.database.repositories.chapter_repository import ChapterRepository
+from pdftranslator.database.repositories.volume_repository import VolumeRepository
 
 router = APIRouter(prefix="/api/works", tags=["works"])
 

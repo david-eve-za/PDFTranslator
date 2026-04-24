@@ -1,11 +1,11 @@
 """Tests for DoclingExtractor."""
 
-import pytest
 from unittest.mock import MagicMock, patch
-from docling_core.types.doc import DoclingDocument
 
-from infrastructure.document.docling_extractor import DoclingExtractor
+import pytest
 from config.document import DoclingConfig
+from docling_core.types.doc import DoclingDocument
+from infrastructure.document.docling_extractor import DoclingExtractor
 
 
 def test_docling_extractor_initializes_with_defaults():

@@ -1,8 +1,9 @@
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import MagicMock, patch
-from database.repositories.fantasy_term_repository import FantasyTermRepository
-from database.models import FantasyTerm
 from database.connection import DatabasePool
+from database.models import FantasyTerm
+from database.repositories.fantasy_term_repository import FantasyTermRepository
 
 
 @pytest.fixture

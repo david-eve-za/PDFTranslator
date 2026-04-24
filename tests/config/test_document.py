@@ -1,7 +1,6 @@
 """Tests for document configuration."""
 
 import pytest
-
 from config.document import DoclingConfig
 
 

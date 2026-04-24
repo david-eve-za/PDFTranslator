@@ -1,21 +1,19 @@
 import logging
-import os
 import re
 import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
 
 import questionary
 import typer
 from rich.panel import Panel
 
 from pdftranslator.cli.app import app, console
-from pdftranslator.domain.models.work import Chapter, Work, Volume
 from pdftranslator.database.repositories.book_repository import BookRepository
 from pdftranslator.database.repositories.chapter_repository import ChapterRepository
 from pdftranslator.database.repositories.volume_repository import VolumeRepository
+from pdftranslator.domain.models.work import Chapter, Volume, Work
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ParsedBlock:
     block_type: str
-    title: Optional[str]
+    title: str | None
     content: str
     start_line: int
     end_line: int
@@ -64,7 +62,7 @@ def build_template_header() -> str:
 """
 
 
-def parse_blocks(text: str) -> List[ParsedBlock]:
+def parse_blocks(text: str) -> list[ParsedBlock]:
     """
     Parses the text and extracts structured blocks.
     Raises BlockParseError if the format is invalid.
@@ -133,8 +131,7 @@ def strip_header(text: str) -> str:
         if line.strip() and not line.strip().startswith("#"):
             content_start = i
             break
-        if "============================================================" in line:
-            if i + 1 < len(lines):
+            if "============================================================" in line and i + 1 < len(lines):
                 content_start = i + 1
                 while content_start < len(lines) and lines[content_start].strip() == "":
                     content_start += 1
@@ -179,7 +176,7 @@ def validate_and_create_chapters(
 
 def select_volume_interactive(
     work_repo: BookRepository, volume_repo: VolumeRepository
-) -> Optional[Volume]:
+) -> Volume | None:
     """
     Interactive selection of a volume from the database.
     Returns the selected Volume or None if cancelled.
@@ -191,7 +188,7 @@ def select_volume_interactive(
 
     work_choices = [questionary.Choice(title=f"{w.title}", value=w) for w in works]
 
-    selected_work: Optional[Work] = questionary.select(
+    selected_work: Work | None = questionary.select(
         "Select a work:",
         choices=work_choices,
     ).ask()
@@ -209,7 +206,7 @@ def select_volume_interactive(
         for v in sorted(volumes, key=lambda vol: vol.volume_number)
     ]
 
-    selected_volume: Optional[Volume] = questionary.select(
+    selected_volume: Volume | None = questionary.select(
         f"Select a volume from '{selected_work.title}':",
         choices=volume_choices,
     ).ask()
@@ -277,11 +274,11 @@ def split_text():
 
     if not selected_volume.full_text:
         console.print("[red]Error: Selected volume has no text content.[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     if not selected_volume.id:
         console.print("[red]Error: Selected volume has no ID.[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     temp_dir = Path(tempfile.mkdtemp(prefix="pdfagent_"))
     temp_file = temp_dir / f"volume_{selected_volume.volume_number}_edit.txt"
@@ -299,7 +296,7 @@ def split_text():
             )
             return
 
-        with open(temp_file, "r", encoding="utf-8") as f:
+        with open(temp_file, encoding="utf-8") as f:
             edited_text = f.read()
 
         content_without_header = strip_header(edited_text)
@@ -311,10 +308,10 @@ def split_text():
         try:
             blocks = parse_blocks(content_without_header)
         except BlockParseError as e:
-            console.print(f"[red]Error parsing blocks:[/red]")
+            console.print("[red]Error parsing blocks:[/red]")
             console.print(f"[red] {e}[/red]")
             console.print("[yellow]Please fix the format and try again.[/yellow]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
         if not blocks:
             console.print(
@@ -338,12 +335,12 @@ def split_text():
             console.print(f"[green]Created {chapters_created} chapter(s)[/green]")
         else:
             console.print("[red]Failed to update volume text.[/red]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
     except Exception as e:
         logger.error(f"Error during editing: {e}")
         console.print(f"[red]An error occurred: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     finally:
         if temp_file.exists():

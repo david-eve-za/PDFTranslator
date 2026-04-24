@@ -2,12 +2,10 @@
 
 import logging
 import threading
-from typing import Type
 
-from pdftranslator.core.config.settings import Settings
 from pdftranslator.core.config.llm import LLMProvider
+from pdftranslator.core.config.settings import Settings
 from pdftranslator.infrastructure.llm.protocol import LLMClient
-from pdftranslator.infrastructure.llm.base import BaseLLM
 
 logger = logging.getLogger(__name__)
 

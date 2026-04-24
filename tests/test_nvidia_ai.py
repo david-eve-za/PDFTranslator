@@ -1,9 +1,10 @@
 import os
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import MagicMock, patch
-from llm.nvidia_llm import NvidiaLLM
+from config.llm import BCP47Language, LLMProvider, LLMSettings, NvidiaConfig
 from config.settings import Settings
-from config.llm import LLMProvider, BCP47Language, NvidiaConfig, LLMSettings
+from llm.nvidia_llm import NvidiaLLM
 
 
 def _create_mock_settings():

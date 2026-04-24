@@ -1,31 +1,35 @@
 """Glossary management routes."""
 
-from datetime import datetime
 import logging
+from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
+from pdftranslator.application.services.glossary_build_orchestrator import (
+    GlossaryBuildOrchestrator,
+)
 from pdftranslator.backend.api.models.schemas import (
-    GlossaryCreate,
-    GlossaryEntryResponse,
-    GlossaryUpdateRequest,
     GlossaryBuildRequest,
     GlossaryBuildResponse,
     GlossaryBuildVolumeResult,
+    GlossaryCreate,
+    GlossaryEntryResponse,
+    GlossaryUpdateRequest,
 )
 from pdftranslator.core.config.settings import Settings
 from pdftranslator.database.connection import DatabasePool
-from pdftranslator.database.repositories.glossary_repository import GlossaryRepository
-from pdftranslator.database.repositories.volume_repository import VolumeRepository
-from pdftranslator.database.repositories.chapter_repository import ChapterRepository
 from pdftranslator.database.repositories.book_repository import BookRepository
+from pdftranslator.database.repositories.chapter_repository import ChapterRepository
 from pdftranslator.database.repositories.glossary_build_progress_repository import (
     GlossaryBuildProgressRepository,
 )
+from pdftranslator.database.repositories.glossary_repository import GlossaryRepository
+from pdftranslator.database.repositories.volume_repository import VolumeRepository
 from pdftranslator.database.services.entity_extractor import EntityExtractor
-from pdftranslator.application.services.glossary_build_orchestrator import GlossaryBuildOrchestrator
+from pdftranslator.infrastructure.embedding.nvidia_embedding import (
+    NvidiaEmbeddingProvider,
+)
 from pdftranslator.infrastructure.llm.factory import LLMFactory
-from pdftranslator.infrastructure.embedding.nvidia_embedding import NvidiaEmbeddingProvider
 
 router = APIRouter(prefix="/api/glossary", tags=["glossary"])
 logger = logging.getLogger(__name__)
@@ -60,10 +64,7 @@ async def list_glossary(
     repo: GlossaryRepository = Depends(get_glossary_repository),
 ):
     """List all glossary terms with optional filters."""
-    if work_id:
-        entries = repo.get_by_work(work_id)
-    else:
-        entries = repo.get_all()
+    entries = repo.get_by_work(work_id) if work_id else repo.get_all()
 
     if search:
         search_lower = search.lower()

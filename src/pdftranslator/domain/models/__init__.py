@@ -1,15 +1,19 @@
 """Domain models — source of truth for all entities."""
-from pdftranslator.domain.models.work import Work, Volume, Chapter
-from pdftranslator.domain.models.glossary import GlossaryEntry, TermContext, ContextExample
 from pdftranslator.domain.models.entity import (
-    EntityCandidate,
     BuildResult,
-    GlossaryBuildProgress,
     EntityBlacklist,
+    EntityCandidate,
     FantasyTerm,
+    GlossaryBuildProgress,
 )
 from pdftranslator.domain.models.file import UploadedFile
+from pdftranslator.domain.models.glossary import (
+    ContextExample,
+    GlossaryEntry,
+    TermContext,
+)
 from pdftranslator.domain.models.substitution import SubstitutionRule
+from pdftranslator.domain.models.work import Chapter, Volume, Work
 
 __all__ = [
     "Work", "Volume", "Chapter",

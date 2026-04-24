@@ -1,10 +1,10 @@
 """Domain exceptions package."""
 from pdftranslator.domain.exceptions.errors import (  # noqa: F401
-    DomainError,
     DBConnectionError,
-    QueryError,
-    EntityNotFoundError,
+    DomainError,
     DuplicateEntityError,
+    EntityNotFoundError,
+    QueryError,
 )
 
 __all__ = [

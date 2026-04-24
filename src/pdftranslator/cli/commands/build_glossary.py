@@ -1,33 +1,33 @@
 # cli/commands/build_glossary.py
 import logging
-from typing import Optional, List
 
 import questionary
 import typer
-from rich.console import Console
 from rich.panel import Panel
 from rich.progress import (
+    BarColumn,
     Progress,
     SpinnerColumn,
-    TextColumn,
-    BarColumn,
     TaskProgressColumn,
+    TextColumn,
 )
 from rich.table import Table
 
+from pdftranslator.application.services.glossary_build_orchestrator import (
+    GlossaryBuildOrchestrator,
+)
 from pdftranslator.cli.app import app, console, setup_logging
 from pdftranslator.database.connection import DatabasePool
-from pdftranslator.domain.models.work import Work, Volume, Chapter
-from pdftranslator.domain.models.entity import BuildResult
 from pdftranslator.database.repositories.book_repository import BookRepository
 from pdftranslator.database.repositories.chapter_repository import ChapterRepository
-from pdftranslator.database.repositories.volume_repository import VolumeRepository
-from pdftranslator.database.repositories.glossary_repository import GlossaryRepository
 from pdftranslator.database.repositories.glossary_build_progress_repository import (
     GlossaryBuildProgressRepository,
 )
+from pdftranslator.database.repositories.glossary_repository import GlossaryRepository
+from pdftranslator.database.repositories.volume_repository import VolumeRepository
 from pdftranslator.database.services.entity_extractor import EntityExtractor
-from pdftranslator.application.services.glossary_build_orchestrator import GlossaryBuildOrchestrator
+from pdftranslator.domain.models.entity import BuildResult
+from pdftranslator.domain.models.work import Chapter, Volume, Work
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ SCOPE_ALL_VOLUME = "All Volume"
 SCOPE_SINGLE_CHAPTER = "Single Chapter"
 
 
-def _select_work_interactive(work_repo: BookRepository) -> Optional[Work]:
+def _select_work_interactive(work_repo: BookRepository) -> Work | None:
     """Interactive selection of a work from the database."""
     works = work_repo.find_all()
     if not works:
@@ -46,7 +46,7 @@ def _select_work_interactive(work_repo: BookRepository) -> Optional[Work]:
 
     work_choices = [questionary.Choice(title=w.title, value=w) for w in works]
 
-    selected_work: Optional[Work] = questionary.select(
+    selected_work: Work | None = questionary.select(
         "Select a work:",
         choices=work_choices,
     ).ask()
@@ -54,7 +54,7 @@ def _select_work_interactive(work_repo: BookRepository) -> Optional[Work]:
     return selected_work
 
 
-def _select_scope() -> Optional[str]:
+def _select_scope() -> str | None:
     """Interactive selection of processing scope."""
     return questionary.select(
         "Select processing scope:",
@@ -77,7 +77,7 @@ def _select_scope() -> Optional[str]:
 
 def _select_volume_interactive(
     work: Work, volume_repo: VolumeRepository
-) -> Optional[Volume]:
+) -> Volume | None:
     """Interactive selection of a volume from a work."""
     if work.id is None:
         console.print("[red]Work has no ID.[/red]")
@@ -95,7 +95,7 @@ def _select_volume_interactive(
         for v in sorted(volumes, key=lambda vol: vol.volume_number)
     ]
 
-    selected_volume: Optional[Volume] = questionary.select(
+    selected_volume: Volume | None = questionary.select(
         f"Select a volume from '{work.title}':",
         choices=volume_choices,
     ).ask()
@@ -105,7 +105,7 @@ def _select_volume_interactive(
 
 def _select_chapter_interactive(
     volume: Volume, chapter_repo: ChapterRepository
-) -> Optional[Chapter]:
+) -> Chapter | None:
     """Interactive selection of a chapter from a volume."""
     if volume.id is None:
         console.print("[red]Volume has no ID.[/red]")
@@ -129,7 +129,7 @@ def _select_chapter_interactive(
         )
     ]
 
-    selected_chapter: Optional[Chapter] = questionary.select(
+    selected_chapter: Chapter | None = questionary.select(
         f"Select a chapter from Volume {volume.volume_number}:",
         choices=chapter_choices,
     ).ask()
@@ -359,8 +359,10 @@ def build_glossary(
     entity_extractor = EntityExtractor(pool, min_frequency=min_frequency)
 
     from pdftranslator.core.config.settings import Settings
+    from pdftranslator.infrastructure.embedding.nvidia_embedding import (
+        NvidiaEmbeddingProvider,
+    )
     from pdftranslator.infrastructure.llm.factory import LLMFactory
-    from pdftranslator.infrastructure.embedding.nvidia_embedding import NvidiaEmbeddingProvider
 
     settings = Settings.get()
     llm_client = LLMFactory.create()

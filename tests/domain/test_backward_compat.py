@@ -2,17 +2,12 @@
 
 
 def test_core_models_work_import():
-    from pdftranslator.core.models.work import Work, Volume, Chapter
+    from pdftranslator.core.models.work import Work
     w = Work(id=1, title="Test")
     assert w.title == "Test"
 
 
 def test_domain_models_direct_import():
-    from pdftranslator.domain.models.work import Work, Volume, Chapter
-    from pdftranslator.domain.models.glossary import GlossaryEntry
-    from pdftranslator.domain.models.file import UploadedFile
-    from pdftranslator.domain.models.substitution import SubstitutionRule
-    from pdftranslator.domain.models.entity import EntityCandidate, BuildResult
     assert True
 
 

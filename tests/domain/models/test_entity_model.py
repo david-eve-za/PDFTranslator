@@ -1,5 +1,5 @@
 """Tests for domain entity models."""
-from pdftranslator.domain.models.entity import EntityCandidate, BuildResult, GlossaryBuildProgress
+from pdftranslator.domain.models.entity import EntityCandidate, GlossaryBuildProgress
 
 
 def test_entity_candidate_add_context():

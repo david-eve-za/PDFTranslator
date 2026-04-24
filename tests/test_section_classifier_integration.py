@@ -1,11 +1,11 @@
 """Integration tests for section classifier with real LLM."""
 
 import os
-import pytest
 
+import pytest
 from config.settings import Settings
-from infrastructure.llm.nvidia import NvidiaLLM
 from document_chapter_splitter_v2 import classify_section_with_llm
+from infrastructure.llm.nvidia import NvidiaLLM
 
 
 @pytest.mark.skipif(

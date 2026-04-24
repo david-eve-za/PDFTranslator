@@ -1,5 +1,4 @@
 import warnings
-from typing import Optional, Dict
 
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.base import BaseRepository
@@ -7,7 +6,7 @@ from pdftranslator.domain.models.entity import FantasyTerm
 
 
 class FantasyTermRepository(BaseRepository[FantasyTerm]):
-    def __init__(self, pool: Optional[DatabasePool] = None):
+    def __init__(self, pool: DatabasePool | None = None):
         if pool is None:
             warnings.warn(
                 "Providing pool=None is deprecated. Inject a ConnectionPool explicitly.",
@@ -26,96 +25,89 @@ class FantasyTermRepository(BaseRepository[FantasyTerm]):
             context_hint=row[4] if len(row) > 4 else None,
         )
 
-    def get_by_id(self, id: int) -> Optional[FantasyTerm]:
+    def get_by_id(self, id: int) -> FantasyTerm | None:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT id, term, entity_type, do_not_translate, context_hint FROM fantasy_terms WHERE id = %s",
-                    (id,),
-                )
-                row = cur.fetchone()
-                return self._row_to_fantasy_term(row) if row else None
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, term, entity_type, do_not_translate, context_hint FROM fantasy_terms WHERE id = %s",
+                (id,),
+            )
+            row = cur.fetchone()
+            return self._row_to_fantasy_term(row) if row else None
 
     def get_all(self) -> list[FantasyTerm]:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT id, term, entity_type, do_not_translate, context_hint FROM fantasy_terms ORDER BY term"
-                )
-                rows = cur.fetchall()
-                return [self._row_to_fantasy_term(row) for row in rows]
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, term, entity_type, do_not_translate, context_hint FROM fantasy_terms ORDER BY term"
+            )
+            rows = cur.fetchall()
+            return [self._row_to_fantasy_term(row) for row in rows]
 
-    def get_all_terms(self) -> Dict[str, FantasyTerm]:
+    def get_all_terms(self) -> dict[str, FantasyTerm]:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT id, term, entity_type, do_not_translate, context_hint FROM fantasy_terms"
-                )
-                rows = cur.fetchall()
-                return {row[1].lower(): self._row_to_fantasy_term(row) for row in rows}
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, term, entity_type, do_not_translate, context_hint FROM fantasy_terms"
+            )
+            rows = cur.fetchall()
+            return {row[1].lower(): self._row_to_fantasy_term(row) for row in rows}
 
-    def get_by_term(self, term: str) -> Optional[FantasyTerm]:
+    def get_by_term(self, term: str) -> FantasyTerm | None:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
                     SELECT id, term, entity_type, do_not_translate, context_hint
                     FROM fantasy_terms
                     WHERE LOWER(term) = LOWER(%s)
                     """,
-                    (term,),
-                )
-                row = cur.fetchone()
-                return self._row_to_fantasy_term(row) if row else None
+                (term,),
+            )
+            row = cur.fetchone()
+            return self._row_to_fantasy_term(row) if row else None
 
     def create(self, entity: FantasyTerm) -> FantasyTerm:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO fantasy_terms (term, entity_type, do_not_translate, context_hint)
-                    VALUES (%s, %s, %s, %s)
-                    RETURNING id, term, entity_type, do_not_translate, context_hint
-                    """,
-                    (
-                        entity.term.lower(),
-                        entity.entity_type,
-                        entity.do_not_translate,
-                        entity.context_hint,
-                    ),
-                )
-                row = cur.fetchone()
-                return self._row_to_fantasy_term(row)
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO fantasy_terms (term, entity_type, do_not_translate, context_hint)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id, term, entity_type, do_not_translate, context_hint
+                """,
+                (
+                    entity.term.lower(),
+                    entity.entity_type,
+                    entity.do_not_translate,
+                    entity.context_hint,
+                ),
+            )
+            row = cur.fetchone()
+            return self._row_to_fantasy_term(row)
 
     def update(self, entity: FantasyTerm) -> FantasyTerm:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
                     UPDATE fantasy_terms
                     SET entity_type = %s, do_not_translate = %s, context_hint = %s
                     WHERE id = %s
                     RETURNING id, term, entity_type, do_not_translate, context_hint
                     """,
-                    (
-                        entity.entity_type,
-                        entity.do_not_translate,
-                        entity.context_hint,
-                        entity.id,
-                    ),
-                )
-                row = cur.fetchone()
-                return self._row_to_fantasy_term(row) if row else None
+                (
+                    entity.entity_type,
+                    entity.do_not_translate,
+                    entity.context_hint,
+                    entity.id,
+                ),
+            )
+            row = cur.fetchone()
+            return self._row_to_fantasy_term(row) if row else None
 
     def delete(self, id: int) -> bool:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("DELETE FROM fantasy_terms WHERE id = %s", (id,))
-                return cur.rowcount > 0
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute("DELETE FROM fantasy_terms WHERE id = %s", (id,))
+            return cur.rowcount > 0

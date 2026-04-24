@@ -1,5 +1,4 @@
 # tests/cli/test_glossary_post_processor.py
-import pytest
 from pdftranslator.cli.services.glossary_post_processor import GlossaryPostProcessor
 from pdftranslator.domain.models.glossary import GlossaryEntry
 

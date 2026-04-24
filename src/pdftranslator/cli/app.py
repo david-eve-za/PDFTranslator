@@ -1,11 +1,10 @@
 import logging
+import warnings
 
 import typer
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.table import Table
-
-import warnings
 
 warnings.filterwarnings(
     "ignore", category=UserWarning, message=".*pkg_resources is deprecated.*"
@@ -64,12 +63,3 @@ def validate_output_format(value: str) -> str:
     return value.lower()
 
 
-from pdftranslator.cli.commands import (
-    process,
-    add_to_database,
-    split_text,
-    reset_database,
-    build_glossary,
-    translate_chapter,
-    generate_audio,
-)

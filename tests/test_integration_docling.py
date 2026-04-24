@@ -1,13 +1,13 @@
 # tests/test_integration_docling.py
 """Integration tests for Docling document processing."""
 
-import pytest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
+import pytest
+from config.document import DoclingConfig
 from infrastructure.document.docling_extractor import DoclingExtractor
 from infrastructure.document.section_grouper import SectionGrouper
-from config.document import DoclingConfig
 
 
 @pytest.mark.integration

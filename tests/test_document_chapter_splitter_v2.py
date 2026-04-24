@@ -1,9 +1,9 @@
 # tests/test_document_chapter_splitter_v2.py
 """Tests for document_chapter_splitter_v2 with Docling."""
 
-import pytest
 from unittest.mock import MagicMock
 
+import pytest
 from document_chapter_splitter_v2 import (
     SectionClassifier,
     classify_section_with_llm,

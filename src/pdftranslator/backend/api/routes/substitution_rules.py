@@ -5,10 +5,10 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 
 from pdftranslator.backend.api.models.schemas import (
-    SubstitutionRuleResponse,
-    SubstitutionRuleCreate,
-    SubstitutionRuleUpdate,
     ApplyRulesRequest,
+    SubstitutionRuleCreate,
+    SubstitutionRuleResponse,
+    SubstitutionRuleUpdate,
 )
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.substitution_rule_repository import (

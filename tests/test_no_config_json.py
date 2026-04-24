@@ -1,7 +1,5 @@
-import os
 import subprocess
 import tempfile
-import re
 from pathlib import Path
 
 
@@ -15,7 +13,7 @@ def test_no_config_json_created():
         test_pdf.write_text("test content")
 
         # Run PDFAgent.py with input argument
-        result = subprocess.run(
+        subprocess.run(
             ["python", "PDFAgent.py", str(test_pdf), "--agent", "gemini"],
             capture_output=True,
             text=True,

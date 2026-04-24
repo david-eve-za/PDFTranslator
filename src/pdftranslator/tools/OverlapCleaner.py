@@ -1,4 +1,3 @@
-from typing import Dict, Type
 
 from rapidfuzz import fuzz
 from tqdm import tqdm
@@ -6,11 +5,11 @@ from tqdm import tqdm
 
 class _Singleton(type):
     """A metaclass that creates a Singleton base class when called."""
-    _instances: Dict[Type, object] = {}
+    _instances: dict[type, object] = {}
 
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
-            cls._instances[cls] = super(_Singleton, cls).__call__(*args, **kwargs)
+            cls._instances[cls] = super().__call__(*args, **kwargs)
         return cls._instances[cls]
 
 

@@ -1,8 +1,8 @@
 """Tests for generate-audio CLI command."""
 
-import pytest
-from pathlib import Path
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 @pytest.fixture
@@ -28,8 +28,8 @@ class TestGenerateAudioCommand:
 
     def test_generate_chapter_audio_success(self, mock_pool, tmp_path, mock_synthesizer):
         from pdftranslator.cli.commands.generate_audio import _generate_chapter_audio
-        from pdftranslator.domain.models.work import Chapter, Volume, Work
         from pdftranslator.core.config.settings import Settings
+        from pdftranslator.domain.models.work import Chapter, Volume, Work
 
         chapter = Chapter(
             id=1,
@@ -48,8 +48,8 @@ class TestGenerateAudioCommand:
 
     def test_generate_chapter_audio_no_translation(self, mock_pool, mock_synthesizer):
         from pdftranslator.cli.commands.generate_audio import _generate_chapter_audio
-        from pdftranslator.domain.models.work import Chapter, Volume, Work
         from pdftranslator.core.config.settings import Settings
+        from pdftranslator.domain.models.work import Chapter, Volume, Work
 
         chapter = Chapter(id=1, volume_id=1, chapter_number=1, translated_text=None)
         volume = Volume(id=1, work_id=1, volume_number=1)
@@ -62,8 +62,8 @@ class TestGenerateAudioCommand:
 
     def test_generate_chapter_audio_already_exists(self, mock_pool, tmp_path, mock_synthesizer):
         from pdftranslator.cli.commands.generate_audio import _generate_chapter_audio
-        from pdftranslator.domain.models.work import Chapter, Volume, Work
         from pdftranslator.core.config.settings import Settings
+        from pdftranslator.domain.models.work import Chapter, Volume, Work
 
         chapter = Chapter(
             id=1, volume_id=1, chapter_number=1, translated_text="Translated text"
@@ -89,8 +89,8 @@ class TestGenerateAudioCommand:
 
     def test_generate_volume_audio(self, mock_pool, mock_synthesizer):
         from pdftranslator.cli.commands.generate_audio import _generate_volume_audio
-        from pdftranslator.domain.models.work import Chapter, Volume, Work
         from pdftranslator.core.config.settings import Settings
+        from pdftranslator.domain.models.work import Chapter, Volume, Work
 
         chapters = [
             Chapter(id=1, volume_id=1, chapter_number=1, translated_text="Chapter 1"),

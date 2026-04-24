@@ -1,7 +1,9 @@
 """Tests for FishSpeechSynthesizer."""
 from pathlib import Path
 
-from pdftranslator.infrastructure.audio.fish_speech_synthesizer import FishSpeechSynthesizer
+from pdftranslator.infrastructure.audio.fish_speech_synthesizer import (
+    FishSpeechSynthesizer,
+)
 
 
 def test_fish_speech_name():

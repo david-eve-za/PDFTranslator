@@ -1,9 +1,9 @@
 """Tests for LLM protocol segregation (ISP-1)."""
 from pdftranslator.domain.protocols.llm import (
-    TextGenerator,
-    TokenCounter,
-    TextSplitter,
     LLMClient,
+    TextGenerator,
+    TextSplitter,
+    TokenCounter,
 )
 
 

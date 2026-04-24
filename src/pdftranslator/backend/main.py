@@ -3,6 +3,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from pdftranslator.backend.api.routes import (
+    chapters,
+    files,
+    glossary,
+    settings,
+    split,
+    substitution_rules,
+    translation,
+    volumes,
+    works,
+)
+
 app = FastAPI(
     title="PDFTranslator API",
     version="1.0.0",
@@ -29,18 +41,6 @@ async def health():
     """Health check endpoint."""
     return {"status": "healthy"}
 
-
-from pdftranslator.backend.api.routes import (
-    files,
-    glossary,
-    translation,
-    works,
-    volumes,
-    chapters,
-    split,
-    settings,
-    substitution_rules,
-)
 
 app.include_router(files.router)
 app.include_router(glossary.router)

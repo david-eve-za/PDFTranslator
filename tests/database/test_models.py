@@ -1,8 +1,10 @@
 # tests/database/test_models.py
-import pytest
-import numpy as np
-from pdftranslator.domain.models.work import Work, Volume, Chapter
-from pdftranslator.domain.models.glossary import GlossaryEntry, TermContext, ContextExample
+from pdftranslator.domain.models.glossary import (
+    ContextExample,
+    GlossaryEntry,
+    TermContext,
+)
+from pdftranslator.domain.models.work import Chapter, Volume, Work
 
 
 def test_work_creation():

@@ -1,7 +1,8 @@
 """Tests for application-layer TranslationService (DIP fix)."""
 from unittest.mock import MagicMock
-from pdftranslator.domain.protocols.llm import TextGenerator, TextSplitter, LLMClient
+
 from pdftranslator.application.services.translation_service import TranslationService
+from pdftranslator.domain.protocols.llm import LLMClient, TextGenerator
 
 
 def test_translation_service_accepts_llm_client():

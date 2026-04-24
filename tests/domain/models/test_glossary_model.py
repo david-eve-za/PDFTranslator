@@ -1,5 +1,9 @@
 """Tests for domain glossary models."""
-from pdftranslator.domain.models.glossary import GlossaryEntry, TermContext, ContextExample
+from pdftranslator.domain.models.glossary import (
+    ContextExample,
+    GlossaryEntry,
+    TermContext,
+)
 
 
 def test_glossary_entry_has_new_sql_columns():

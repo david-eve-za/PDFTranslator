@@ -1,8 +1,8 @@
 import logging
-import typer
-from rich.console import Console
-from rich.panel import Panel
+
 import questionary
+import typer
+from rich.panel import Panel
 
 from pdftranslator.cli.app import app, console
 from pdftranslator.core.config.settings import Settings
@@ -13,11 +13,10 @@ logger = logging.getLogger(__name__)
 
 
 def _drop_and_recreate_schema(pool):
-    with pool.connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("DROP SCHEMA public CASCADE;")
-            cursor.execute("CREATE SCHEMA public;")
-            conn.commit()
+    with pool.connection() as conn, conn.cursor() as cursor:
+        cursor.execute("DROP SCHEMA public CASCADE;")
+        cursor.execute("CREATE SCHEMA public;")
+        conn.commit()
     logger.info("Schema dropped and recreated successfully")
 
 
@@ -37,7 +36,7 @@ def reset_database():
                 "[yellow]Set develop_mode = True in Settings to enable.[/yellow]"
             )
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     console.print(
         Panel.fit(
@@ -67,4 +66,4 @@ def reset_database():
     except Exception as e:
         logger.error(f"Error resetting database: {e}", exc_info=True)
         console.print(f"[red]✗ Error resetting database: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None

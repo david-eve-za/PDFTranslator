@@ -1,8 +1,8 @@
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import MagicMock, patch
-from database.repositories.entity_blacklist_repository import EntityBlacklistRepository
-from database.models import EntityBlacklist
 from database.connection import DatabasePool
+from database.repositories.entity_blacklist_repository import EntityBlacklistRepository
 
 
 @pytest.fixture

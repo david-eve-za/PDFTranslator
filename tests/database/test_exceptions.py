@@ -1,10 +1,11 @@
 import pytest
+
 from pdftranslator.database.exceptions import (
-    DatabaseError,
     ConnectionError,
-    QueryError,
-    EntityNotFoundError,
+    DatabaseError,
     DuplicateEntityError,
+    EntityNotFoundError,
+    QueryError,
 )
 
 

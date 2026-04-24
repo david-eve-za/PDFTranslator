@@ -1,8 +1,9 @@
-import pytest
 from unittest.mock import MagicMock, patch
-from database.repositories.glossary_repository import GlossaryRepository
-from database.models import GlossaryEntry, TermContext, ContextExample
+
+import pytest
 from database.connection import DatabasePool
+from database.models import ContextExample, GlossaryEntry, TermContext
+from database.repositories.glossary_repository import GlossaryRepository
 
 
 @pytest.fixture

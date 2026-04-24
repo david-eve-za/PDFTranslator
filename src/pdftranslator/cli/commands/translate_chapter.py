@@ -7,31 +7,29 @@ para proporcionar contexto de traducción más preciso.
 """
 
 import logging
-from typing import Optional
 
 import questionary
 import typer
 from rich.panel import Panel
 from rich.progress import (
+    BarColumn,
     Progress,
     SpinnerColumn,
-    TextColumn,
-    BarColumn,
     TaskProgressColumn,
+    TextColumn,
 )
 from rich.table import Table
 
+from pdftranslator.application.services.translation_service import TranslationService
 from pdftranslator.cli.app import app, console, setup_logging
 from pdftranslator.database.connection import DatabasePool
-from pdftranslator.domain.models.work import Work, Volume, Chapter
-from pdftranslator.domain.models.glossary import GlossaryEntry
 from pdftranslator.database.repositories.book_repository import BookRepository
 from pdftranslator.database.repositories.chapter_repository import ChapterRepository
-from pdftranslator.database.repositories.volume_repository import VolumeRepository
 from pdftranslator.database.repositories.glossary_repository import GlossaryRepository
-from pdftranslator.application.services.translation_service import TranslationService
-from pdftranslator.services.glossary_translator import GlossaryAwareTranslator
+from pdftranslator.database.repositories.volume_repository import VolumeRepository
+from pdftranslator.domain.models.work import Chapter, Volume, Work
 from pdftranslator.infrastructure.llm.base import BCP47Language
+from pdftranslator.services.glossary_translator import GlossaryAwareTranslator
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +86,7 @@ def _format_chapter_display(chapter: Chapter) -> str:
         return f"Chapter {chapter.chapter_number}{title_part}"
 
 
-def _select_work_interactive(work_repo: BookRepository) -> Optional[Work]:
+def _select_work_interactive(work_repo: BookRepository) -> Work | None:
     """Interactive selection of a work from the database."""
     works = work_repo.find_all()
     if not works:
@@ -97,7 +95,7 @@ def _select_work_interactive(work_repo: BookRepository) -> Optional[Work]:
 
     work_choices = [questionary.Choice(title=w.title, value=w) for w in works]
 
-    selected_work: Optional[Work] = questionary.select(
+    selected_work: Work | None = questionary.select(
         "Select a work:",
         choices=work_choices,
     ).ask()
@@ -178,7 +176,7 @@ def _select_scope_with_context(
     work: Work,
     volume_repo: VolumeRepository,
     chapter_repo: ChapterRepository,
-) -> Optional[str]:
+) -> str | None:
     """
     Interactive selection of processing scope with context about the work.
     Shows the work structure before asking for scope.
@@ -226,7 +224,7 @@ def _select_scope_with_context(
     ).ask()
 
 
-def _select_scope() -> Optional[str]:
+def _select_scope() -> str | None:
     """Interactive selection of processing scope."""
     return questionary.select(
         "Select translation scope:",
@@ -249,7 +247,7 @@ def _select_scope() -> Optional[str]:
 
 def _select_volume_interactive(
     work: Work, volume_repo: VolumeRepository
-) -> Optional[Volume]:
+) -> Volume | None:
     """Interactive selection of a volume from a work."""
     if work.id is None:
         console.print("[red]Work has no ID.[/red]")
@@ -267,7 +265,7 @@ def _select_volume_interactive(
         for v in sorted(volumes, key=lambda vol: vol.volume_number)
     ]
 
-    selected_volume: Optional[Volume] = questionary.select(
+    selected_volume: Volume | None = questionary.select(
         f"Select a volume from '{work.title}':",
         choices=volume_choices,
     ).ask()
@@ -277,7 +275,7 @@ def _select_volume_interactive(
 
 def _select_chapter_interactive(
     volume: Volume, chapter_repo: ChapterRepository, show_status: bool = True
-) -> Optional[Chapter]:
+) -> Chapter | None:
     """Interactive selection of a chapter from a volume."""
     if volume.id is None:
         console.print("[red]Volume has no ID.[/red]")
@@ -302,7 +300,7 @@ def _select_chapter_interactive(
         display = f"{ch_display}{status}"
         chapter_choices.append(questionary.Choice(title=display, value=ch))
 
-    selected_chapter: Optional[Chapter] = questionary.select(
+    selected_chapter: Chapter | None = questionary.select(
         f"Select a chapter from Volume {volume.volume_number}:",
         choices=chapter_choices,
     ).ask()

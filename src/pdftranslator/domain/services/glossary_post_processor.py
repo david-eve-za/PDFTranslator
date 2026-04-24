@@ -7,7 +7,7 @@ by validating and correcting terms after translation.
 
 import logging
 import re
-from typing import List, Dict, Set, Tuple
+
 from pdftranslator.domain.models.glossary import GlossaryEntry
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ class GlossaryPostProcessor:
     handling grammatical variations (case, plural, etc.).
     """
 
-    def __init__(self, glossary_entries: List[GlossaryEntry], target_lang: str):
+    def __init__(self, glossary_entries: list[GlossaryEntry], target_lang: str):
         """
         Initialize the post-processor.
 
@@ -31,9 +31,9 @@ class GlossaryPostProcessor:
         """
         self.entries = glossary_entries
         self.target_lang = target_lang
-        self._variant_maps: Dict[str, Dict] = {}
-        self._first_translation_map: Dict[str, str] = {}  # For consistency tracking
-        self._correction_counts: Dict[str, int] = {}
+        self._variant_maps: dict[str, dict] = {}
+        self._first_translation_map: dict[str, str] = {}  # For consistency tracking
+        self._correction_counts: dict[str, int] = {}
 
         self._build_variant_maps()
 
@@ -75,7 +75,7 @@ class GlossaryPostProcessor:
         for entry in self.entries:
             self._variant_maps[entry.term] = self._generate_variants(entry)
 
-    def _generate_variants(self, entry: GlossaryEntry) -> Dict:
+    def _generate_variants(self, entry: GlossaryEntry) -> dict:
         """
         Generate all variants for a glossary entry.
 
@@ -129,7 +129,7 @@ class GlossaryPostProcessor:
 
         return variants
 
-    def _generate_grammatical_variants(self, term: str) -> Set[str]:
+    def _generate_grammatical_variants(self, term: str) -> set[str]:
         """
         Generate grammatical variants for a term.
 
@@ -202,8 +202,8 @@ class GlossaryPostProcessor:
         return text
 
     def _ensure_do_not_translate(
-        self, text: str, entry: GlossaryEntry, variants: Dict
-    ) -> Tuple[str, int]:
+        self, text: str, entry: GlossaryEntry, variants: dict
+    ) -> tuple[str, int]:
         """
         Ensure DO NOT TRANSLATE terms remain in original.
 
@@ -237,8 +237,8 @@ class GlossaryPostProcessor:
         return text, correction_count
 
     def _ensure_translation(
-        self, text: str, entry: GlossaryEntry, variants: Dict
-    ) -> Tuple[str, int]:
+        self, text: str, entry: GlossaryEntry, variants: dict
+    ) -> tuple[str, int]:
         """
         Ensure term uses the defined translation.
 
@@ -279,7 +279,7 @@ class GlossaryPostProcessor:
 
         return text, correction_count
 
-    def _ensure_consistency(self, text: str, entry: GlossaryEntry) -> Tuple[str, int]:
+    def _ensure_consistency(self, text: str, entry: GlossaryEntry) -> tuple[str, int]:
         """
         For terms without defined translation, ensure internal consistency.
 

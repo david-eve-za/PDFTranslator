@@ -1,8 +1,9 @@
-import pytest
 from unittest.mock import MagicMock, patch
-from database.repositories.chapter_repository import ChapterRepository
-from database.models import Chapter
+
+import pytest
 from database.connection import DatabasePool
+from database.models import Chapter
+from database.repositories.chapter_repository import ChapterRepository
 
 
 @pytest.fixture

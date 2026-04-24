@@ -1,6 +1,5 @@
 """Tests for SectionGrouper."""
 
-import pytest
 from unittest.mock import MagicMock
 
 from docling_core.types.doc import (
@@ -9,7 +8,6 @@ from docling_core.types.doc import (
     TextItem,
     TitleItem,
 )
-
 from infrastructure.document.section_grouper import SectionGrouper
 
 

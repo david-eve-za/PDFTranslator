@@ -31,7 +31,7 @@ def _ensure_nltk_punkt():
     try:
         from nltk.downloader import DownloadError
     except ImportError:
-        DownloadError = (HTTPError, URLError, ValueError)
+        DownloadError = (HTTPError, URLError, ValueError)  # noqa: N806
 
     try:
         nltk.data.find("tokenizers/punkt")

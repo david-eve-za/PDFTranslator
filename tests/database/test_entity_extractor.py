@@ -1,11 +1,12 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+from database.connection import DatabasePool
 from database.services.entity_extractor import (
-    EntityExtractor,
     SKILL_PATTERN,
     TITLE_PATTERN,
+    EntityExtractor,
 )
-from database.connection import DatabasePool
 
 
 @pytest.fixture
@@ -49,24 +50,23 @@ class TestEntityExtractor:
 
         with patch(
             "database.services.entity_extractor.EntityBlacklistRepository"
-        ) as mock_blacklist_cls:
-            with patch(
-                "database.services.entity_extractor.FantasyTermRepository"
-            ) as mock_fantasy_cls:
-                mock_blacklist = MagicMock()
-                mock_blacklist.get_all_terms.return_value = set()
-                mock_blacklist_cls.return_value = mock_blacklist
+        ) as mock_blacklist_cls, patch(
+            "database.services.entity_extractor.FantasyTermRepository"
+        ) as mock_fantasy_cls:
+            mock_blacklist = MagicMock()
+            mock_blacklist.get_all_terms.return_value = set()
+            mock_blacklist_cls.return_value = mock_blacklist
 
-                mock_fantasy = MagicMock()
-                mock_fantasy.get_all_terms.return_value = {}
-                mock_fantasy_cls.return_value = mock_fantasy
+            mock_fantasy = MagicMock()
+            mock_fantasy.get_all_terms.return_value = {}
+            mock_fantasy_cls.return_value = mock_fantasy
 
-                extractor = EntityExtractor(mock_pool, min_frequency=1)
-                text = "Xylara went to the market. Xylara bought apples. Xylara returned home."
-                entities = extractor.extract(text)
+            extractor = EntityExtractor(mock_pool, min_frequency=1)
+            text = "Xylara went to the market. Xylara bought apples. Xylara returned home."
+            entities = extractor.extract(text)
 
-                xylara_entities = [e for e in entities if e.text.lower() == "xylara"]
-                assert len(xylara_entities) > 0
+            xylara_entities = [e for e in entities if e.text.lower() == "xylara"]
+            assert len(xylara_entities) > 0
 
     def test_extract_filters_blacklist(self, mock_pool, mock_connection):
         mock_pool.get_sync_pool.return_value.connection.return_value.__enter__ = (
@@ -77,24 +77,23 @@ class TestEntityExtractor:
 
         with patch(
             "database.services.entity_extractor.EntityBlacklistRepository"
-        ) as mock_blacklist_cls:
-            with patch(
-                "database.services.entity_extractor.FantasyTermRepository"
-            ) as mock_fantasy_cls:
-                mock_blacklist = MagicMock()
-                mock_blacklist.get_all_terms.return_value = {"chapter"}
-                mock_blacklist_cls.return_value = mock_blacklist
+        ) as mock_blacklist_cls, patch(
+            "database.services.entity_extractor.FantasyTermRepository"
+        ) as mock_fantasy_cls:
+            mock_blacklist = MagicMock()
+            mock_blacklist.get_all_terms.return_value = {"chapter"}
+            mock_blacklist_cls.return_value = mock_blacklist
 
-                mock_fantasy = MagicMock()
-                mock_fantasy.get_all_terms.return_value = {}
-                mock_fantasy_cls.return_value = mock_fantasy
+            mock_fantasy = MagicMock()
+            mock_fantasy.get_all_terms.return_value = {}
+            mock_fantasy_cls.return_value = mock_fantasy
 
-                extractor = EntityExtractor(mock_pool, min_frequency=1)
-                text = "The chapter was long. The chapter continued."
-                entities = extractor.extract(text)
+            extractor = EntityExtractor(mock_pool, min_frequency=1)
+            text = "The chapter was long. The chapter continued."
+            entities = extractor.extract(text)
 
-                chapter_entities = [e for e in entities if e.text.lower() == "chapter"]
-                assert len(chapter_entities) == 0
+            chapter_entities = [e for e in entities if e.text.lower() == "chapter"]
+            assert len(chapter_entities) == 0
 
     def test_min_frequency_filters_single_occurrence(self, mock_pool, mock_connection):
         mock_pool.get_sync_pool.return_value.connection.return_value.__enter__ = (
@@ -105,26 +104,25 @@ class TestEntityExtractor:
 
         with patch(
             "database.services.entity_extractor.EntityBlacklistRepository"
-        ) as mock_blacklist_cls:
-            with patch(
-                "database.services.entity_extractor.FantasyTermRepository"
-            ) as mock_fantasy_cls:
-                mock_blacklist = MagicMock()
-                mock_blacklist.get_all_terms.return_value = set()
-                mock_blacklist_cls.return_value = mock_blacklist
+        ) as mock_blacklist_cls, patch(
+            "database.services.entity_extractor.FantasyTermRepository"
+        ) as mock_fantasy_cls:
+            mock_blacklist = MagicMock()
+            mock_blacklist.get_all_terms.return_value = set()
+            mock_blacklist_cls.return_value = mock_blacklist
 
-                mock_fantasy = MagicMock()
-                mock_fantasy.get_all_terms.return_value = {}
-                mock_fantasy_cls.return_value = mock_fantasy
+            mock_fantasy = MagicMock()
+            mock_fantasy.get_all_terms.return_value = {}
+            mock_fantasy_cls.return_value = mock_fantasy
 
-                extractor = EntityExtractor(mock_pool, min_frequency=2)
-                text = "Xylophone appeared once in this text."
-                entities = extractor.extract(text)
+            extractor = EntityExtractor(mock_pool, min_frequency=2)
+            text = "Xylophone appeared once in this text."
+            entities = extractor.extract(text)
 
-                xylophone_entities = [
-                    e for e in entities if "xylophone" in e.text.lower()
-                ]
-                assert len(xylophone_entities) == 0
+            xylophone_entities = [
+                e for e in entities if "xylophone" in e.text.lower()
+            ]
+            assert len(xylophone_entities) == 0
 
     def test_skill_pattern_finds_bracketed_text(self):
         text = "【Sword Art】 and 《Magic Spell》 were used."
@@ -145,23 +143,22 @@ class TestEntityExtractor:
 
         with patch(
             "database.services.entity_extractor.EntityBlacklistRepository"
-        ) as mock_blacklist_cls:
-            with patch(
-                "database.services.entity_extractor.FantasyTermRepository"
-            ) as mock_fantasy_cls:
-                mock_blacklist = MagicMock()
-                mock_blacklist.get_all_terms.return_value = set()
-                mock_blacklist_cls.return_value = mock_blacklist
+        ) as mock_blacklist_cls, patch(
+            "database.services.entity_extractor.FantasyTermRepository"
+        ) as mock_fantasy_cls:
+            mock_blacklist = MagicMock()
+            mock_blacklist.get_all_terms.return_value = set()
+            mock_blacklist_cls.return_value = mock_blacklist
 
-                mock_fantasy = MagicMock()
-                mock_fantasy.get_all_terms.return_value = {}
-                mock_fantasy_cls.return_value = mock_fantasy
+            mock_fantasy = MagicMock()
+            mock_fantasy.get_all_terms.return_value = {}
+            mock_fantasy_cls.return_value = mock_fantasy
 
-                extractor = EntityExtractor(mock_pool, min_frequency=1)
-                text = "Test text for extraction."
-                entities = extractor.extract(text)
+            extractor = EntityExtractor(mock_pool, min_frequency=1)
+            text = "Test text for extraction."
+            entities = extractor.extract(text)
 
-                assert isinstance(entities, list)
+            assert isinstance(entities, list)
 
     def test_common_english_words_filtered(self, mock_pool, mock_connection):
         mock_pool.get_sync_pool.return_value.connection.return_value.__enter__ = (
@@ -172,26 +169,25 @@ class TestEntityExtractor:
 
         with patch(
             "database.services.entity_extractor.EntityBlacklistRepository"
-        ) as mock_blacklist_cls:
-            with patch(
-                "database.services.entity_extractor.FantasyTermRepository"
-            ) as mock_fantasy_cls:
-                mock_blacklist = MagicMock()
-                mock_blacklist.get_all_terms.return_value = set()
-                mock_blacklist_cls.return_value = mock_blacklist
+        ) as mock_blacklist_cls, patch(
+            "database.services.entity_extractor.FantasyTermRepository"
+        ) as mock_fantasy_cls:
+            mock_blacklist = MagicMock()
+            mock_blacklist.get_all_terms.return_value = set()
+            mock_blacklist_cls.return_value = mock_blacklist
 
-                mock_fantasy = MagicMock()
-                mock_fantasy.get_all_terms.return_value = {}
-                mock_fantasy_cls.return_value = mock_fantasy
+            mock_fantasy = MagicMock()
+            mock_fantasy.get_all_terms.return_value = {}
+            mock_fantasy_cls.return_value = mock_fantasy
 
-                extractor = EntityExtractor(mock_pool, min_frequency=1)
-                text = "Someone said that Good was there. Someone is good."
-                entities = extractor.extract(text)
+            extractor = EntityExtractor(mock_pool, min_frequency=1)
+            text = "Someone said that Good was there. Someone is good."
+            entities = extractor.extract(text)
 
-                someone_entities = [e for e in entities if "someone" in e.text.lower()]
-                good_entities = [e for e in entities if "good" == e.text.lower()]
+            someone_entities = [e for e in entities if "someone" in e.text.lower()]
+            good_entities = [e for e in entities if e.text.lower() == "good"]
 
-                assert len(someone_entities) == 0, (
-                    "Common word 'someone' should be filtered"
-                )
-                assert len(good_entities) == 0, "Common word 'good' should be filtered"
+            assert len(someone_entities) == 0, (
+                "Common word 'someone' should be filtered"
+            )
+            assert len(good_entities) == 0, "Common word 'good' should be filtered"

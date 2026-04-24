@@ -1,11 +1,12 @@
 """Processing configuration models."""
 
-from enum import Enum
-from pydantic import BaseModel, Field
+from enum import StrEnum
 from pathlib import Path
 
+from pydantic import BaseModel, Field
 
-class TTSEngine(str, Enum):
+
+class TTSEngine(StrEnum):
     """Available TTS engine backends."""
 
     MAC_SAY = "mac_say"

@@ -6,9 +6,6 @@ domain DocumentParser interface without modifying DoclingExtractor.
 from __future__ import annotations
 
 import logging
-from typing import Optional
-
-from pdftranslator.domain.protocols.document_parser import DocumentParser
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +48,10 @@ class DoclingDocumentParser:
 
         try:
             if self.__extractor is None:
-                from pdftranslator.infrastructure.document.docling_extractor import DoclingExtractor
                 from pdftranslator.core.config.document import DoclingConfig
+                from pdftranslator.infrastructure.document.docling_extractor import (
+                    DoclingExtractor,
+                )
 
                 config = self._config or DoclingConfig()
                 self.__extractor = DoclingExtractor(config)

@@ -3,8 +3,8 @@
 DEPRECATED: Import from pdftranslator.application.services.translation_service instead.
 """
 from pdftranslator.application.services.translation_service import (  # noqa: F401
-    TranslationService,
     TranslationResult,
+    TranslationService,
 )
 
 TranslatorService = TranslationService

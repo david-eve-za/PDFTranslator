@@ -1,11 +1,11 @@
 """Tests for translate_chapter.py using DIP-compliant GlossaryAwareTranslator."""
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
+from pdftranslator.application.services.translation_service import TranslationResult
 from pdftranslator.cli.commands.translate_chapter import (
-    _translate_chapter,
     _get_language_for_split,
+    _translate_chapter,
 )
-from pdftranslator.application.services.translation_service import TranslationService, TranslationResult
 from pdftranslator.infrastructure.llm.base import BCP47Language
 
 

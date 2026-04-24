@@ -1,7 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -72,7 +71,7 @@ class FileFinder:
                 f"Source path is not a directory: {self.input_dir}"
             )
 
-    def get_files(self, file_type: str, filters: List[FileFilter]) -> List[Path]:
+    def get_files(self, file_type: str, filters: list[FileFilter]) -> list[Path]:
         """
         Searches for files recursively, applying a list of filters.
 

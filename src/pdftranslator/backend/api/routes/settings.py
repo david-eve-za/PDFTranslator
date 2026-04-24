@@ -176,7 +176,7 @@ def _update_env_file(updates: dict) -> None:
 
     existing_lines = []
     if env_path.exists():
-        with open(env_path, "r") as f:
+        with open(env_path) as f:
             existing_lines = f.readlines()
 
     existing_keys = {}

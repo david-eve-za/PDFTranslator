@@ -1,12 +1,10 @@
 """NVIDIA reranking provider — implements RerankingProvider protocol."""
 from __future__ import annotations
 
-from typing import Optional
-
 from langchain_core.documents import Document
 from langchain_nvidia_ai_endpoints import NVIDIARerank
+
 from pdftranslator.core.config.settings import Settings
-from pdftranslator.domain.protocols.reranking import RerankingProvider
 
 
 class NvidiaRerankingProvider:
@@ -14,7 +12,7 @@ class NvidiaRerankingProvider:
 
     def __init__(self, settings: Settings | None = None):
         self._settings = settings or Settings.get()
-        self._reranker: Optional[NVIDIARerank] = None
+        self._reranker: NVIDIARerank | None = None
 
     @property
     def reranker(self) -> NVIDIARerank:

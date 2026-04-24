@@ -1,5 +1,5 @@
 """Tests for domain work models."""
-from pdftranslator.domain.models.work import Work, Volume, Chapter
+from pdftranslator.domain.models.work import Chapter, Volume, Work
 
 
 def test_work_dataclass_exists():

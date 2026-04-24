@@ -1,13 +1,13 @@
 """Tests for enhanced section classifier with fallback and confidence."""
 
-import pytest
 from unittest.mock import MagicMock
 
+import pytest
 from document_chapter_splitter_v2 import (
-    classify_section_with_llm,
+    SectionClassifier,
     _fallback_classification,
     _roman_to_int,
-    SectionClassifier,
+    classify_section_with_llm,
 )
 
 

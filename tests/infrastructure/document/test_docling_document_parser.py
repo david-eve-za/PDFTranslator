@@ -1,6 +1,8 @@
 """Tests for DoclingDocumentParser adapter."""
 from pdftranslator.domain.protocols.document_parser import DocumentParser
-from pdftranslator.infrastructure.document.docling_document_parser import DoclingDocumentParser
+from pdftranslator.infrastructure.document.docling_document_parser import (
+    DoclingDocumentParser,
+)
 
 
 def test_docling_parser_satisfies_protocol():
