@@ -1,9 +1,9 @@
-import warnings
+from typing import Optional, List
 
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.base import BaseRepository
+from pdftranslator.database.models import Work
 from pdftranslator.database.services.vector_store import VectorStoreService
-from pdftranslator.domain.models.work import Work
 
 
 class BookRepository(BaseRepository[Work]):
@@ -17,129 +17,122 @@ class BookRepository(BaseRepository[Work]):
             author=row[5] if len(row) > 5 else None,
         )
 
-    def __init__(self, pool: DatabasePool | None = None, vector_service: VectorStoreService | None = None):
-        if pool is None:
-            warnings.warn(
-                "Providing pool=None is deprecated. Inject a ConnectionPool explicitly.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            pool = DatabasePool.get_instance()
-        self._pool = pool
-        if vector_service is None:
-            warnings.warn(
-                "Providing vector_service=None is deprecated. Inject a VectorStoreService explicitly.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        self._vector_service = vector_service or VectorStoreService()
+    def __init__(self, pool: Optional[DatabasePool] = None):
+        self._pool = pool or DatabasePool.get_instance()
+        self._vector_service = VectorStoreService()
 
-    def get_by_id(self, id: int) -> Work | None:
+    def get_by_id(self, id: int) -> Optional[Work]:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn, conn.cursor() as cur:
-            cur.execute(
-                """
+        with pool.connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
                     SELECT id, title, title_translated, source_lang, target_lang, author
                     FROM works
                     WHERE id = %s
                     """,
-                (id,),
-            )
-            row = cur.fetchone()
-            if row is None:
-                return None
-            return self._row_to_work(row)
+                    (id,),
+                )
+                row = cur.fetchone()
+                if row is None:
+                    return None
+                return self._row_to_work(row)
 
-    def get_all(self) -> list[Work]:
+    def get_all(self) -> List[Work]:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn, conn.cursor() as cur:
-            cur.execute(
-                """
+        with pool.connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
                     SELECT id, title, title_translated, source_lang, target_lang, author
                     FROM works
                     ORDER BY id
                     """
-            )
-            rows = cur.fetchall()
-            return [self._row_to_work(row) for row in rows]
+                )
+                rows = cur.fetchall()
+                return [self._row_to_work(row) for row in rows]
 
     def create(self, entity: Work) -> Work:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn, conn.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO works (title, title_translated, source_lang, target_lang, author)
-                VALUES (%s, %s, %s, %s, %s)
-                RETURNING id, title, title_translated, source_lang, target_lang, author
-                """,
-                (
-                    entity.title,
-                    entity.title_translated,
-                    entity.source_lang,
-                    entity.target_lang,
-                    entity.author,
-                ),
-            )
-            row = cur.fetchone()
-            return self._row_to_work(row)
+        with pool.connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO works (title, title_translated, source_lang, target_lang, author)
+                    VALUES (%s, %s, %s, %s, %s)
+                    RETURNING id, title, title_translated, source_lang, target_lang, author
+                    """,
+                    (
+                        entity.title,
+                        entity.title_translated,
+                        entity.source_lang,
+                        entity.target_lang,
+                        entity.author,
+                    ),
+                )
+                row = cur.fetchone()
+                return self._row_to_work(row)
 
-    def update(self, entity: Work) -> Work | None:
+    def update(self, entity: Work) -> Optional[Work]:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn, conn.cursor() as cur:
-            cur.execute(
-                """
-                UPDATE works
-                SET title = %s, title_translated = %s, source_lang = %s, target_lang = %s, author = %s
-                WHERE id = %s
-                RETURNING id, title, title_translated, source_lang, target_lang, author
-                """,
-                (
-                    entity.title,
-                    entity.title_translated,
-                    entity.source_lang,
-                    entity.target_lang,
-                    entity.author,
-                    entity.id,
-                ),
-            )
-            row = cur.fetchone()
-            if row is None:
-                return None
-            return self._row_to_work(row)
+        with pool.connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE works
+                    SET title = %s, title_translated = %s, source_lang = %s, target_lang = %s, author = %s
+                    WHERE id = %s
+                    RETURNING id, title, title_translated, source_lang, target_lang, author
+                    """,
+                    (
+                        entity.title,
+                        entity.title_translated,
+                        entity.source_lang,
+                        entity.target_lang,
+                        entity.author,
+                        entity.id,
+                    ),
+                )
+                row = cur.fetchone()
+                if row is None:
+                    return None
+                return self._row_to_work(row)
 
     def delete(self, id: int) -> bool:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn, conn.cursor() as cur:
-            cur.execute("DELETE FROM works WHERE id = %s", (id,))
-            return cur.rowcount > 0
+        with pool.connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM works WHERE id = %s", (id,))
+                return cur.rowcount > 0
 
-    def find_by_title(self, title: str, fuzzy: bool = False) -> list[Work]:
+    def find_by_title(self, title: str, fuzzy: bool = False) -> List[Work]:
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn, conn.cursor() as cur:
-            if fuzzy:
-                cur.execute(
-                    """
-                    SELECT id, title, title_translated, source_lang, target_lang, author
-                    FROM works
-                    WHERE title % %s
-                    ORDER BY similarity(title, %s) DESC
-                    """,
-                    (title, title),
-                )
-            else:
-                cur.execute(
-                    """
-                    SELECT id, title, title_translated, source_lang, target_lang, author
-                    FROM works
-                    WHERE title = %s
-                    ORDER BY id
-                    """,
-                    (title,),
-                )
-            rows = cur.fetchall()
-            return [self._row_to_work(row) for row in rows]
+        with pool.connection() as conn:
+            with conn.cursor() as cur:
+                if fuzzy:
+                    cur.execute(
+                        """
+                        SELECT id, title, title_translated, source_lang, target_lang, author
+                        FROM works
+                        WHERE title % %s
+                        ORDER BY similarity(title, %s) DESC
+                        """,
+                        (title, title),
+                    )
+                else:
+                    cur.execute(
+                        """
+                        SELECT id, title, title_translated, source_lang, target_lang, author
+                        FROM works
+                        WHERE title = %s
+                        ORDER BY id
+                        """,
+                        (title,),
+                    )
+                rows = cur.fetchall()
+                return [self._row_to_work(row) for row in rows]
 
-    def find_similar_works(self, query: str, top_k: int = 5) -> list[Work]:
+    def find_similar_works(self, query: str, top_k: int = 5) -> List[Work]:
         """
         Busca obras similares usando embeddings semánticos.
 
@@ -161,12 +154,13 @@ class BookRepository(BaseRepository[Work]):
         )
         return [works[i] for i in indices]
 
-    def find_all(self) -> list[Work]:
+    def find_all(self) -> List[Work]:
         """Returns all works in the database."""
         pool = self._pool.get_sync_pool()
-        with pool.connection() as conn, conn.cursor() as cur:
-            cur.execute(
-                "SELECT id, title, title_translated, source_lang, target_lang, author FROM works"
-            )
-            rows = cur.fetchall()
-            return [self._row_to_work(row) for row in rows]
+        with pool.connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT id, title, title_translated, source_lang, target_lang, author FROM works"
+                )
+                rows = cur.fetchall()
+                return [self._row_to_work(row) for row in rows]

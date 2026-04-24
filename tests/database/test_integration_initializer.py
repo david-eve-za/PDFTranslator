@@ -1,9 +1,8 @@
 import os
-
 import pytest
 from psycopg_pool import ConnectionPool
+from database.initializer import DatabaseInitializer
 
-from pdftranslator.database.initializer import DatabaseInitializer
 
 pytestmark = pytest.mark.integration
 
@@ -29,8 +28,9 @@ def can_connect_to_test_db():
             f"port={config['port']}"
         )
         pool = ConnectionPool(conninfo=conninfo, min_size=1, max_size=1, open=True)
-        with pool.connection() as conn, conn.cursor() as cursor:
-            cursor.execute("SELECT 1")
+        with pool.connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT 1")
         pool.close()
         return True
     except Exception:
@@ -73,39 +73,43 @@ class TestDatabaseInitializerIntegration:
         initializer = DatabaseInitializer()
         initializer.ensure_tables_exist(clean_test_db)
         expected_tables = {"works", "volumes", "chapters", "glossary_terms"}
-        with clean_test_db.connection() as conn, conn.cursor() as cursor:
-            cursor.execute(
-                "SELECT table_name FROM information_schema.tables "
-                "WHERE table_schema = 'public'"
-            )
-            tables = {row[0] for row in cursor.fetchall()}
+        with clean_test_db.connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT table_name FROM information_schema.tables "
+                    "WHERE table_schema = 'public'"
+                )
+                tables = {row[0] for row in cursor.fetchall()}
         assert expected_tables.issubset(tables)
 
     def test_ensure_tables_exist_is_idempotent(self, clean_test_db):
         initializer = DatabaseInitializer()
         initializer.ensure_tables_exist(clean_test_db)
-        with clean_test_db.connection() as conn, conn.cursor() as cursor:
-            cursor.execute(
-                "SELECT table_name FROM information_schema.tables "
-                "WHERE table_schema = 'public'"
-            )
-            tables_after_first = {row[0] for row in cursor.fetchall()}
+        with clean_test_db.connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT table_name FROM information_schema.tables "
+                    "WHERE table_schema = 'public'"
+                )
+                tables_after_first = {row[0] for row in cursor.fetchall()}
         initializer.ensure_tables_exist(clean_test_db)
-        with clean_test_db.connection() as conn, conn.cursor() as cursor:
-            cursor.execute(
-                "SELECT table_name FROM information_schema.tables "
-                "WHERE table_schema = 'public'"
-            )
-            tables_after_second = {row[0] for row in cursor.fetchall()}
+        with clean_test_db.connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT table_name FROM information_schema.tables "
+                    "WHERE table_schema = 'public'"
+                )
+                tables_after_second = {row[0] for row in cursor.fetchall()}
         assert tables_after_first == tables_after_second
 
     def test_ensure_tables_exist_creates_btree_gin_extension(self, clean_test_db):
         initializer = DatabaseInitializer()
         initializer.ensure_tables_exist(clean_test_db)
-        with clean_test_db.connection() as conn, conn.cursor() as cursor:
-            cursor.execute(
-                "SELECT extname FROM pg_extension WHERE extname = 'btree_gin'"
-            )
-            result = cursor.fetchone()
+        with clean_test_db.connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT extname FROM pg_extension WHERE extname = 'btree_gin'"
+                )
+                result = cursor.fetchone()
         assert result is not None
         assert result[0] == "btree_gin"

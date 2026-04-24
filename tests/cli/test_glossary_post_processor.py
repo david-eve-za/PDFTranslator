@@ -1,6 +1,7 @@
 # tests/cli/test_glossary_post_processor.py
+import pytest
 from pdftranslator.cli.services.glossary_post_processor import GlossaryPostProcessor
-from pdftranslator.domain.models.glossary import GlossaryEntry
+from pdftranslator.database.models import GlossaryEntry
 
 
 def create_entry(
@@ -9,14 +10,14 @@ def create_entry(
     do_not_translate: bool = False,
     entity_type: str = "other",
 ) -> GlossaryEntry:
+    """Helper to create GlossaryEntry for testing."""
+    # GlossaryEntry is a dataclass with simplified fields after refactoring
     return GlossaryEntry(
         id=None,
-        work_id=1,
-        term=term,
-        translation=translation,
+        work_id=1,  # Dummy work_id for testing
+        source_term=term,
+        target_term=translation,
         notes="DO_NOT_TRANSLATE" if do_not_translate else None,
-        do_not_translate=do_not_translate,
-        entity_type=entity_type,
     )
 
 

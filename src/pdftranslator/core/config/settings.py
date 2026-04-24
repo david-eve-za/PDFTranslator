@@ -1,13 +1,13 @@
 """Main application settings using Pydantic Settings."""
 
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
+from pdftranslator.core.config.llm import LLMSettings, LLMProvider
 from pdftranslator.core.config.database import DatabaseSettings
-from pdftranslator.core.config.document import DoclingConfig
-from pdftranslator.core.config.llm import LLMProvider, LLMSettings
 from pdftranslator.core.config.nlp import NLPSettings
 from pdftranslator.core.config.paths import PathSettings
+from pdftranslator.core.config.document import DoclingConfig
 from pdftranslator.core.config.processing import ProcessingSettings
 
 

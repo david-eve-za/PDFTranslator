@@ -1,15 +1,15 @@
 """Routes module."""
 
 from pdftranslator.backend.api.routes import (
-    chapters,
     files,
     glossary,
-    settings,
-    split,
-    substitution_rules,
     translation,
-    volumes,
     works,
+    volumes,
+    chapters,
+    split,
+    settings,
+    substitution_rules,
 )
 
 __all__ = [

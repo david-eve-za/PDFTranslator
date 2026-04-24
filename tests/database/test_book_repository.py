@@ -1,10 +1,9 @@
-from unittest.mock import MagicMock, patch
-
 import pytest
-
-from pdftranslator.database.connection import DatabasePool
+from unittest.mock import MagicMock, patch
 from pdftranslator.database.repositories.book_repository import BookRepository
-from pdftranslator.domain.models.work import Work
+from pdftranslator.database.models import Work, Volume
+from pdftranslator.database.exceptions import EntityNotFoundError
+from pdftranslator.database.connection import DatabasePool
 
 
 @pytest.fixture

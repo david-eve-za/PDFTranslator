@@ -1,12 +1,8 @@
-import warnings
-
+from typing import List, Optional
 import numpy as np
-from langchain_core.documents import Document
 from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings, NVIDIARerank
-
+from langchain_core.documents import Document
 from pdftranslator.core.config.settings import Settings
-from pdftranslator.domain.protocols.embedding import EmbeddingProvider
-from pdftranslator.domain.protocols.reranking import RerankingProvider
 
 
 class VectorStoreService:
@@ -14,27 +10,12 @@ class VectorStoreService:
     Servicio interno para embeddings y reranking usando NVIDIA NIM.
     Encapsula completamente la funcionalidad de NVIDIA NIM dentro del módulo database.
     Este servicio es usado internamente por los repositorios y no se exporta.
-
-    Now accepts optional injected providers for DIP-2 compliance.
     """
 
-    def __init__(
-        self,
-        embedder: EmbeddingProvider | None = None,
-        reranker: RerankingProvider | None = None,
-        config: Settings | None = None,
-    ):
-        self._injected_embedder = embedder
-        self._injected_reranker = reranker
-        if config is None:
-            warnings.warn(
-                "Providing config=None is deprecated. Inject Settings explicitly.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        self._config = config or Settings.get()
-        self._embedder: NVIDIAEmbeddings | None = None
-        self._reranker: NVIDIARerank | None = None
+    def __init__(self):
+        self._config = Settings.get()
+        self._embedder: Optional[NVIDIAEmbeddings] = None
+        self._reranker: Optional[NVIDIARerank] = None
 
     @property
     def _nvidia(self):
@@ -42,10 +23,8 @@ class VectorStoreService:
         return self._config.llm.nvidia
 
     @property
-    def embedder(self):
-        """Lazy initialization del embedder, or use injected provider"""
-        if self._injected_embedder is not None:
-            return self._injected_embedder
+    def embedder(self) -> NVIDIAEmbeddings:
+        """Lazy initialization del embedder"""
         if self._embedder is None:
             self._embedder = NVIDIAEmbeddings(
                 model=self._nvidia.embed_model,
@@ -54,10 +33,8 @@ class VectorStoreService:
         return self._embedder
 
     @property
-    def reranker(self):
-        """Lazy initialization del reranker, or use injected provider"""
-        if self._injected_reranker is not None:
-            return self._injected_reranker
+    def reranker(self) -> NVIDIARerank:
+        """Lazy initialization del reranker"""
         if self._reranker is None:
             self._reranker = NVIDIARerank(
                 model=self._nvidia.rerank_model,
@@ -66,7 +43,7 @@ class VectorStoreService:
             )
         return self._reranker
 
-    def embed_query(self, text: str) -> list[float]:
+    def embed_query(self, text: str) -> List[float]:
         """
         Genera embedding para una consulta.
 
@@ -78,7 +55,7 @@ class VectorStoreService:
         """
         return self.embedder.embed_query(text)
 
-    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """
         Genera embeddings para múltiples documentos.
 
@@ -91,8 +68,8 @@ class VectorStoreService:
         return self.embedder.embed_documents(texts)
 
     def rerank_documents(
-        self, query: str, documents: list[Document], top_n: int | None = None
-    ) -> list[Document]:
+        self, query: str, documents: List[Document], top_n: Optional[int] = None
+    ) -> List[Document]:
         """
         Rerankear documentos basado en relevancia con la query.
 
@@ -107,9 +84,6 @@ class VectorStoreService:
         if not documents:
             return []
 
-        if self._injected_reranker is not None:
-            return self._injected_reranker.rerank(query, documents, top_n=top_n or self._nvidia.rerank_top_n)
-
         reranker = NVIDIARerank(
             model=self._nvidia.rerank_model,
             api_key=self._config.llm.nvidia_api_key,
@@ -118,8 +92,8 @@ class VectorStoreService:
         return reranker.compress_documents(documents=documents, query=query)
 
     def cosine_similarity(
-        self, query_embedding: list[float], doc_embeddings: list[list[float]]
-    ) -> list[float]:
+        self, query_embedding: List[float], doc_embeddings: List[List[float]]
+    ) -> List[float]:
         """
         Calcula similitud coseno entre un embedding de consulta y múltiples documentos.
 
@@ -144,10 +118,10 @@ class VectorStoreService:
 
     def find_most_similar(
         self,
-        query_embedding: list[float],
-        doc_embeddings: list[list[float]],
+        query_embedding: List[float],
+        doc_embeddings: List[List[float]],
         top_k: int = 5,
-    ) -> list[int]:
+    ) -> List[int]:
         """
         Encuentra los índices de los documentos más similares a la consulta.
 
@@ -166,8 +140,8 @@ class VectorStoreService:
 
     def embed_entities_for_glossary(
         self,
-        entities: list,
-    ) -> list[tuple]:
+        entities: List,
+    ) -> List[tuple]:
         """
         Genera embeddings para entidades candidatas.
         El texto a embeddear combina: término + tipo + contexto
@@ -182,4 +156,4 @@ class VectorStoreService:
             return []
         texts = [f"{e.text} {e.entity_type} {e.best_context()}" for e in entities]
         embeddings = self.embedder.embed_documents(texts)
-        return list(zip(entities, embeddings, strict=False))
+        return list(zip(entities, embeddings))

@@ -59,7 +59,6 @@ def backend(
     """
     try:
         import uvicorn
-
         from pdftranslator.backend.main import app as fastapi_app
 
         logger.info(f"Starting backend server at http://{host}:{port}")
@@ -67,7 +66,7 @@ def backend(
     except ImportError as e:
         logger.error(f"Failed to import backend: {e}")
         logger.error("Make sure you're running from the project root directory")
-        raise typer.Exit(code=1) from None
+        raise typer.Exit(code=1)
 
 
 @app.command()
@@ -81,7 +80,7 @@ def frontend() -> None:
 
     if not frontend_dir.exists():
         logger.error(f"Frontend directory not found at {frontend_dir}")
-        raise typer.Exit(code=1) from None
+        raise typer.Exit(code=1)
 
     if not (frontend_dir / "node_modules").exists():
         logger.warning("node_modules not found. Running npm install...")
@@ -89,14 +88,14 @@ def frontend() -> None:
             subprocess.run(["npm", "install"], cwd=frontend_dir, check=True)
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to install dependencies: {e}")
-            raise typer.Exit(code=1) from None
+            raise typer.Exit(code=1)
 
     logger.info("Starting Angular frontend development server...")
     try:
         subprocess.run(["npm", "start"], cwd=frontend_dir, check=True)
     except subprocess.CalledProcessError as e:
         logger.error(f"Failed to start frontend: {e}")
-        raise typer.Exit(code=1) from None
+        raise typer.Exit(code=1)
 
 
 @app.command()
@@ -123,7 +122,6 @@ def dev(
     def start_backend_thread():
         """Backend thread for dev mode."""
         import uvicorn
-
         from pdftranslator.backend.main import app as fastapi_app
 
         uvicorn.run(fastapi_app, host=host, port=port, log_level="info")
@@ -139,7 +137,7 @@ def dev(
 
     if not frontend_dir.exists():
         logger.error(f"Frontend directory not found at {frontend_dir}")
-        raise typer.Exit(code=1) from None
+        raise typer.Exit(code=1)
 
     if not (frontend_dir / "node_modules").exists():
         logger.warning("node_modules not found. Running npm install...")
@@ -149,7 +147,7 @@ def dev(
         subprocess.run(["npm", "start"], cwd=frontend_dir, check=True)
     except subprocess.CalledProcessError as e:
         logger.error(f"Failed to start frontend: {e}")
-        raise typer.Exit(code=1) from None
+        raise typer.Exit(code=1)
 
 
 try:

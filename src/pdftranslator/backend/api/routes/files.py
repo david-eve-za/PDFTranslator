@@ -1,7 +1,7 @@
 """File upload and management routes."""
 
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 
@@ -10,7 +10,7 @@ from pdftranslator.backend.api.models.schemas import (
     FileUploadResponse,
 )
 from pdftranslator.backend.services.file_service import FileService, ProcessingResult
-from pdftranslator.domain.models.file import UploadedFile
+from pdftranslator.database.models import UploadedFile
 
 router = APIRouter(prefix="/api/files", tags=["files"])
 
@@ -56,10 +56,10 @@ def _processing_result_to_response(
 @router.post("/upload", response_model=FileUploadResponse)
 async def upload_file(
     file: Annotated[UploadFile, File()],
-    source_lang: str | None = Query(
+    source_lang: Optional[str] = Query(
         default=None, description="Source language code (optional)"
     ),
-    target_lang: str | None = Query(
+    target_lang: Optional[str] = Query(
         default=None, description="Target language code (optional)"
     ),
     service: FileService = Depends(get_file_service),

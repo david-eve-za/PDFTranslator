@@ -1,27 +1,28 @@
-"""Database exceptions — re-exported from domain for backward compatibility.
+class DatabaseError(Exception):
+    """Error base de base de datos"""
 
-DEPRECATED: Import from pdftranslator.domain.exceptions instead.
+    pass
 
-NOTE: ConnectionError is kept as alias for DBConnectionError
-to maintain backward compatibility, but prefer DBConnectionError
-to avoid shadowing the Python builtin.
-"""
-from pdftranslator.domain.exceptions.errors import (
-    DBConnectionError as ConnectionError,
-)
-from pdftranslator.domain.exceptions.errors import (  # noqa: F401
-    DomainError as DatabaseError,
-)
-from pdftranslator.domain.exceptions.errors import (
-    DuplicateEntityError,
-    EntityNotFoundError,
-    QueryError,
-)
 
-__all__ = [
-    "DatabaseError",
-    "ConnectionError",
-    "QueryError",
-    "EntityNotFoundError",
-    "DuplicateEntityError",
-]
+class ConnectionError(DatabaseError):
+    """Error de conexión a la base de datos"""
+
+    pass
+
+
+class QueryError(DatabaseError):
+    """Error en consulta SQL"""
+
+    pass
+
+
+class EntityNotFoundError(DatabaseError):
+    """Entidad no encontrada"""
+
+    pass
+
+
+class DuplicateEntityError(DatabaseError):
+    """Entidad duplicada"""
+
+    pass

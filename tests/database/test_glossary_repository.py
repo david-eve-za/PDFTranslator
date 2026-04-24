@@ -1,10 +1,8 @@
-from unittest.mock import MagicMock, patch
-
 import pytest
-
-from pdftranslator.database import ContextExample, GlossaryEntry, TermContext
-from pdftranslator.database.connection import DatabasePool
-from pdftranslator.database.repositories.glossary_repository import GlossaryRepository
+from unittest.mock import MagicMock, patch
+from database.repositories.glossary_repository import GlossaryRepository
+from database.models import GlossaryEntry, TermContext, ContextExample
+from database.connection import DatabasePool
 
 
 @pytest.fixture
@@ -29,7 +27,7 @@ def reset_database_pool():
 
 
 def test_glossary_repository_inherits_from_base():
-    from pdftranslator.database.repositories.base import BaseRepository
+    from database.repositories.base import BaseRepository
 
     assert issubclass(GlossaryRepository, BaseRepository)
 
@@ -67,7 +65,7 @@ def test_get_by_work(mock_pool, mock_connection):
     result = repo.get_by_work(1)
 
     assert len(result) == 1
-    assert result[0].term == "staff"
+    assert result[0].source_term == "staff"
 
 
 def test_find_by_term_fuzzy(mock_pool, mock_connection):
@@ -82,7 +80,7 @@ def test_find_by_term_fuzzy(mock_pool, mock_connection):
     result = repo.find_by_term("Tempst", fuzzy=True)
 
     assert len(result) == 1
-    assert result[0].term == "Tempest"
+    assert result[0].source_term == "Tempest"
 
 
 def test_create_entry(mock_pool, mock_connection):
@@ -100,12 +98,12 @@ def test_create_entry(mock_pool, mock_connection):
 
     repo = GlossaryRepository(pool=mock_pool)
     entry = GlossaryEntry(
-        id=None, work_id=1, term="dragon", translation="dragón"
+        id=None, work_id=1, source_term="dragon", target_term="dragón"
     )
     result = repo.create(entry)
 
     assert result.id == 1
-    assert result.term == "dragon"
+    assert result.source_term == "dragon"
 
 
 def test_add_context(mock_pool, mock_connection):
@@ -157,7 +155,7 @@ def test_add_example(mock_pool, mock_connection):
     assert result.original_sentence == "He held his staff"
 
 
-@patch("pdftranslator.database.repositories.glossary_repository.VectorStoreService")
+@patch("database.repositories.glossary_repository.VectorStoreService")
 def test_search_terms_with_rerank(mock_vector_service, mock_pool, mock_connection):
     mock_pool.get_sync_pool.return_value.connection.return_value.__enter__ = MagicMock(
         return_value=mock_connection[0]

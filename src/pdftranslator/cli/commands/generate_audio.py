@@ -1,23 +1,22 @@
 """Generate audio from translated chapters/volumes."""
 
 import logging
+from pathlib import Path
+from typing import Optional
 
 import questionary
 import typer
 from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from pdftranslator.cli.app import app, console, setup_logging
-from pdftranslator.core.config.processing import TTSEngine
 from pdftranslator.core.config.settings import Settings
-from pdftranslator.core.models.work import Chapter, Volume, Work
+from pdftranslator.core.models.work import Work, Volume, Chapter
 from pdftranslator.database.connection import DatabasePool
-from pdftranslator.database.repositories.book_repository import BookRepository
 from pdftranslator.database.repositories.chapter_repository import ChapterRepository
 from pdftranslator.database.repositories.volume_repository import VolumeRepository
-from pdftranslator.domain.protocols.audio_synthesizer import AudioSynthesizer
-from pdftranslator.infrastructure.audio.audio_synthesizer_factory import (
-    AudioSynthesizerFactory,
-)
+from pdftranslator.database.repositories.book_repository import BookRepository
+from pdftranslator.tools.AudioGenerator import AudioGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +48,7 @@ def _format_chapter_display(chapter: Chapter) -> str:
         return f"Chapter {chapter.chapter_number}{title_part}"
 
 
-def _select_work_interactive(work_repo: BookRepository) -> Work | None:
+def _select_work_interactive(work_repo: BookRepository) -> Optional[Work]:
     """Interactive selection of a work from the database."""
     works = work_repo.find_all()
     if not works:
@@ -58,7 +57,7 @@ def _select_work_interactive(work_repo: BookRepository) -> Work | None:
 
     work_choices = [questionary.Choice(title=w.title, value=w) for w in works]
 
-    selected_work: Work | None = questionary.select(
+    selected_work: Optional[Work] = questionary.select(
         "Select a work:",
         choices=work_choices,
     ).ask()
@@ -162,7 +161,7 @@ def _display_work_structure(
 
 def _select_scope_with_context(
     work: Work, volume_repo: VolumeRepository, chapter_repo: ChapterRepository
-) -> str | None:
+) -> Optional[str]:
     """Interactive selection of processing scope with context about the work."""
     stats = _display_work_structure(work, volume_repo, chapter_repo)
 
@@ -205,7 +204,7 @@ def _select_scope_with_context(
 
 def _select_volume_interactive(
     work: Work, volume_repo: VolumeRepository
-) -> Volume | None:
+) -> Optional[Volume]:
     """Interactive selection of a volume from a work."""
     if work.id is None:
         console.print("[red]Work has no ID.[/red]")
@@ -223,7 +222,7 @@ def _select_volume_interactive(
         for v in sorted(volumes, key=lambda vol: vol.volume_number)
     ]
 
-    selected_volume: Volume | None = questionary.select(
+    selected_volume: Optional[Volume] = questionary.select(
         f"Select a volume from '{work.title}':",
         choices=volume_choices,
     ).ask()
@@ -233,7 +232,7 @@ def _select_volume_interactive(
 
 def _select_chapter_interactive(
     volume: Volume, chapter_repo: ChapterRepository, settings: Settings, work: Work
-) -> Chapter | None:
+) -> Optional[Chapter]:
     """Interactive selection of a chapter from a volume."""
     if volume.id is None:
         console.print("[red]Volume has no ID.[/red]")
@@ -272,7 +271,7 @@ def _select_chapter_interactive(
             )
         )
 
-    selected_chapter: Chapter | None = questionary.select(
+    selected_chapter: Optional[Chapter] = questionary.select(
         f"Select a chapter from Volume {volume.volume_number}:",
         choices=chapter_choices,
     ).ask()
@@ -285,10 +284,10 @@ def _generate_chapter_audio(
     volume: Volume,
     work: Work,
     settings: Settings,
-    synthesizer: AudioSynthesizer,
 ) -> bool:
+    """Generate audio for a single chapter."""
     if not chapter.translated_text or not chapter.translated_text.strip():
-        console.print("[yellow]Chapter has no translated text. Skipping.[/yellow]")
+        console.print(f"[yellow]Chapter has no translated text. Skipping.[/yellow]")
         return False
 
     work_title = work.title.replace(" ", "_")
@@ -309,20 +308,19 @@ def _generate_chapter_audio(
         return True
 
     ch_display = _format_chapter_display(chapter)
-    console.print(f"[cyan]Generating audio for {ch_display} (engine: {synthesizer.name})...[/cyan]")
+    console.print(f"[cyan]Generating audio for {ch_display}...[/cyan]")
 
-    success = synthesizer.synthesize(
-        text=chapter.translated_text,
-        output_path=output_filename,
-        voice=settings.processing.voice,
-        language=settings.processing.target_lang,
+    audio_generator = AudioGenerator()
+    success = audio_generator.process_texts(
+        text_content=chapter.translated_text,
+        output_filename=output_filename,
     )
 
     if success:
         console.print(f"[green]✓ Audio saved: {output_filename.name}[/green]")
         return True
     else:
-        console.print("[red]✗ Failed to generate audio[/red]")
+        console.print(f"[red]✗ Failed to generate audio[/red]")
         return False
 
 
@@ -331,8 +329,8 @@ def _generate_volume_audio(
     work: Work,
     settings: Settings,
     chapter_repo: ChapterRepository,
-    synthesizer: AudioSynthesizer,
 ) -> tuple[int, int, int]:
+    """Generate audio for all chapters in a volume."""
     chapters = chapter_repo.get_by_volume(volume.id)
     if not chapters:
         console.print(
@@ -347,7 +345,7 @@ def _generate_volume_audio(
     skip_count = 0
 
     for chapter in chapters:
-        result = _generate_chapter_audio(chapter, volume, work, settings, synthesizer)
+        result = _generate_chapter_audio(chapter, volume, work, settings)
         if result:
             success_count += 1
         else:
@@ -364,8 +362,8 @@ def _generate_book_audio(
     settings: Settings,
     volume_repo: VolumeRepository,
     chapter_repo: ChapterRepository,
-    synthesizer: AudioSynthesizer,
 ) -> tuple[int, int, int]:
+    """Generate audio for all volumes and chapters in a work."""
     if work.id is None:
         console.print("[red]Work has no ID.[/red]")
         return (0, 0, 0)
@@ -382,7 +380,7 @@ def _generate_book_audio(
     for volume in sorted(volumes, key=lambda v: v.volume_number):
         console.print(f"\n[bold]Volume {volume.volume_number}[/bold]")
         success, skip, fail = _generate_volume_audio(
-            volume, work, settings, chapter_repo, synthesizer
+            volume, work, settings, chapter_repo
         )
         total_success += success
         total_skip += skip
@@ -393,19 +391,28 @@ def _generate_book_audio(
 
 @app.command("generate-audio")
 def generate_audio(
-    voice: str | None = typer.Option(
+    voice: Optional[str] = typer.Option(
         None, "--voice", help="TTS voice (default: from config)"
     ),
-    engine: str | None = typer.Option(
-        None, "--engine", "-e", help="TTS engine: mac_say, mlx, fish_speech"
-    ),
 ):
+    """
+    Generate audio from translated text in database.
+
+    Interactive command that guides through:
+    1. Work selection
+    2. Scope selection (All Book / All Volume / Single Chapter)
+    3. Volume/Chapter selection as needed
+    4. Audio generation
+
+    Examples:
+        pdftranslator generate-audio
+        pdftranslator generate-audio --voice "Paulina"
+    """
     setup_logging()
 
-    pool = DatabasePool.get_instance()
-    work_repo = BookRepository(pool)
-    volume_repo = VolumeRepository(pool)
-    chapter_repo = ChapterRepository(pool)
+    work_repo = BookRepository()
+    volume_repo = VolumeRepository()
+    chapter_repo = ChapterRepository()
 
     selected_work = _select_work_interactive(work_repo)
     if not selected_work:
@@ -420,8 +427,6 @@ def generate_audio(
         raise typer.Exit(0)
 
     settings = Settings.get()
-    tts_engine = TTSEngine(engine) if engine else None
-    synthesizer = AudioSynthesizerFactory.create(engine=tts_engine, settings=settings)
 
     total_success = 0
     total_skip = 0
@@ -429,7 +434,7 @@ def generate_audio(
 
     if selected_scope == SCOPE_ALL_BOOK:
         total_success, total_skip, total_fail = _generate_book_audio(
-            selected_work, settings, volume_repo, chapter_repo, synthesizer
+            selected_work, settings, volume_repo, chapter_repo
         )
 
     elif selected_scope == SCOPE_ALL_VOLUME:
@@ -438,7 +443,7 @@ def generate_audio(
             raise typer.Exit(0)
 
         total_success, total_skip, total_fail = _generate_volume_audio(
-            selected_volume, selected_work, settings, chapter_repo, synthesizer
+            selected_volume, selected_work, settings, chapter_repo
         )
 
     elif selected_scope == SCOPE_SINGLE_CHAPTER:
@@ -454,7 +459,7 @@ def generate_audio(
 
         if selected_chapter.translated_text:
             success = _generate_chapter_audio(
-                selected_chapter, selected_volume, selected_work, settings, synthesizer
+                selected_chapter, selected_volume, selected_work, settings
             )
             total_success = 1 if success else 0
             total_fail = 0 if success else 1
@@ -462,6 +467,7 @@ def generate_audio(
             console.print("[yellow]Selected chapter has no translated text.[/yellow]")
             total_skip = 1
 
+    # Summary
     console.print()
     console.print(
         f"[cyan]Summary: {total_success} generated, {total_skip} skipped, {total_fail} failed[/cyan]"

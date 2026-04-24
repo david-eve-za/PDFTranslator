@@ -1,14 +1,13 @@
 # tests/test_integration_docling.py
 """Integration tests for Docling document processing."""
 
-from pathlib import Path
-from unittest.mock import patch
-
 import pytest
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
-from pdftranslator.core.config.settings import DoclingConfig
-from pdftranslator.infrastructure.document.docling_extractor import DoclingExtractor
-from pdftranslator.infrastructure.document.section_grouper import SectionGrouper
+from infrastructure.document.docling_extractor import DoclingExtractor
+from infrastructure.document.section_grouper import SectionGrouper
+from config.document import DoclingConfig
 
 
 @pytest.mark.integration
@@ -57,7 +56,7 @@ class TestDoclingIntegration:
 
         assert doc is not None
 
-    @patch("pdftranslator.infrastructure.document.docling_extractor.DocumentConverter")
+    @patch("infrastructure.document.docling_extractor.DocumentConverter")
     def test_ocr_enabled_for_scanned_pdf(self, mock_converter):
         """Test OCR is enabled when configured."""
         config = DoclingConfig(enable_ocr=True)

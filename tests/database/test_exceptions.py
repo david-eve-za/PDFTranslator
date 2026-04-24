@@ -1,11 +1,17 @@
-import pytest
+import sys
+from pathlib import Path
 
-from pdftranslator.database.exceptions import (
-    ConnectionError,
+_root = str(Path(__file__).resolve().parent.parent.parent)
+if _root not in sys.path:
+    sys.path.insert(0, _root)
+
+import pytest
+from database.exceptions import (
     DatabaseError,
-    DuplicateEntityError,
-    EntityNotFoundError,
+    ConnectionError,
     QueryError,
+    EntityNotFoundError,
+    DuplicateEntityError,
 )
 
 

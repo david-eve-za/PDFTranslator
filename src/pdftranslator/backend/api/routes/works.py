@@ -12,22 +12,14 @@ from pdftranslator.backend.api.models.schemas import (
 )
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.book_repository import BookRepository
-from pdftranslator.database.repositories.chapter_repository import ChapterRepository
 from pdftranslator.database.repositories.volume_repository import VolumeRepository
 
 router = APIRouter(prefix="/api/works", tags=["works"])
 
 
 def get_work_repository() -> BookRepository:
+    """Get work repository instance."""
     return BookRepository(DatabasePool.get_instance())
-
-
-def get_volume_repository() -> VolumeRepository:
-    return VolumeRepository(DatabasePool.get_instance())
-
-
-def get_chapter_repository() -> ChapterRepository:
-    return ChapterRepository(DatabasePool.get_instance())
 
 
 @router.get("/", response_model=WorkListResponse)
@@ -35,30 +27,23 @@ async def list_works(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     repo: BookRepository = Depends(get_work_repository),
-    volume_repo: VolumeRepository = Depends(get_volume_repository),
-    chapter_repo: ChapterRepository = Depends(get_chapter_repository),
 ):
     """List all works with pagination."""
     works = repo.get_all()
     total = len(works)
     start = (page - 1) * page_size
     end = start + page_size
-    items = [_work_to_response(w, volume_repo, chapter_repo) for w in works[start:end]]
+    items = [_work_to_response(w) for w in works[start:end]]
     return WorkListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.get("/{work_id}", response_model=WorkResponse)
-async def get_work(
-    work_id: int,
-    repo: BookRepository = Depends(get_work_repository),
-    volume_repo: VolumeRepository = Depends(get_volume_repository),
-    chapter_repo: ChapterRepository = Depends(get_chapter_repository),
-):
+async def get_work(work_id: int, repo: BookRepository = Depends(get_work_repository)):
     """Get a work by ID."""
     work = repo.get_by_id(work_id)
     if not work:
         raise HTTPException(status_code=404, detail="Work not found")
-    return _work_to_response(work, volume_repo, chapter_repo, include_volumes=True)
+    return _work_to_response(work, include_volumes=True)
 
 
 @router.post("/", response_model=WorkResponse, status_code=201)
@@ -76,7 +61,7 @@ async def create_work(
         target_lang=work_data.target_lang,
     )
     created = repo.create(work)
-    return _work_to_response(created, get_volume_repository(), get_chapter_repository())
+    return _work_to_response(created)
 
 
 @router.put("/{work_id}", response_model=WorkResponse)
@@ -104,7 +89,7 @@ async def update_work(
     updated = repo.update(work)
     if not updated:
         raise HTTPException(status_code=404, detail="Work not found")
-    return _work_to_response(updated, get_volume_repository(), get_chapter_repository())
+    return _work_to_response(updated)
 
 
 @router.delete("/{work_id}")
@@ -118,18 +103,18 @@ async def delete_work(
     return {"message": "Work deleted", "id": work_id}
 
 
-def _work_to_response(
-    work,
-    volume_repo: VolumeRepository,
-    chapter_repo: ChapterRepository,
-    include_volumes: bool = False,
-) -> dict:
+def _work_to_response(work, include_volumes: bool = False) -> dict:
+    """Convert work to response dict."""
+    volume_repo = VolumeRepository(DatabasePool.get_instance())
+    from pdftranslator.database.repositories.chapter_repository import ChapterRepository
+
     volumes = []
     total_chapters = 0
     translated_chapters = 0
 
     work_volumes = volume_repo.get_by_work_id(work.id)
     for v in work_volumes:
+        chapter_repo = ChapterRepository(DatabasePool.get_instance())
         chapters = chapter_repo.get_by_volume(v.id)
         total_chapters += len(chapters)
         vol_translated = sum(1 for c in chapters if c.translated_text)

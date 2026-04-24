@@ -1,14 +1,13 @@
 from typing import Optional
-
-from psycopg_pool import AsyncConnectionPool, ConnectionPool
-
+from urllib.parse import quote
+from psycopg_pool import ConnectionPool, AsyncConnectionPool
 from pdftranslator.database.initializer import DatabaseInitializer
 
 
 class DatabasePool:
     _instance: Optional["DatabasePool"] = None
-    _sync_pool: ConnectionPool | None = None
-    _async_pool: AsyncConnectionPool | None = None
+    _sync_pool: Optional[ConnectionPool] = None
+    _async_pool: Optional[AsyncConnectionPool] = None
     _tables_initialized: bool = False
 
     @classmethod
@@ -24,13 +23,13 @@ class DatabasePool:
 
     def __init__(
         self,
-        host: str | None = None,
-        port: int | None = None,
-        database: str | None = None,
-        user: str | None = None,
-        password: str | None = None,
-        min_size: int | None = None,
-        max_size: int | None = None,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
+        database: Optional[str] = None,
+        user: Optional[str] = None,
+        password: Optional[str] = None,
+        min_size: Optional[int] = None,
+        max_size: Optional[int] = None,
     ):
         if (
             host is None

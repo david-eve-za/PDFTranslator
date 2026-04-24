@@ -2,25 +2,24 @@ import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import List, Optional, Tuple
 
 import questionary
 import typer
 from rich.panel import Panel
 from rich.progress import (
-    BarColumn,
     Progress,
     SpinnerColumn,
-    TaskProgressColumn,
     TextColumn,
+    BarColumn,
+    TaskProgressColumn,
 )
 
-from pdftranslator.cli.app import VALID_EXTENSIONS, app, console
+from pdftranslator.cli.app import app, console, VALID_EXTENSIONS
+from pdftranslator.database.models import Work, Volume
 from pdftranslator.database.repositories.book_repository import BookRepository
 from pdftranslator.database.repositories.volume_repository import VolumeRepository
-from pdftranslator.domain.models.work import Volume, Work
-from pdftranslator.infrastructure.document.docling_document_parser import (
-    DoclingDocumentParser,
-)
+from pdftranslator.tools.TextExtractor import TextExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -37,13 +36,13 @@ class ParsedFilename:
 class ProcessingResult:
     filename: str
     success: bool
-    work_title: str | None = None
-    volume_number: int | None = None
+    work_title: Optional[str] = None
+    volume_number: Optional[int] = None
     work_created: bool = False
-    error_message: str | None = None
+    error_message: Optional[str] = None
 
 
-def parse_filename(file_path: Path) -> ParsedFilename | None:
+def parse_filename(file_path: Path) -> Optional[ParsedFilename]:
     stem = file_path.stem
     match = FILENAME_PATTERN.match(stem)
     if not match:
@@ -55,7 +54,7 @@ def parse_filename(file_path: Path) -> ParsedFilename | None:
 
 def find_or_create_work(
     repo: BookRepository, parsed: ParsedFilename
-) -> tuple[Work, bool]:
+) -> Tuple[Work, bool]:
     existing_works = repo.find_by_title(parsed.title, fuzzy=False)
     if existing_works:
         return existing_works[0], False
@@ -74,14 +73,14 @@ def process_single_file(
     file_path: Path,
     work_repo: BookRepository,
     volume_repo: VolumeRepository,
-    extractor: DoclingDocumentParser,
+    extractor: TextExtractor,
 ) -> ProcessingResult:
     parsed = parse_filename(file_path)
     if not parsed:
         return ProcessingResult(
             filename=file_path.name,
             success=False,
-            error_message="No se pudo parsear el nombre del archivo. Formato esperado: 'Título - Volumen X'",
+            error_message=f"No se pudo parsear el nombre del archivo. Formato esperado: 'Título - Volumen X'",
         )
 
     try:
@@ -99,7 +98,7 @@ def process_single_file(
                 error_message=f"El volumen {parsed.volume_number} ya existe para '{work.title}'",
             )
 
-        text = extractor.parse(str(file_path))
+        text = extractor.extract_text(str(file_path))
         if not text:
             return ProcessingResult(
                 filename=file_path.name,
@@ -136,11 +135,11 @@ def process_single_file(
         )
 
 
-def process_files(files: list[Path]) -> list[ProcessingResult]:
-    results: list[ProcessingResult] = []
+def process_files(files: List[Path]) -> List[ProcessingResult]:
+    results: List[ProcessingResult] = []
     work_repo = BookRepository()
     volume_repo = VolumeRepository()
-    extractor = DoclingDocumentParser()
+    extractor = TextExtractor()
 
     with Progress(
         SpinnerColumn(),
@@ -160,7 +159,7 @@ def process_files(files: list[Path]) -> list[ProcessingResult]:
     return results
 
 
-def print_results(results: list[ProcessingResult]) -> None:
+def print_results(results: List[ProcessingResult]) -> None:
     successful = [r for r in results if r.success]
     failed = [r for r in results if not r.success]
 
@@ -184,14 +183,14 @@ def print_results(results: list[ProcessingResult]) -> None:
     )
 
 
-def scan_directory_for_files(directory_path: Path) -> list[Path]:
+def scan_directory_for_files(directory_path: Path) -> List[Path]:
     files = []
     for ext in VALID_EXTENSIONS:
         files.extend(directory_path.rglob(f"*{ext}"))
     return sorted(files)
 
 
-def handle_single_file(file_path: Path) -> list[Path]:
+def handle_single_file(file_path: Path) -> List[Path]:
     if file_path.suffix.lower() not in VALID_EXTENSIONS:
         console.print(
             f"[red]Error: '{file_path.name}' is not a valid PDF or EPUB file.[/red]"
@@ -208,7 +207,7 @@ def handle_single_file(file_path: Path) -> list[Path]:
     return []
 
 
-def handle_directory_selection(directory_path: Path) -> list[Path]:
+def handle_directory_selection(directory_path: Path) -> List[Path]:
     files = scan_directory_for_files(directory_path)
 
     if not files:

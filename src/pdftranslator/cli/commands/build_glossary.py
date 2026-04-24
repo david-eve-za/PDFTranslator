@@ -1,33 +1,27 @@
 # cli/commands/build_glossary.py
 import logging
+from typing import Optional, List
 
 import questionary
 import typer
+from rich.console import Console
 from rich.panel import Panel
 from rich.progress import (
-    BarColumn,
     Progress,
     SpinnerColumn,
-    TaskProgressColumn,
     TextColumn,
+    BarColumn,
+    TaskProgressColumn,
 )
 from rich.table import Table
 
-from pdftranslator.application.services.glossary_build_orchestrator import (
-    GlossaryBuildOrchestrator,
-)
 from pdftranslator.cli.app import app, console, setup_logging
 from pdftranslator.database.connection import DatabasePool
+from pdftranslator.database.models import Work, Volume, Chapter, BuildResult
 from pdftranslator.database.repositories.book_repository import BookRepository
 from pdftranslator.database.repositories.chapter_repository import ChapterRepository
-from pdftranslator.database.repositories.glossary_build_progress_repository import (
-    GlossaryBuildProgressRepository,
-)
-from pdftranslator.database.repositories.glossary_repository import GlossaryRepository
 from pdftranslator.database.repositories.volume_repository import VolumeRepository
-from pdftranslator.database.services.entity_extractor import EntityExtractor
-from pdftranslator.domain.models.entity import BuildResult
-from pdftranslator.domain.models.work import Chapter, Volume, Work
+from pdftranslator.database.services.glossary_manager import GlossaryManager
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +31,7 @@ SCOPE_ALL_VOLUME = "All Volume"
 SCOPE_SINGLE_CHAPTER = "Single Chapter"
 
 
-def _select_work_interactive(work_repo: BookRepository) -> Work | None:
+def _select_work_interactive(work_repo: BookRepository) -> Optional[Work]:
     """Interactive selection of a work from the database."""
     works = work_repo.find_all()
     if not works:
@@ -46,7 +40,7 @@ def _select_work_interactive(work_repo: BookRepository) -> Work | None:
 
     work_choices = [questionary.Choice(title=w.title, value=w) for w in works]
 
-    selected_work: Work | None = questionary.select(
+    selected_work: Optional[Work] = questionary.select(
         "Select a work:",
         choices=work_choices,
     ).ask()
@@ -54,7 +48,7 @@ def _select_work_interactive(work_repo: BookRepository) -> Work | None:
     return selected_work
 
 
-def _select_scope() -> str | None:
+def _select_scope() -> Optional[str]:
     """Interactive selection of processing scope."""
     return questionary.select(
         "Select processing scope:",
@@ -77,7 +71,7 @@ def _select_scope() -> str | None:
 
 def _select_volume_interactive(
     work: Work, volume_repo: VolumeRepository
-) -> Volume | None:
+) -> Optional[Volume]:
     """Interactive selection of a volume from a work."""
     if work.id is None:
         console.print("[red]Work has no ID.[/red]")
@@ -95,7 +89,7 @@ def _select_volume_interactive(
         for v in sorted(volumes, key=lambda vol: vol.volume_number)
     ]
 
-    selected_volume: Volume | None = questionary.select(
+    selected_volume: Optional[Volume] = questionary.select(
         f"Select a volume from '{work.title}':",
         choices=volume_choices,
     ).ask()
@@ -105,7 +99,7 @@ def _select_volume_interactive(
 
 def _select_chapter_interactive(
     volume: Volume, chapter_repo: ChapterRepository
-) -> Chapter | None:
+) -> Optional[Chapter]:
     """Interactive selection of a chapter from a volume."""
     if volume.id is None:
         console.print("[red]Volume has no ID.[/red]")
@@ -129,7 +123,7 @@ def _select_chapter_interactive(
         )
     ]
 
-    selected_chapter: Chapter | None = questionary.select(
+    selected_chapter: Optional[Chapter] = questionary.select(
         f"Select a chapter from Volume {volume.volume_number}:",
         choices=chapter_choices,
     ).ask()
@@ -150,7 +144,7 @@ def _concatenate_volume_chapters(
 
 def _process_all_book(
     selected_work: Work,
-    orchestrator: GlossaryBuildOrchestrator,
+    manager: GlossaryManager,
     volume_repo: VolumeRepository,
     chapter_repo: ChapterRepository,
     source_lang: str,
@@ -158,7 +152,7 @@ def _process_all_book(
     dry_run: bool,
     all_entities_by_type: dict,
     resume: bool,
-    ) -> tuple:
+) -> tuple:
     """Process all volumes in a work, concatenating chapters per volume."""
     if selected_work.id is None:
         console.print("[red]Work has no ID.[/red]")
@@ -198,7 +192,7 @@ def _process_all_book(
                 description=f"[cyan]Volume {vol.volume_number} ({len(consolidated_text)} chars)",
             )
 
-            result = orchestrator.build_from_text(
+            result = manager.build_from_text(
                 text=consolidated_text,
                 work_id=selected_work.id,
                 volume_id=vol.id,
@@ -223,7 +217,7 @@ def _process_all_book(
 def _process_volume_consolidated(
     volume: Volume,
     work_id: int,
-    orchestrator: GlossaryBuildOrchestrator,
+    manager: GlossaryManager,
     chapter_repo: ChapterRepository,
     source_lang: str,
     target_lang: str,
@@ -250,7 +244,7 @@ def _process_volume_consolidated(
     ) as progress:
         task = progress.add_task("[cyan]Extracting entities...", total=None)
 
-        result = orchestrator.build_from_text(
+        result = manager.build_from_text(
             text=consolidated_text,
             work_id=work_id,
             volume_id=volume.id,
@@ -350,32 +344,9 @@ def build_glossary(
     """
     setup_logging()
 
-    pool = DatabasePool.get_instance()
-    work_repo = BookRepository(pool)
-    volume_repo = VolumeRepository(pool)
-    chapter_repo = ChapterRepository(pool)
-    glossary_repo = GlossaryRepository(pool)
-    progress_repo = GlossaryBuildProgressRepository(pool)
-    entity_extractor = EntityExtractor(pool, min_frequency=min_frequency)
-
-    from pdftranslator.core.config.settings import Settings
-    from pdftranslator.infrastructure.embedding.nvidia_embedding import (
-        NvidiaEmbeddingProvider,
-    )
-    from pdftranslator.infrastructure.llm.factory import LLMFactory
-
-    settings = Settings.get()
-    llm_client = LLMFactory.create()
-    embedder = NvidiaEmbeddingProvider(settings)
-
-    orchestrator = GlossaryBuildOrchestrator(
-        llm_client=llm_client,
-        embedder=embedder,
-        progress_tracker=progress_repo,
-        glossary_repo=glossary_repo,
-        entity_extractor=entity_extractor,
-        max_output_tokens=settings.llm.nvidia.max_output_tokens,
-    )
+    work_repo = BookRepository()
+    volume_repo = VolumeRepository()
+    chapter_repo = ChapterRepository()
 
     selected_work = _select_work_interactive(work_repo)
     if not selected_work:
@@ -387,12 +358,21 @@ def build_glossary(
     if not selected_scope:
         raise typer.Exit(0)
 
+    pool = DatabasePool.get_instance()
+    manager = GlossaryManager(pool)
+    volume_repo_pool = VolumeRepository(pool)
+
     # Check for failed/in-progress volumes when resume is True
     if resume:
-        failed_volumes = volume_repo.get_volumes_by_status(
+        from pdftranslator.database.repositories.glossary_build_progress_repository import (
+            GlossaryBuildProgressRepository,
+        )
+
+        progress_repo = GlossaryBuildProgressRepository(pool)
+        failed_volumes = volume_repo_pool.get_volumes_by_status(
             selected_work.id, "failed"
         )
-        in_progress_volumes = volume_repo.get_volumes_by_status(
+        in_progress_volumes = volume_repo_pool.get_volumes_by_status(
             selected_work.id, "in_progress"
         )
         if failed_volumes:
@@ -412,10 +392,16 @@ def build_glossary(
     # Handle force_restart flag
     selected_volume = None
     if force_restart:
+        from pdftranslator.database.repositories.glossary_build_progress_repository import (
+            GlossaryBuildProgressRepository,
+        )
+
+        progress_repo = GlossaryBuildProgressRepository(pool)
         console.print("[yellow]Limpiando progreso existente...[/yellow]")
+        # Get volumes based on scope - need to select volume first for certain scopes
         volumes_to_clear = []
         if selected_scope == SCOPE_ALL_BOOK:
-            volumes_to_clear = volume_repo.get_by_work_id(selected_work.id)
+            volumes_to_clear = volume_repo_pool.get_by_work_id(selected_work.id)
         elif selected_scope in (SCOPE_ALL_VOLUME, SCOPE_SINGLE_CHAPTER):
             # Need to select volume interactively first
             selected_volume = _select_volume_interactive(selected_work, volume_repo)
@@ -424,12 +410,12 @@ def build_glossary(
             volumes_to_clear = [selected_volume]
         for vol in volumes_to_clear:
             progress_repo.cleanup_completed(vol.id)
-            volume_repo.update_build_status(vol.id, "pending")
+            volume_repo_pool.update_build_status(vol.id, "pending")
 
     if selected_scope == SCOPE_ALL_BOOK:
         total_extracted, total_new, total_skipped = _process_all_book(
             selected_work=selected_work,
-            orchestrator=orchestrator,
+            manager=manager,
             volume_repo=volume_repo,
             chapter_repo=chapter_repo,
             source_lang=source_lang,
@@ -453,7 +439,7 @@ def build_glossary(
         result = _process_volume_consolidated(
             volume=selected_volume,
             work_id=work_id,
-            orchestrator=orchestrator,
+            manager=manager,
             chapter_repo=chapter_repo,
             source_lang=source_lang,
             target_lang=target_lang,
@@ -485,7 +471,7 @@ def build_glossary(
             console.print("[red]Work has no ID.[/red]")
             raise typer.Exit(1)
 
-        result = orchestrator.build_from_text(
+        result = manager.build_from_text(
             text=selected_chapter.original_text,
             work_id=work_id,
             volume_id=selected_volume.id,

@@ -8,16 +8,18 @@ from pdftranslator.database.exceptions import (
     QueryError,
 )
 from pdftranslator.database.initializer import DatabaseInitializer
-from pdftranslator.database.repositories.book_repository import BookRepository
-from pdftranslator.database.repositories.chapter_repository import ChapterRepository
-from pdftranslator.database.repositories.glossary_repository import GlossaryRepository
-from pdftranslator.domain.models.file import UploadedFile
-from pdftranslator.domain.models.glossary import (
+from pdftranslator.database.models import (
+    Chapter,
     ContextExample,
     GlossaryEntry,
     TermContext,
+    UploadedFile,
+    Volume,
+    Work,
 )
-from pdftranslator.domain.models.work import Chapter, Volume, Work
+from pdftranslator.database.repositories.book_repository import BookRepository
+from pdftranslator.database.repositories.chapter_repository import ChapterRepository
+from pdftranslator.database.repositories.glossary_repository import GlossaryRepository
 
 __all__ = [
     "Work",

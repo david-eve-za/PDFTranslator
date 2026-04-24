@@ -1,12 +1,5 @@
-"""Core models — re-exported from domain for backward compatibility.
+"""Domain models."""
 
-DEPRECATED: Import from pdftranslator.domain.models instead.
-"""
-from pdftranslator.domain.models.glossary import (  # noqa: F401
-    ContextExample,
-    GlossaryEntry,
-    TermContext,
-)
-from pdftranslator.domain.models.work import Chapter, Volume, Work  # noqa: F401
+from pdftranslator.core.models.work import Work, Volume, Chapter, GlossaryEntry
 
-__all__ = ["Work", "Volume", "Chapter", "GlossaryEntry", "TermContext", "ContextExample"]
+__all__ = ["Work", "Volume", "Chapter", "GlossaryEntry"]

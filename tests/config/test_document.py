@@ -2,7 +2,7 @@
 
 import pytest
 
-from pdftranslator.core.config.settings import DoclingConfig
+from config.document import DoclingConfig
 
 
 def test_docling_config_defaults():
@@ -33,7 +33,7 @@ def test_docling_config_validates_accelerator_device():
 
 def test_settings_includes_docling_config():
     """Test Settings includes DoclingConfig."""
-    from pdftranslator.core.config.settings import Settings
+    from config.settings import Settings
 
     settings = Settings()
     assert hasattr(settings, "document")

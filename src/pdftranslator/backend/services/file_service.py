@@ -8,16 +8,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from pdftranslator.core.config.settings import Settings
+from pdftranslator.database.models import UploadedFile, Volume, Work
 from pdftranslator.database.repositories.book_repository import BookRepository
 from pdftranslator.database.repositories.uploaded_file_repository import (
     UploadedFileRepository,
 )
 from pdftranslator.database.repositories.volume_repository import VolumeRepository
-from pdftranslator.domain.models.file import UploadedFile
-from pdftranslator.domain.models.work import Volume, Work
-from pdftranslator.infrastructure.document.docling_document_parser import (
-    DoclingDocumentParser,
-)
+from pdftranslator.tools.TextExtractor import TextExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +59,7 @@ class FileService:
         self._work_repo = work_repo or BookRepository()
         self._volume_repo = volume_repo or VolumeRepository()
         self._settings = settings or Settings.get()
-        self._extractor = DoclingDocumentParser()
+        self._extractor = TextExtractor()
         self._upload_dir = self._get_upload_dir()
 
     def _get_upload_dir(self) -> Path:
@@ -177,7 +174,7 @@ class FileService:
                     error_message=f"Volume {parsed.volume_number} already exists for '{work.title}'",
                 )
 
-            text = self._extractor.parse(str(file_path))
+            text = self._extractor.extract_text(str(file_path))
             if not text:
                 return ProcessingResult(
                     success=False,

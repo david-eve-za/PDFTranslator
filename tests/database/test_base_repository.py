@@ -1,8 +1,6 @@
-from abc import ABC
-
 import pytest
-
-from pdftranslator.database.repositories.base import BaseRepository
+from abc import ABC
+from database.repositories.base import BaseRepository
 
 
 def test_base_repository_is_abstract():

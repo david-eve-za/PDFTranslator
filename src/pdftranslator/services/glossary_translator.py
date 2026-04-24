@@ -1,11 +1,12 @@
 """Glossary-aware translator service."""
 
 import logging
+from typing import List
 
 from pdftranslator.core.config.llm import BCP47Language
-from pdftranslator.domain.models.glossary import GlossaryEntry
-from pdftranslator.domain.services.glossary_post_processor import GlossaryPostProcessor
-from pdftranslator.services.translator import TranslationResult, TranslatorService
+from pdftranslator.database.models import GlossaryEntry
+from pdftranslator.services.translator import TranslatorService, TranslationResult
+from pdftranslator.cli.services.glossary_post_processor import GlossaryPostProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ class GlossaryAwareTranslator:
     def __init__(
         self,
         translator: TranslatorService,
-        glossary_entries: list[GlossaryEntry],
+        glossary_entries: List[GlossaryEntry],
     ):
         """
         Initialize with translator and glossary entries.

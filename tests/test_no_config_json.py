@@ -1,5 +1,7 @@
+import os
 import subprocess
 import tempfile
+import re
 from pathlib import Path
 
 
@@ -13,7 +15,7 @@ def test_no_config_json_created():
         test_pdf.write_text("test content")
 
         # Run PDFAgent.py with input argument
-        subprocess.run(
+        result = subprocess.run(
             ["python", "PDFAgent.py", str(test_pdf), "--agent", "gemini"],
             capture_output=True,
             text=True,
@@ -38,6 +40,6 @@ def test_error_message_no_config_json_mention():
     assert "config.json" not in error_output, (
         "Error message should not mention config.json"
     )
-    assert "Missing command" in error_output or "command-line argument" in error_output, (
+    assert "command-line argument" in error_output, (
         "Error should mention command-line argument"
     )

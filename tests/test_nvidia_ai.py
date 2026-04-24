@@ -1,16 +1,9 @@
 import os
-from unittest.mock import MagicMock
-
 import pytest
-
-from pdftranslator.core.config.llm import (
-    BCP47Language,
-    LLMProvider,
-    LLMSettings,
-    NvidiaConfig,
-)
-from pdftranslator.core.config.settings import Settings
-from pdftranslator.infrastructure.llm.nvidia import NvidiaLLM
+from unittest.mock import MagicMock, patch
+from llm.nvidia_llm import NvidiaLLM
+from config.settings import Settings
+from config.llm import LLMProvider, BCP47Language, NvidiaConfig, LLMSettings
 
 
 def _create_mock_settings():
@@ -28,7 +21,6 @@ def _create_mock_settings():
     nvidia_config.rate_limit = 40
     nvidia_config.local_tokenizer_name = "meta-llama/Llama-3.1-8B"
     nvidia_config.local_tokenizer_dir = ".tokenizers/nvidia"
-    nvidia_config.request_timeout = 30
 
     # Create LLM settings
     llm_settings = MagicMock(spec=LLMSettings)

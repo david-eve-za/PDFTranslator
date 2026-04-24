@@ -1,54 +1,45 @@
 import logging
 import os
 from pathlib import Path
+from typing import Optional, List, Tuple
 
 import typer
 from rich.panel import Panel
 from rich.progress import (
-    BarColumn,
     Progress,
     SpinnerColumn,
-    TaskProgressColumn,
     TextColumn,
+    BarColumn,
+    TaskProgressColumn,
 )
 
-from pdftranslator.application.services.translation_service import TranslationService
 from pdftranslator.cli.app import (
-    DEFAULT_FILE_TYPE_TO_PROCESS,
-    DEFAULT_OUTPUT_SUBDIR,
     app,
     console,
-    print_summary_table,
     setup_logging,
+    print_summary_table,
     validate_output_format,
+    LOG_FILE_NAME,
+    DEFAULT_OUTPUT_SUBDIR,
+    DEFAULT_FILE_TYPE_TO_PROCESS,
 )
-from pdftranslator.domain.protocols.audio_synthesizer import AudioSynthesizer
-from pdftranslator.infrastructure.audio.audio_synthesizer_factory import (
-    AudioSynthesizerFactory,
-)
-from pdftranslator.infrastructure.document.docling_document_parser import (
-    DoclingDocumentParser,
-)
-from pdftranslator.infrastructure.llm.base import BCP47Language
-from pdftranslator.infrastructure.llm.factory import LLMFactory
-from pdftranslator.tools.FileFinder import (
-    ExcludeTranslatedFilter,
-    FileFinder,
-    IsFileFilter,
-)
+from pdftranslator.core.config.settings import Settings
+from pdftranslator.tools.VideoGenerator import VideoGenerator
+from pdftranslator.tools.AudioGenerator import AudioGenerator
+from pdftranslator.tools.FileFinder import FileFinder, IsFileFilter, ExcludeTranslatedFilter
+from pdftranslator.tools.TextExtractor import TextExtractor
+from pdftranslator.tools.Translator import Translator
 
 
 def translate_text(
-    translator: TranslationService,
+    translator: Translator,
     text: str,
     file_path: Path,
     source_lang: str,
     target_lang: str,
-) -> str | None:
+) -> Optional[str]:
     logging.info(f" - Translating text for: {os.path.basename(file_path)}")
-    language = _get_language_for_split(source_lang)
-    result = translator.translate(text, source_lang, target_lang, language=language)
-    translated_text = result.text
+    translated_text = translator.translate_text(text, source_lang, target_lang)
     if not translated_text or not translated_text.strip():
         logging.warning(
             f" - Translation failed or resulted in empty text for {os.path.basename(file_path)}. Skipping file."
@@ -60,32 +51,14 @@ def translate_text(
     return translated_text
 
 
-def _get_language_for_split(source_lang: str) -> BCP47Language:
-    lang_map = {
-        "en": BCP47Language.ENGLISH,
-        "es": BCP47Language.SPANISH,
-        "zh": BCP47Language.CHINESE,
-        "ja": BCP47Language.JAPANESE,
-        "ko": BCP47Language.KOREAN,
-        "fr": BCP47Language.FRENCH,
-        "de": BCP47Language.GERMAN,
-        "it": BCP47Language.ITALIAN,
-        "pt": BCP47Language.PORTUGUESE,
-        "ru": BCP47Language.RUSSIAN,
-        "ar": BCP47Language.ARABIC,
-        "hi": BCP47Language.HINDI,
-    }
-    return lang_map.get(source_lang.lower(), BCP47Language.ENGLISH)
-
-
 def generate_audio(
-    synthesizer: AudioSynthesizer, text: str, output_filename: Path, file_path: Path
+    audio_generator: AudioGenerator, text: str, output_filename: Path, file_path: Path
 ) -> bool:
     logging.info(f" - Generating audio for: {os.path.basename(file_path)}")
     try:
-        success = synthesizer.synthesize(
-            text=text.replace("<!-- image -->", "").strip(),
-            output_path=output_filename,
+        success = audio_generator.process_texts(
+            text_content=text.replace("<!-- image -->", "").strip(),
+            output_filename=output_filename,
         )
     except Exception as e:
         logging.error(
@@ -95,9 +68,37 @@ def generate_audio(
     return success
 
 
+def generate_video(
+    video_generator: VideoGenerator,
+    images_list: List[Path],
+    audio_path: Path,
+    file_path: Path,
+) -> bool:
+    if not images_list:
+        logging.info(" - No images found, skipping video generation.")
+        return True
+
+    logging.info(f" - Found {len(images_list)} images. Attempting to generate video.")
+    output_video_path = audio_path.with_suffix(".mp4")
+    try:
+        video_generator.create_video_from_images_and_audio(
+            image_paths=images_list,
+            audio_path=audio_path,
+            output_video_path=output_video_path,
+            fps=1,
+        )
+        logging.info(f" - Video created successfully at: {output_video_path}")
+        return True
+    except Exception as e:
+        logging.error(
+            f" - Error during video generation for {os.path.basename(file_path)}: {e}"
+        )
+        return False
+
+
 def prepare_output_paths(
     file_path: Path, target_lang: str, output_format: str
-) -> tuple[Path, Path] | None:
+) -> Optional[Tuple[Path, Path]]:
     try:
         file_parent_dir = file_path.parent.resolve()
         dynamic_output_dir = file_parent_dir / DEFAULT_OUTPUT_SUBDIR
@@ -118,12 +119,14 @@ def prepare_output_paths(
 
 def process_single_file(
     file_path: Path,
-    translator: TranslationService,
-    synthesizer: AudioSynthesizer,
+    services: Tuple,
     source_lang: str,
     target_lang: str,
     output_format: str,
+    gen_video: bool,
 ) -> bool:
+    translation_agent, audio_generator, video_generator = services
+
     logging.info(f"\n--- Processing file: {os.path.basename(file_path)} ---")
 
     output_paths = prepare_output_paths(file_path, target_lang, output_format)
@@ -137,8 +140,8 @@ def process_single_file(
         )
         return True
 
-    text_extractor = DoclingDocumentParser()
-    original_text = text_extractor.parse(file_path=str(file_path))
+    text_extractor = TextExtractor()
+    original_text = text_extractor.extract_text(file_path=file_path)
 
     if not original_text or not original_text.strip():
         logging.warning(
@@ -165,7 +168,7 @@ def process_single_file(
         )
         input()
 
-        with open(temp_text_file_path, encoding="utf-8") as f:
+        with open(temp_text_file_path, "r", encoding="utf-8") as f:
             original_text = f.read()
 
     except Exception as e:
@@ -177,13 +180,13 @@ def process_single_file(
             logging.info(f"Archivo temporal eliminado: {temp_text_file_path}")
 
     translated_text = translate_text(
-        translator, original_text, file_path, source_lang, target_lang
+        translation_agent, original_text, file_path, source_lang, target_lang
     )
     if translated_text is None:
         return False
 
     audio_success = generate_audio(
-        synthesizer, translated_text, output_audio_filename, file_path
+        audio_generator, translated_text, output_audio_filename, file_path
     )
     if not audio_success:
         logging.error(
@@ -191,18 +194,29 @@ def process_single_file(
         )
         return False
 
+    if gen_video:
+        video_success = generate_video(
+            video_generator, [], output_audio_filename, file_path
+        )
+        if not video_success:
+            logging.error(
+                f"--- Processing failed (video) for: {os.path.basename(file_path)} ---"
+            )
+            return False
+
     logging.info(f"--- Processing completed for: {os.path.basename(file_path)} ---")
     return True
 
 
-def initialize_services() -> tuple | None:
+def initialize_services() -> Optional[Tuple]:
     try:
-        llm_client = LLMFactory.create()
-        translation_agent = TranslationService(llm_client)
-        synthesizer = AudioSynthesizerFactory.create()
+        translation_agent = Translator()
+        audio_generator = AudioGenerator()
+        video_generator = VideoGenerator()
         return (
             translation_agent,
-            synthesizer,
+            audio_generator,
+            video_generator,
         )
     except Exception as e:
         logging.error(f"Error initializing services: {e}")
@@ -210,16 +224,16 @@ def initialize_services() -> tuple | None:
 
 
 def process_files_with_progress(
-    translator: TranslationService,
-    synthesizer: AudioSynthesizer,
+    services: Tuple,
     input_path: Path,
     source_lang: str,
     target_lang: str,
     output_format: str,
-) -> tuple[int, int]:
+    gen_video: bool,
+) -> Tuple[int, int]:
     file_finder = FileFinder(input_path)
 
-    files_to_process: list[Path] = file_finder.get_files(
+    files_to_process: List[Path] = file_finder.get_files(
         file_type=DEFAULT_FILE_TYPE_TO_PROCESS,
         filters=[IsFileFilter(), ExcludeTranslatedFilter()],
     )
@@ -246,17 +260,16 @@ def process_files_with_progress(
             "[cyan]Processing files...", total=len(files_to_process)
         )
 
-    for file_path in files_to_process:
-        progress.update(task, description=f"[cyan]Processing: {file_path.name}")
-        success = process_single_file(
-            file_path, translator, synthesizer, source_lang,
-            target_lang, output_format,
-        )
-        if success:
-            successful_file_count += 1
-        else:
-            failed_file_count += 1
-        progress.advance(task)
+        for file_path in files_to_process:
+            progress.update(task, description=f"[cyan]Processing: {file_path.name}")
+            success = process_single_file(
+                file_path, services, source_lang, target_lang, output_format, gen_video
+            )
+            if success:
+                successful_file_count += 1
+            else:
+                failed_file_count += 1
+            progress.advance(task)
 
     return successful_file_count, failed_file_count
 
@@ -276,22 +289,31 @@ def process(
     ),
     output_format: str = typer.Option(
         "m4a",
-        "--format", "-f",
+        "--format",
+        "-f",
         help="Final audio file format (m4a, mp3, aiff, wav)",
         callback=validate_output_format,
     ),
     voice: str = typer.Option(
-        "Paulina", "--voice", help="TTS voice for the target language"
+        "Paulina", "--voice", help="macOS 'say' voice for the target language"
     ),
+    gen_video: bool = typer.Option(False, "--gen-video", help="Generate a video"),
     agent: str = typer.Option(
-        "nvidia", "--agent", "-a", help="The agent for translation (nvidia, gemini, ollama)"
+        "nvidia",
+        "--agent",
+        "-a",
+        help="The agent for translation (nvidia, gemini, ollama)",
     ),
 ):
+    """
+    Orchestrates the process of finding files, extracting text,
+    translating, and generating audiobooks.
+    """
     setup_logging()
 
     console.print(
         Panel.fit(
-            "[bold blue]PDFAgent[/bold blue] - Audiobook Generator",
+            f"[bold blue]PDFAgent[/bold blue] - Audiobook Generator",
             subtitle=f"Processing: {input_path.name}",
         )
     )
@@ -301,19 +323,22 @@ def process(
         console.print("[red]Error initializing services[/red]")
         raise typer.Exit(1)
 
-    translator, synthesizer = services
-
     successful_file_count = 0
     failed_file_count = 0
 
+    # Normalize language codes (remove region if present)
     source_lang_code = source_lang.split("-")[0]
     target_lang_code = target_lang.split("-")[0]
 
     if input_path.is_file():
         console.print(f"[cyan]Processing single file:[/cyan] {input_path.name}")
         if process_single_file(
-            input_path, translator, synthesizer,
-            source_lang_code, target_lang_code, output_format,
+            input_path,
+            services,
+            source_lang_code,
+            target_lang_code,
+            output_format,
+            gen_video,
         ):
             successful_file_count = 1
         else:
@@ -321,8 +346,12 @@ def process(
     elif input_path.is_dir():
         console.print(f"[cyan]Processing directory:[/cyan] {input_path}")
         successful_file_count, failed_file_count = process_files_with_progress(
-            translator, synthesizer,
-            input_path, source_lang_code, target_lang_code, output_format,
+            services,
+            input_path,
+            source_lang_code,
+            target_lang_code,
+            output_format,
+            gen_video,
         )
     else:
         console.print(f"[red]Invalid path: {input_path}[/red]")

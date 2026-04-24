@@ -26,7 +26,6 @@ def main():
         elif command == "backend":
             # Run FastAPI backend
             import uvicorn
-
             from pdftranslator.backend.main import app as fastapi_app
 
             # Parse host and port from arguments
@@ -64,9 +63,7 @@ def main():
         elif command == "dev":
             # Run both backend and frontend
             import threading
-
             import uvicorn
-
             from pdftranslator.backend.main import app as fastapi_app
 
             print("Starting development mode (backend + frontend)...")

@@ -1,60 +1,32 @@
 """Glossary management routes."""
 
-import logging
 from datetime import datetime
+import logging
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 
-from pdftranslator.application.services.glossary_build_orchestrator import (
-    GlossaryBuildOrchestrator,
-)
 from pdftranslator.backend.api.models.schemas import (
-    GlossaryBuildRequest,
-    GlossaryBuildResponse,
-    GlossaryBuildVolumeResult,
     GlossaryCreate,
     GlossaryEntryResponse,
     GlossaryUpdateRequest,
+    GlossaryBuildRequest,
+    GlossaryBuildResponse,
+    GlossaryBuildVolumeResult,
 )
-from pdftranslator.core.config.settings import Settings
 from pdftranslator.database.connection import DatabasePool
-from pdftranslator.database.repositories.book_repository import BookRepository
-from pdftranslator.database.repositories.chapter_repository import ChapterRepository
-from pdftranslator.database.repositories.glossary_build_progress_repository import (
-    GlossaryBuildProgressRepository,
-)
 from pdftranslator.database.repositories.glossary_repository import GlossaryRepository
 from pdftranslator.database.repositories.volume_repository import VolumeRepository
-from pdftranslator.database.services.entity_extractor import EntityExtractor
-from pdftranslator.infrastructure.embedding.nvidia_embedding import (
-    NvidiaEmbeddingProvider,
-)
-from pdftranslator.infrastructure.llm.factory import LLMFactory
+from pdftranslator.database.repositories.chapter_repository import ChapterRepository
+from pdftranslator.database.repositories.book_repository import BookRepository
+from pdftranslator.database.services.glossary_manager import GlossaryManager
 
 router = APIRouter(prefix="/api/glossary", tags=["glossary"])
 logger = logging.getLogger(__name__)
 
 
 def get_glossary_repository() -> GlossaryRepository:
+    """Get glossary repository instance."""
     return GlossaryRepository(DatabasePool.get_instance())
-
-
-def get_glossary_build_orchestrator() -> GlossaryBuildOrchestrator:
-    pool = DatabasePool.get_instance()
-    settings = Settings.get()
-    llm_client = LLMFactory.create()
-    embedder = NvidiaEmbeddingProvider(settings)
-    progress_repo = GlossaryBuildProgressRepository(pool)
-    glossary_repo = GlossaryRepository(pool)
-    entity_extractor = EntityExtractor(pool)
-    return GlossaryBuildOrchestrator(
-        llm_client=llm_client,
-        embedder=embedder,
-        progress_tracker=progress_repo,
-        glossary_repo=glossary_repo,
-        entity_extractor=entity_extractor,
-        max_output_tokens=settings.llm.nvidia.max_output_tokens,
-    )
 
 
 @router.get("/", response_model=list[GlossaryEntryResponse])
@@ -64,7 +36,10 @@ async def list_glossary(
     repo: GlossaryRepository = Depends(get_glossary_repository),
 ):
     """List all glossary terms with optional filters."""
-    entries = repo.get_by_work(work_id) if work_id else repo.get_all()
+    if work_id:
+        entries = repo.get_by_work(work_id)
+    else:
+        entries = repo.get_all()
 
     if search:
         search_lower = search.lower()
@@ -184,7 +159,6 @@ async def build_glossary(
         False, description="Ignorar progreso existente y comenzar desde cero"
     ),
     background_tasks: BackgroundTasks = None,
-    orchestrator: GlossaryBuildOrchestrator = Depends(get_glossary_build_orchestrator),
 ):
     """
     Build glossary from work volumes using NER + LLM.
@@ -209,6 +183,8 @@ async def build_glossary(
 
     source_lang = data.source_lang or work.source_lang or "en"
     target_lang = data.target_lang or work.target_lang or "es"
+
+    manager = GlossaryManager(pool)
 
     total_extracted = 0
     total_new = 0
@@ -265,7 +241,7 @@ async def build_glossary(
                 f"Processing Volume {volume.volume_number} ({len(consolidated_text)} chars)"
             )
 
-            result = orchestrator.build_from_text(
+            result = manager.build_from_text(
                 text=consolidated_text,
                 work_id=data.work_id,
                 volume_id=volume.id,

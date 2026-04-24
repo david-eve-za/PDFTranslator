@@ -1,15 +1,16 @@
 """Interactive selection components."""
 
+from typing import Optional
 
 import questionary
 
+from pdftranslator.database.models import Work, Volume, Chapter
 from pdftranslator.database.repositories.book_repository import BookRepository
-from pdftranslator.database.repositories.chapter_repository import ChapterRepository
 from pdftranslator.database.repositories.volume_repository import VolumeRepository
-from pdftranslator.domain.models.work import Chapter, Volume, Work
+from pdftranslator.database.repositories.chapter_repository import ChapterRepository
 
 
-def select_work(repo: BookRepository) -> Work | None:
+def select_work(repo: BookRepository) -> Optional[Work]:
     """
     Interactive work selection.
 
@@ -27,7 +28,7 @@ def select_work(repo: BookRepository) -> Work | None:
     return questionary.select("Select a work:", choices=choices).ask()
 
 
-def select_volume(work: Work, repo: VolumeRepository) -> Volume | None:
+def select_volume(work: Work, repo: VolumeRepository) -> Optional[Volume]:
     """
     Interactive volume selection.
 
@@ -63,7 +64,7 @@ def select_chapter(
     volume: Volume,
     repo: ChapterRepository,
     show_status: bool = True,
-) -> Chapter | None:
+) -> Optional[Chapter]:
     """
     Interactive chapter selection.
 
@@ -101,7 +102,7 @@ def select_chapter(
     ).ask()
 
 
-def select_scope() -> str | None:
+def select_scope() -> Optional[str]:
     """
     Interactive scope selection.
 

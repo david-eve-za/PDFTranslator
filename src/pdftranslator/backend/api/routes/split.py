@@ -8,10 +8,10 @@ from pdftranslator.backend.api.models.schemas import (
     SplitProcessRequest,
     SplitProcessResponse,
 )
-from pdftranslator.cli.commands.split_text import BlockParseError, parse_blocks
+from pdftranslator.cli.commands.split_text import parse_blocks, BlockParseError
 from pdftranslator.database.connection import DatabasePool
-from pdftranslator.database.repositories.chapter_repository import ChapterRepository
 from pdftranslator.database.repositories.volume_repository import VolumeRepository
+from pdftranslator.database.repositories.chapter_repository import ChapterRepository
 
 router = APIRouter(prefix="/api/split", tags=["split"])
 
@@ -80,7 +80,7 @@ async def process_split(
 
     chapter_number = 1
     created_count = 0
-    from pdftranslator.domain.models.work import Chapter
+    from pdftranslator.database.models import Chapter
 
     for block in blocks:
         if block.block_type == "Chapter":

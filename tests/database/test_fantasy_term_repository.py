@@ -1,12 +1,8 @@
-from unittest.mock import MagicMock
-
 import pytest
-
-from pdftranslator.database.connection import DatabasePool
-from pdftranslator.database.repositories.fantasy_term_repository import (
-    FantasyTermRepository,
-)
-from pdftranslator.domain.models.entity import FantasyTerm
+from unittest.mock import MagicMock, patch
+from database.repositories.fantasy_term_repository import FantasyTermRepository
+from database.models import FantasyTerm
+from database.connection import DatabasePool
 
 
 @pytest.fixture

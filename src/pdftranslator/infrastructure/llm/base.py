@@ -2,8 +2,8 @@
 
 from abc import ABC, abstractmethod
 
-from pdftranslator.core.config.llm import BCP47Language
 from pdftranslator.core.config.settings import Settings
+from pdftranslator.core.config.llm import BCP47Language
 
 
 class BaseLLM(ABC):

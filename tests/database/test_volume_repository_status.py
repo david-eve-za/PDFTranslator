@@ -1,11 +1,10 @@
 """Tests for VolumeRepository status methods."""
 
+import pytest
 from unittest.mock import MagicMock
 
-import pytest
-
-from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.volume_repository import VolumeRepository
+from pdftranslator.database.connection import DatabasePool
 
 
 @pytest.fixture

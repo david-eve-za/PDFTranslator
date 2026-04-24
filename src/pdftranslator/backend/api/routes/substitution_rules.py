@@ -5,16 +5,15 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 
 from pdftranslator.backend.api.models.schemas import (
-    ApplyRulesRequest,
-    SubstitutionRuleCreate,
     SubstitutionRuleResponse,
+    SubstitutionRuleCreate,
     SubstitutionRuleUpdate,
+    ApplyRulesRequest,
 )
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.substitution_rule_repository import (
     SubstitutionRuleRepository,
 )
-from pdftranslator.database.repositories.volume_repository import VolumeRepository
 from pdftranslator.services.text_substitution_service import TextSubstitutionService
 
 router = APIRouter(prefix="/api/substitution-rules", tags=["substitution-rules"])
@@ -24,15 +23,8 @@ def get_rule_repository() -> SubstitutionRuleRepository:
     return SubstitutionRuleRepository(DatabasePool.get_instance())
 
 
-def get_volume_repository() -> VolumeRepository:
-    return VolumeRepository(DatabasePool.get_instance())
-
-
-def get_substitution_service(
-    rule_repo: SubstitutionRuleRepository = Depends(get_rule_repository),
-    volume_repo: VolumeRepository = Depends(get_volume_repository),
-) -> TextSubstitutionService:
-    return TextSubstitutionService(rule_repo=rule_repo, volume_repo=volume_repo)
+def get_substitution_service() -> TextSubstitutionService:
+    return TextSubstitutionService()
 
 
 @router.get("/", response_model=list[SubstitutionRuleResponse])
@@ -63,7 +55,7 @@ async def create_rule(
     repo: SubstitutionRuleRepository = Depends(get_rule_repository),
 ):
     """Create a new substitution rule."""
-    from pdftranslator.domain.models.substitution import SubstitutionRule
+    from pdftranslator.database.models import SubstitutionRule
 
     rule = SubstitutionRule(
         name=data.name,
