@@ -1,151 +1,87 @@
-import { Component, OnInit, signal, inject, model } from '@angular/core';
+import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { TranslationConfigService, Language, Provider } from '../../core/services/translation-config.service';
+import { RouterModule } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { WorkService } from '../../core/services/work.service';
+import { TranslationService } from '../../core/services/translation.service';
 import { ThemeService } from '../../core/services/theme.service';
-import { FileUploadComponent } from '../../shared/components/file-upload/file-upload.component';
-import { LanguageSelectorComponent } from '../../shared/components/language-selector/language-selector.component';
-import { ProgressIndicatorComponent, ProgressStatus } from '../../shared/components/progress-indicator/progress-indicator.component';
+import { Work } from '../../core/models';
+import { TranslationScope, TranslationStartRequest, TranslationProgressEvent } from '../../core/models/translation-progress.model';
+import { WorkSelectorComponent } from './components/work-selector.component';
+import { ScopeSelectorComponent } from './components/scope-selector.component';
+import { TranslateConfigComponent } from './components/translate-config.component';
+import { TranslateProgressComponent } from './components/translate-progress.component';
+import { TranslateSummaryComponent } from './components/translate-summary.component';
 
 @Component({
   selector: 'app-translate',
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
-    FileUploadComponent,
-    LanguageSelectorComponent,
-    ProgressIndicatorComponent,
+    RouterModule,
+    WorkSelectorComponent,
+    ScopeSelectorComponent,
+    TranslateConfigComponent,
+    TranslateProgressComponent,
+    TranslateSummaryComponent,
   ],
   templateUrl: './translate.component.html',
   styleUrl: './translate.component.scss',
 })
-export class TranslateComponent implements OnInit {
-  private configService = inject(TranslationConfigService);
+export class TranslateComponent implements OnDestroy {
+  private workService = inject(WorkService);
+  private translationService = inject(TranslationService);
   private themeService = inject(ThemeService);
 
-  languages = signal<Language[]>([]);
-  providers = signal<Provider[]>([]);
+  private messageTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private progressSubscription: Subscription | null = null;
 
-  selectedFile = signal<File | null>(null);
-  sourceLanguage = model('en');
-  targetLanguage = model('es');
-  selectedProvider = signal<string>('');
-
-  progressStatus = signal<ProgressStatus>('idle');
-  progressValue = signal(0);
-  progressMessage = signal<string | null>(null);
-
-  downloadUrl = signal<string | null>(null);
+  currentStep = signal(1);
+  selectedWork = signal<Work | null>(null);
+  selectedScope = signal<TranslationScope | null>(null);
+  selectedVolumeId = signal<number | null>(null);
+  selectedChapterId = signal<number | null>(null);
+  skipTranslated = signal(true);
+  dryRun = signal(false);
+  jobId = signal<number | null>(null);
+  progressData = signal<TranslationProgressEvent | null>(null);
+  chapterStatuses = signal<Array<{ title: string; status: string }>>([]);
   errorMessage = signal<string | null>(null);
+  successMessage = signal<string | null>(null);
+  isTranslating = signal(false);
 
-  ngOnInit(): void {
-    this.loadLanguages();
-    this.loadProviders();
-  }
+  summarySuccess = signal(0);
+  summaryFailure = signal(0);
+  summarySkipped = signal(0);
 
-  private loadLanguages(): void {
-    this.configService.getLanguages().subscribe({
-      next: (langs) => this.languages.set(langs),
-      error: (err) => console.error('Failed to load languages:', err),
-    });
-  }
-
-  private loadProviders(): void {
-    this.configService.getProviders().subscribe({
-      next: (provs) => {
-        this.providers.set(provs);
-        if (provs.length > 0) {
-          this.selectedProvider.set(provs[0].id);
-        }
-      },
-      error: (err) => console.error('Failed to load providers:', err),
-    });
-  }
-
-  onFileSelected(file: File): void {
-    this.selectedFile.set(file);
-    this.errorMessage.set(null);
-    this.downloadUrl.set(null);
-  }
-
-  onSourceLanguageChange(code: string): void {
-    this.sourceLanguage.set(code);
-  }
-
-  onTargetLanguageChange(code: string): void {
-    this.targetLanguage.set(code);
-  }
-
-  swapLanguages(): void {
-    const temp = this.sourceLanguage();
-    this.sourceLanguage.set(this.targetLanguage());
-    this.targetLanguage.set(temp);
-  }
-
-  onProviderChange(event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    this.selectedProvider.set(select.value);
-  }
-
-  canTranslate(): boolean {
-    return (
-      this.selectedFile() !== null &&
-      this.sourceLanguage() !== '' &&
-      this.targetLanguage() !== ''
-    );
-  }
-
-  startTranslation(): void {
-    const file = this.selectedFile();
-    if (!file || !this.canTranslate()) {
-      return;
+  ngOnDestroy(): void {
+    this.clearMessageTimeout();
+    if (this.progressSubscription) {
+      this.progressSubscription.unsubscribe();
     }
-
-    this.progressStatus.set('uploading');
-    this.progressValue.set(0);
-    this.progressMessage.set('Preparing file for upload...');
-    this.errorMessage.set(null);
-    this.downloadUrl.set(null);
-
-    let progress = 0;
-    const uploadInterval = setInterval(() => {
-      progress += 10;
-      this.progressValue.set(progress);
-      this.progressMessage.set(`Uploading... ${progress}%`);
-
-      if (progress >= 100) {
-        clearInterval(uploadInterval);
-        this.simulateProcessing();
-      }
-    }, 200);
   }
 
-  private simulateProcessing(): void {
-    this.progressStatus.set('processing');
-    this.progressValue.set(0);
-    this.progressMessage.set('Processing translation...');
-
-    let progress = 0;
-    const processInterval = setInterval(() => {
-      progress += 5;
-      this.progressValue.set(progress);
-      this.progressMessage.set(`Translating... ${progress}%`);
-
-      if (progress >= 100) {
-        clearInterval(processInterval);
-        this.progressStatus.set('completed');
-        this.progressMessage.set('Translation completed successfully!');
-        this.downloadUrl.set('mock://download/translated-document.pdf');
-      }
-    }, 150);
-  }
-
-  downloadResult(): void {
-    const url = this.downloadUrl();
-    if (url) {
-      window.open(url, '_blank');
+  private clearMessageTimeout(): void {
+    if (this.messageTimeoutId) {
+      clearTimeout(this.messageTimeoutId);
+      this.messageTimeoutId = null;
     }
+  }
+
+  private showSuccess(message: string, duration: number = 3000): void {
+    this.clearMessageTimeout();
+    this.errorMessage.set(null);
+    this.successMessage.set(message);
+    this.messageTimeoutId = setTimeout(() => {
+      this.successMessage.set(null);
+      this.messageTimeoutId = null;
+    }, duration);
+  }
+
+  private showError(message: string): void {
+    this.clearMessageTimeout();
+    this.successMessage.set(null);
+    this.errorMessage.set(message);
   }
 
   toggleTheme(): void {
@@ -154,5 +90,145 @@ export class TranslateComponent implements OnInit {
 
   get currentTheme() {
     return this.themeService.currentTheme();
+  }
+
+  onWorkSelected(work: Work): void {
+    this.selectedWork.set(work);
+    this.currentStep.set(2);
+    this.clearMessages();
+  }
+
+  onScopeSelected(scope: TranslationScope): void {
+    this.selectedScope.set(scope);
+    this.currentStep.set(3);
+    this.clearMessages();
+  }
+
+  onVolumeSelected(volumeId: number | null): void {
+    this.selectedVolumeId.set(volumeId);
+  }
+
+  onChapterSelected(chapterId: number | null): void {
+    this.selectedChapterId.set(chapterId);
+  }
+
+  onConfigChanged(config: { skip_translated: boolean; dry_run: boolean }): void {
+    this.skipTranslated.set(config.skip_translated);
+    this.dryRun.set(config.dry_run);
+  }
+
+  canStartTranslation(): boolean {
+    const scope = this.selectedScope();
+    if (!scope) return false;
+    if (scope === 'all_volume' && this.selectedVolumeId() === null) return false;
+    if (scope === 'single_chapter' && this.selectedChapterId() === null) return false;
+    return true;
+  }
+
+  startTranslation(): void {
+    const work = this.selectedWork();
+    const scope = this.selectedScope();
+    if (!work || !scope || !this.canStartTranslation()) return;
+
+    this.isTranslating.set(true);
+    this.clearMessages();
+    this.chapterStatuses.set([]);
+    this.progressData.set(null);
+    this.currentStep.set(4);
+
+    const request: TranslationStartRequest = {
+      work_id: work.id,
+      scope,
+      volume_id: this.selectedVolumeId() ?? undefined,
+      chapter_id: this.selectedChapterId() ?? undefined,
+      source_lang: work.source_lang || 'en',
+      target_lang: work.target_lang || 'es',
+      skip_translated: this.skipTranslated(),
+      dry_run: this.dryRun(),
+    };
+
+    this.translationService.startTranslation(request).subscribe({
+      next: (response) => {
+        this.jobId.set(response.job_id);
+        this.connectToSSE(response.job_id);
+      },
+      error: (err) => {
+        this.showError('Failed to start translation: ' + (err.message || 'Unknown error'));
+        this.isTranslating.set(false);
+      },
+    });
+  }
+
+  private connectToSSE(jobId: number): void {
+    if (this.progressSubscription) {
+      this.progressSubscription.unsubscribe();
+    }
+
+    this.progressSubscription = this.translationService.streamProgress(jobId).subscribe({
+      next: (event: TranslationProgressEvent) => {
+        this.progressData.set(event);
+
+        if (event.event_type === 'chapter_complete' && event.title) {
+          const statuses = [...this.chapterStatuses()];
+          const existingIdx = statuses.findIndex(s => s.title === event.title);
+          if (existingIdx >= 0) {
+            statuses[existingIdx] = { title: event.title, status: event.chapter_status || 'success' };
+          } else {
+            statuses.push({ title: event.title, status: event.chapter_status || 'success' });
+          }
+          this.chapterStatuses.set(statuses);
+        }
+
+        if (event.event_type === 'job_complete') {
+          this.isTranslating.set(false);
+          this.summarySuccess.set(event.success_count ?? 0);
+          this.summaryFailure.set(event.failure_count ?? 0);
+          const skipped = this.chapterStatuses().filter(s => s.status === 'skipped').length;
+          this.summarySkipped.set(skipped);
+          this.currentStep.set(5);
+          this.showSuccess('Translation completed!');
+        }
+
+        if (event.event_type === 'error') {
+          this.isTranslating.set(false);
+          this.showError(event.message || 'Translation failed');
+        }
+      },
+      error: () => {
+        this.isTranslating.set(false);
+        this.showError('SSE connection error. Check job status and try again.');
+      },
+    });
+  }
+
+  resetWizard(): void {
+    this.currentStep.set(1);
+    this.selectedWork.set(null);
+    this.selectedScope.set(null);
+    this.selectedVolumeId.set(null);
+    this.selectedChapterId.set(null);
+    this.skipTranslated.set(true);
+    this.dryRun.set(false);
+    this.jobId.set(null);
+    this.progressData.set(null);
+    this.chapterStatuses.set([]);
+    this.isTranslating.set(false);
+    this.summarySuccess.set(0);
+    this.summaryFailure.set(0);
+    this.summarySkipped.set(0);
+    this.clearMessages();
+  }
+
+  goBack(): void {
+    const step = this.currentStep();
+    if (step > 1 && step < 5) {
+      this.currentStep.set(step - 1);
+    }
+  }
+
+  private clearMessages(): void {
+    this.clearMessageTimeout();
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
   }
 }

@@ -23,102 +23,104 @@
       </button>
     </div>
     <p class="page-description">
-      Translate PDF and EPUB documents using AI-powered language models
+      Translate works using AI-powered language models with glossary support
     </p>
   </header>
 
+  <nav class="step-indicator">
+    <div class="step" [class.active]="currentStep() === 1" [class.completed]="currentStep() > 1">
+      <span class="step-number">1</span>
+      <span class="step-label">Select Work</span>
+    </div>
+    <div class="step-line" [class.active]="currentStep() > 1"></div>
+    <div class="step" [class.active]="currentStep() === 2" [class.completed]="currentStep() > 2">
+      <span class="step-number">2</span>
+      <span class="step-label">Scope</span>
+    </div>
+    <div class="step-line" [class.active]="currentStep() > 2"></div>
+    <div class="step" [class.active]="currentStep() === 3" [class.completed]="currentStep() > 3">
+      <span class="step-number">3</span>
+      <span class="step-label">Configure</span>
+    </div>
+    <div class="step-line" [class.active]="currentStep() > 3"></div>
+    <div class="step" [class.active]="currentStep() >= 4">
+      <span class="step-number">4</span>
+      <span class="step-label">Translate</span>
+    </div>
+  </nav>
+
+  @if (successMessage()) {
+    <div class="alert alert-success">
+      <span>✓</span>
+      <span>{{ successMessage() }}</span>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="alert alert-error">
+      <span>⚠️</span>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
   <main class="translate-content">
-    <section class="upload-section">
-      <app-file-upload (fileSelected)="onFileSelected($event)"></app-file-upload>
-    </section>
+    @if (currentStep() === 1) {
+      <section class="step-section">
+        <h2 class="section-title">Select a work to translate</h2>
+        <app-work-selector (workSelected)="onWorkSelected($event)" />
+      </section>
+    }
 
-    <section class="languages-section">
-      <div class="languages-grid">
-        <app-language-selector
-          [label]="'Source Language'"
-          [languages]="languages()"
-          [(selectedLanguage)]="sourceLanguage"
-          (languageChange)="onSourceLanguageChange($event)">
-        </app-language-selector>
+    @if (currentStep() === 2 && selectedWork()) {
+      <section class="step-section">
+        <h2 class="section-title">Choose translation scope for "{{ selectedWork().title }}"</h2>
+        <app-scope-selector
+          [work]="selectedWork()!"
+          (scopeSelected)="onScopeSelected($event)"
+          (volumeSelected)="onVolumeSelected($event)"
+          (chapterSelected)="onChapterSelected($event)" />
+        <div class="step-actions">
+          <button class="btn btn-back" (click)="goBack()">Back</button>
+        </div>
+      </section>
+    }
 
-        <div class="language-swap">
+    @if (currentStep() === 3 && selectedWork()) {
+      <section class="step-section">
+        <h2 class="section-title">Configure translation</h2>
+        <app-translate-config
+          [sourceLang]="selectedWork().source_lang || 'en'"
+          [targetLang]="selectedWork().target_lang || 'es'"
+          (configChanged)="onConfigChanged($event)" />
+        <div class="step-actions">
+          <button class="btn btn-back" (click)="goBack()">Back</button>
           <button
-            type="button"
-            class="swap-button"
-            title="Swap languages"
-            (click)="swapLanguages()">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M7 16V4M7 16L3 12M7 16L11 12"/>
-              <path d="M17 8V20M17 8L21 12M17 8L13 12"/>
-            </svg>
+            class="btn btn-primary"
+            [disabled]="!canStartTranslation()"
+            (click)="startTranslation()">
+            Start Translation
           </button>
         </div>
+      </section>
+    }
 
-        <app-language-selector
-          [label]="'Target Language'"
-          [languages]="languages()"
-          [(selectedLanguage)]="targetLanguage"
-          (languageChange)="onTargetLanguageChange($event)">
-        </app-language-selector>
-      </div>
-    </section>
+    @if (currentStep() === 4) {
+      <section class="step-section">
+        <h2 class="section-title">Translating...</h2>
+        <app-translate-progress
+          [progressData]="progressData()"
+          [chapterStatuses]="chapterStatuses()" />
+      </section>
+    }
 
-    <section class="provider-section">
-      <label class="provider-label">Translation Provider</label>
-      <select
-        class="provider-select"
-        [value]="selectedProvider()"
-        (change)="onProviderChange($event)">
-        <option value="" disabled>Select a provider</option>
-        <option *ngFor="let provider of providers()" [value]="provider.id">
-          {{ provider.name }}
-        </option>
-      </select>
-    </section>
-
-    <section class="progress-section" *ngIf="progressStatus() !== 'idle'">
-      <app-progress-indicator
-        [progress]="progressValue()"
-        [status]="progressStatus()"
-        [message]="progressMessage()">
-      </app-progress-indicator>
-    </section>
-
-    <section class="error-section" *ngIf="errorMessage()">
-      <div class="error-message">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="12"/>
-          <line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
-        <span>{{ errorMessage() }}</span>
-      </div>
-    </section>
-
-    <section class="actions-section">
-      <button
-        class="translate-button"
-        [disabled]="!canTranslate() || progressStatus() === 'uploading' || progressStatus() === 'processing'"
-        (click)="startTranslation()">
-        <span *ngIf="progressStatus() !== 'uploading' && progressStatus() !== 'processing'">
-          Start Translation
-        </span>
-        <span *ngIf="progressStatus() === 'uploading' || progressStatus() === 'processing'">
-          Translating...
-        </span>
-      </button>
-
-      <button
-        *ngIf="downloadUrl()"
-        class="download-button"
-        (click)="downloadResult()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
-        <span>Download Result</span>
-      </button>
-    </section>
+    @if (currentStep() === 5) {
+      <section class="step-section">
+        <app-translate-summary
+          [successCount]="summarySuccess()"
+          [failureCount]="summaryFailure()"
+          [skippedCount]="summarySkipped()"
+          (translateAgain)="resetWizard()" />
+      </section>
+    }
   </main>
 </div>
