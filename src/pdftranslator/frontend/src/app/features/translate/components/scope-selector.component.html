@@ -1,0 +1,45 @@
+<div class="scope-selector">
+  <div class="scope-cards">
+    <button class="scope-card" [class.active]="selectedScope() === 'all_book'" (click)="selectScope('all_book')">
+      <div class="scope-icon">📚</div>
+      <h3>All Book</h3>
+      <p>Translate all volumes and chapters</p>
+    </button>
+
+    <button class="scope-card" [class.active]="selectedScope() === 'all_volume'" (click)="selectScope('all_volume')">
+      <div class="scope-icon">📖</div>
+      <h3>All Volume</h3>
+      <p>Translate all chapters in one volume</p>
+    </button>
+
+    <button class="scope-card" [class.active]="selectedScope() === 'single_chapter'" (click)="selectScope('single_chapter')">
+      <div class="scope-icon">📄</div>
+      <h3>Single Chapter</h3>
+      <p>Translate one specific chapter</p>
+    </button>
+  </div>
+
+  @if (selectedScope() === 'all_volume' || selectedScope() === 'single_chapter') {
+    <div class="volume-select-section">
+      <label class="select-label">Select Volume</label>
+      <select class="select-input" [value]="selectedVolumeId()" (change)="onVolumeChange($event)">
+        <option value="" disabled>Choose a volume</option>
+        @for (vol of volumes(); track vol.id) {
+          <option [value]="vol.id">Volume {{ vol.volume_number }}</option>
+        }
+      </select>
+    </div>
+  }
+
+  @if (selectedScope() === 'single_chapter' && chapters().length > 0) {
+    <div class="chapter-select-section">
+      <label class="select-label">Select Chapter</label>
+      <select class="select-input" [value]="selectedChapterId()" (change)="onChapterChange($event)">
+        <option value="" disabled>Choose a chapter</option>
+        @for (ch of chapters(); track ch.id) {
+          <option [value]="ch.id">{{ ch.title || 'Chapter ' + ch.chapter_number }}</option>
+        }
+      </select>
+    </div>
+  }
+</div>

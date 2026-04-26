@@ -1,0 +1,88 @@
+.scope-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.scope-card {
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: center;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    border-color: var(--primary);
+    background: var(--surface-elevated);
+  }
+
+  &.active {
+    border-color: var(--accent);
+    background: var(--surface-elevated);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+  }
+
+  h3 {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    color: var(--text);
+    margin: 0.5rem 0 0.25rem;
+  }
+
+  p {
+    font-family: var(--font-accent);
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+}
+
+.scope-icon {
+  font-size: 1.5rem;
+}
+
+.volume-select-section,
+.chapter-select-section {
+  margin-bottom: 1rem;
+}
+
+.select-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-accent);
+  margin-bottom: 0.5rem;
+}
+
+.select-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1rem;
+  font-family: var(--font-accent);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    border-color: var(--primary);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--primary-glow);
+  }
+}
+
+@media (max-width: 768px) {
+  .scope-cards {
+    grid-template-columns: 1fr;
+  }
+}

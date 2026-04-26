@@ -1,0 +1,41 @@
+@if (isLoading()) {
+  <div class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading works...</p>
+  </div>
+} @else if (filteredWorks().length === 0) {
+  <div class="empty-state">
+    @if (searchTerm()) {
+      <p>No works match "{{ searchTerm() }}"</p>
+    } @else {
+      <p>No works found. Import a PDF first using Split.</p>
+    }
+  </div>
+} @else {
+  <div class="search-bar">
+    <input
+      type="text"
+      placeholder="Search works..."
+      [ngModel]="searchTerm()"
+      (ngModelChange)="onSearchChange($event)"
+      class="search-input">
+  </div>
+
+  <div class="work-list">
+    @for (work of filteredWorks(); track work.id) {
+      <button class="work-card" (click)="selectWork(work)">
+        <div class="work-info">
+          <h3 class="work-title">{{ work.title }}</h3>
+          <p class="work-author">{{ work.author }}</p>
+        </div>
+        <div class="work-stats">
+          <span class="stat">{{ work.total_volumes }} vol</span>
+          <span class="stat">{{ work.translated_chapters }}/{{ work.total_chapters }} ch</span>
+          <div class="progress-bar-mini">
+            <div class="progress-fill" [style.width.%]="getProgressPercentage(work)"></div>
+          </div>
+        </div>
+      </button>
+    }
+  </div>
+}

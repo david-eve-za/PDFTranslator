@@ -1,0 +1,22 @@
+<div class="translate-config">
+  <div class="languages-display">
+    <div class="lang-pair">
+      <span class="lang-code">{{ sourceLang() }}</span>
+      <span class="lang-arrow">→</span>
+      <span class="lang-code">{{ targetLang() }}</span>
+    </div>
+    <p class="lang-note">Languages from work settings</p>
+  </div>
+
+  <div class="toggle-group">
+    <label class="toggle-label">
+      <input type="checkbox" [checked]="skipTranslated()" (change)="onSkipTranslatedChange($event)">
+      <span>Skip already translated chapters</span>
+    </label>
+
+    <label class="toggle-label">
+      <input type="checkbox" [checked]="dryRun()" (change)="onDryRunChange($event)">
+      <span>Dry run (preview only, no saving)</span>
+    </label>
+  </div>
+</div>

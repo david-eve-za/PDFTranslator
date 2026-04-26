@@ -1,0 +1,29 @@
+<div class="summary-container">
+  <h2 class="summary-title">Translation Complete</h2>
+
+  <div class="summary-stats">
+    <div class="stat-card stat-success">
+      <span class="stat-number">{{ successCount() }}</span>
+      <span class="stat-label">Translated</span>
+    </div>
+
+    @if (failureCount() > 0) {
+      <div class="stat-card stat-failure">
+        <span class="stat-number">{{ failureCount() }}</span>
+        <span class="stat-label">Failed</span>
+      </div>
+    }
+
+    @if (skippedCount() > 0) {
+      <div class="stat-card stat-skipped">
+        <span class="stat-number">{{ skippedCount() }}</span>
+        <span class="stat-label">Skipped</span>
+      </div>
+    }
+  </div>
+
+  <div class="summary-actions">
+    <a routerLink="/library" class="btn btn-secondary">Go to Library</a>
+    <button class="btn btn-primary" (click)="translateAgain.emit()">Translate Again</button>
+  </div>
+</div>

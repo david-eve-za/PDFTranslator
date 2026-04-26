@@ -1,0 +1,110 @@
+.summary-container {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.summary-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--text);
+  margin: 0 0 1.5rem;
+}
+
+.summary-stats {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  padding: 1.25rem 2rem;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--border);
+
+  &.stat-success {
+    border-color: var(--success);
+    background: rgba(0, 128, 0, 0.05);
+  }
+
+  &.stat-failure {
+    border-color: var(--error);
+    background: rgba(255, 0, 0, 0.05);
+  }
+
+  &.stat-skipped {
+    border-color: var(--text-secondary);
+    background: rgba(128, 128, 128, 0.05);
+  }
+}
+
+.stat-number {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.stat-label {
+  display: block;
+  font-family: var(--font-accent);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+.summary-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.btn {
+  padding: 0.75rem 2rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 1rem;
+  font-family: var(--font-display);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: var(--accent-light);
+  border: none;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+
+  &:hover {
+    background: var(--primary);
+    color: var(--accent-light);
+  }
+}
+
+@media (max-width: 768px) {
+  .summary-stats {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .summary-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+}
