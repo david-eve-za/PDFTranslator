@@ -421,3 +421,46 @@ class GlossaryBuildResponse(BaseModel):
     volumes_skipped: int = 0
     entities_by_type: dict = {}
     volume_results: list[GlossaryBuildVolumeResult] = []
+
+
+class TranslationStartRequest(BaseModel):
+    """Request schema for starting a translation job."""
+
+    work_id: int
+    scope: str = Field(..., pattern=r"^(all_book|all_volume|single_chapter)$")
+    volume_id: int | None = Field(default=None, description="Required when scope=all_volume")
+    chapter_id: int | None = Field(default=None, description="Required when scope=single_chapter")
+    source_lang: str = Field(default="en", max_length=5)
+    target_lang: str = Field(default="es", max_length=5)
+    skip_translated: bool = Field(default=True)
+    dry_run: bool = Field(default=False)
+
+
+class TranslationJobResponse(BaseModel):
+    """Response schema for a translation job."""
+
+    id: int
+    work_id: int
+    scope: str
+    volume_id: int | None = None
+    chapter_id: int | None = None
+    source_lang: str
+    target_lang: str
+    skip_translated: bool = True
+    dry_run: bool = False
+    status: str = "pending"
+    total_chapters: int = 0
+    completed_chapters: int = 0
+    success_count: int = 0
+    failure_count: int = 0
+    current_chapter_info: str | None = None
+    error_message: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+class TranslationJobListResponse(BaseModel):
+    """List of translation jobs."""
+
+    items: list[TranslationJobResponse]
+    total: int
