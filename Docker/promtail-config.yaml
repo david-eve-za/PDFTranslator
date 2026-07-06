@@ -1,0 +1,112 @@
+# =============================================================================
+# Promtail Configuration — Log Shipper for Loki
+# =============================================================================
+# Collects container logs from Docker and ships to Loki
+# Also tails backend log file if mounted
+# =============================================================================
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+  log_level: info
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+    batchwait: 1s
+    batchsize: 102400
+    timeout: 10s
+    backoff_config:
+      min_period: 100ms
+      max_period: 10s
+      max_retries: 10
+
+scrape_configs:
+  # Docker container logs (all containers on this host)
+  - job_name: docker-containers
+    static_labels:
+      host: pdftranslator
+      environment: production
+    pipeline_stages:
+      - docker: {}
+      - labels:
+          container_name:
+          image_name:
+      - match:
+          selector: '{container_name=~"pdftranslator_.*"}'
+          stages:
+            - json:
+                expressions:
+                  correlation_id:
+                  level:
+                  logger:
+                  message:
+                  timestamp:
+            - labels:
+                correlation_id:
+                level:
+                logger:
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: label
+            values: ["com.docker.compose.project=pdftranslator"]
+
+  # Backend application logs (if mounted separately)
+  - job_name: backend-app
+    static_labels:
+      job: pdftranslator-backend
+      component: backend
+    pipeline_stages:
+      - json:
+          expressions:
+            correlation_id:
+            level:
+            logger:
+            message:
+            timestamp:
+            service_name:
+            environment:
+      - labels:
+          correlation_id:
+          level:
+          logger:
+          service_name:
+          environment:
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+    file_sd_configs:
+      - files:
+          - /var/log/backend/*.log
+        refresh_interval: 10s
+
+  # Nginx access logs
+  - job_name: nginx-access
+    static_labels:
+      job: nginx
+      component: frontend
+      type: access
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<remote_addr>\S+) - (?P<remote_user>\S+) \[(?P<time_local>[^\]]+)\] "(?P<request>[^"]+)" (?P<status>\d+) (?P<body_bytes_sent>\d+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)"'
+      - labels:
+          status:
+    file_sd_configs:
+      - files:
+          - /var/log/nginx/access.log
+        refresh_interval: 10s
+
+  # Nginx error logs
+  - job_name: nginx-error
+    static_labels:
+      job: nginx
+      component: frontend
+      type: error
+    file_sd_configs:
+      - files:
+          - /var/log/nginx/error.log
+        refresh_interval: 10s

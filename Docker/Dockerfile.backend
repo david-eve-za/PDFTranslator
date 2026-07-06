@@ -1,0 +1,84 @@
+# =============================================================================
+# PDFTranslator Backend — Multi-stage Build
+# =============================================================================
+# Builder: installs dependencies, pre-caches NLTK/KeyBERT models
+# Runtime: copies only needed artifacts, runs as non-root
+# =============================================================================
+
+# ---- Builder Stage ----------------------------------------------------------
+FROM python:3.12-slim AS builder
+
+# Install system deps for building wheels + NLTK data
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python optimizations
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# Install Python dependencies
+COPY pyproject.toml README.md ./
+COPY src/ ./src/
+RUN pip install --upgrade pip && \
+    pip install --prefix=/install ".[all]"
+
+# Pre-cache NLTK data (stopwords, punkt, averaged_perceptron_tagger)
+RUN python -c "import nltk; nltk.download('stopwords', quiet=True); nltk.download('punkt', quiet=True); nltk.download('punkt_tab', quiet=True); nltk.download('averaged_perceptron_tagger', quiet=True); nltk.download('averaged_perceptron_tagger_eng', quiet=True); nltk.download('wordnet', quiet=True); nltk.download('omw-1.4', quiet=True)" && \
+    mv /root/nltk_data /usr/local/share/nltk_data
+
+# Pre-cache KeyBERT / sentence-transformers model
+RUN python -c "from sentence_transformers import SentenceTransformer; model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2'); model.save('/usr/local/share/sentence-transformers/all-MiniLM-L6-v2')" 2>/dev/null || true
+
+# ---- Runtime Stage ----------------------------------------------------------
+FROM python:3.12-slim AS runtime
+
+# Install runtime system deps only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r appgroup --gid=1000 && \
+    useradd -r -g appgroup --uid=1000 --home-dir=/app --shell=/bin/bash appuser
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/app/.venv/bin:$PATH" \
+    NLTK_DATA=/usr/local/share/nltk_data \
+    SENTENCE_TRANSFORMERS_HOME=/usr/local/share/sentence-transformers
+
+WORKDIR /app
+
+# Copy Python packages from builder
+COPY --from=builder /install /usr/local
+# Copy NLTK data
+COPY --from=builder /usr/local/share/nltk_data /usr/local/share/nltk_data
+# Copy sentence-transformers cache
+COPY --from=builder /usr/local/share/sentence-transformers /usr/local/share/sentence-transformers
+
+# Copy application code
+COPY --chown=appuser:appgroup src/ ./src/
+COPY --chown=appuser:appgroup pyproject.toml README.md ./
+
+# Install the package in development mode
+RUN pip install --no-deps -e .
+
+# Healthcheck endpoint
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Switch to non-root user
+USER appuser
+
+EXPOSE 8000
+
+# Run with uvicorn (prod: single worker, no reload)
+CMD ["uvicorn", "pdftranslator.backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

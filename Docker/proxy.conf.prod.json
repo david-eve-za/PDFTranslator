@@ -1,0 +1,29 @@
+{
+  "/api": {
+    "target": "http://backend:8000",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "warn"
+  },
+  "/health": {
+    "target": "http://backend:8000",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/docs": {
+    "target": "http://backend:8000",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/openapi.json": {
+    "target": "http://backend:8000",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/logs": {
+    "target": "http://backend:8000",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "warn"
+  }
+}
