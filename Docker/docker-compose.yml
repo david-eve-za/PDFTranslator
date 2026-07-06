@@ -1,36 +1,35 @@
 # =============================================================================
-# Book Translator System — Docker Compose
+# PDFTranslator — Complete Docker Compose Stack
 # =============================================================================
-# Requisitos: Docker Engine 24+ / Docker Desktop 4.25+
+# Profiles:
+#   - prod:  Production stack (backend, frontend, db, logging, monitoring)
+#   - dev:   Development stack with hot reload
+#   - logging: Logging stack only (loki, grafana, promtail)
+#   - monitoring: Grafana + Loki (no app services)
 #
-# Inicio rápido:
-#   cp .env.example .env        # Editar credenciales
-#   docker compose up -d
-#   docker compose logs -f db   # Verificar que pgvector se inicializó
+# Usage:
+#   docker compose --profile prod up -d
+#   docker compose --profile dev up -d
+#   docker compose --profile logging up -d
 # =============================================================================
 
 services:
-
-  # ─────────────────────────────────────────────────────────────────────────
-  # PostgreSQL 16 + pgvector
-  # Imagen oficial con pgvector preinstalado (ankane/pgvector es el estándar)
-  # ─────────────────────────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────────────────────────
+  # PostgreSQL 16 + pgvector (Official Image)
+  # ─────────────────────────────────────────────────────────────────────────────
   db:
     image: pgvector/pgvector:pg16
-    container_name: postgres_db
-    restart: unless-stopped              # 'always' reinicia incluso en docker stop
+    container_name: pdftranslator_db
+    restart: unless-stopped
     environment:
-      POSTGRES_USER:     "translator_user"
-      POSTGRES_PASSWORD: "uQ201/-R]f3\"j@]N7/L:"
-      POSTGRES_DB:       book_translator
-      # Afina el locale para texto español/japonés/coreano
+      POSTGRES_USER: ${POSTGRES_USER:-translator_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-book_translator}
       POSTGRES_INITDB_ARGS: "--locale=en_US.UTF-8 --encoding=UTF8"
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      # Persistencia de datos — CRÍTICO: sin esto los datos se pierden
       - postgres_data:/var/lib/postgresql/data
-      # Scripts de inicialización: se ejecutan en orden alfabético al crear la DB
       - ./database/init:/docker-entrypoint-initdb.d:ro
     command: >
       postgres
@@ -43,11 +42,11 @@ services:
         -c log_min_duration_statement=1000
         -c log_line_prefix='%t [%p] %u@%d '
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U translator_user -d book_translator"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-translator_user} -d ${POSTGRES_DB:-book_translator}"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 20s
+      retries: 10
+      start_period: 30s
     networks:
       - translator_net
     deploy:
@@ -57,24 +56,268 @@ services:
         reservations:
           memory: 512M
 
-  # ─────────────────────────────────────────────────────────────────────────
-  # CloudBeaver — Web UI para administrar PostgreSQL
-  #
-  # FIX: Las vars DB_HOST/DB_PORT/etc NO existen en la imagen oficial.
-  # CloudBeaver se configura desde su UI web en el primer arranque,
-  # o montando un workspace pre-configurado (ver volumen cloudbeaver_workspace).
-  # ─────────────────────────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Backend API (FastAPI + Uvicorn)
+  # ─────────────────────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile.backend
+      target: runtime
+    container_name: pdftranslator_backend
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-translator_user}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-book_translator}
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-translator_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-book_translator}
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - LLM__AGENT=${LLM__AGENT:-nvidia}
+      - LLM__NVIDIA__MODEL_NAME=${LLM__NVIDIA__MODEL_NAME:-meta/llama-3.1-70b-instruct}
+      - LLM__NVIDIA__TEMPERATURE=${LLM__NVIDIA__TEMPERATURE:-0.3}
+      - LLM__NVIDIA__TOP_P=${LLM__NVIDIA__TOP_P:-0.95}
+      - LLM__NVIDIA__MAX_OUTPUT_TOKENS=${LLM__NVIDIA__MAX_OUTPUT_TOKENS:-4096}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CORS_ORIGINS=http://localhost,http://localhost:80,http://frontend:80
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - translator_net
+    volumes:
+      - backend_logs:/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    profiles:
+      - prod
+      - dev
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Backend Development (Hot Reload)
+  # ─────────────────────────────────────────────────────────────────────────────
+  backend-dev:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile.backend
+      target: builder
+    container_name: pdftranslator_backend_dev
+    restart: unless-stopped
+    command: uvicorn pdftranslator.backend.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-translator_user}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-book_translator}
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-translator_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-book_translator}
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - LLM__AGENT=${LLM__AGENT:-nvidia}
+      - LOG_LEVEL=DEBUG
+      - CORS_ORIGINS=http://localhost,http://localhost:4200,http://localhost:8080
+    ports:
+      - "${BACKEND_DEV_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - translator_net
+    volumes:
+      - ../src:/app/src
+      - ../pyproject.toml:/app/pyproject.toml
+      - ../README.md:/app/README.md
+      - backend_logs:/app/logs
+    profiles:
+      - dev
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Frontend Production (Nginx + Angular)
+  # ─────────────────────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ../src/pdftranslator/frontend
+      dockerfile: ../../../Docker/Dockerfile.frontend
+      target: runtime
+    container_name: pdftranslator_frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - translator_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+    profiles:
+      - prod
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Frontend Development (ng serve)
+  # ─────────────────────────────────────────────────────────────────────────────
+  frontend-dev:
+    build:
+      context: ../src/pdftranslator/frontend
+      dockerfile: ../../../Docker/Dockerfile.frontend
+      target: builder
+    container_name: pdftranslator_frontend_dev
+    restart: unless-stopped
+    command: npx ng serve --host 0.0.0.0 --port 4200 --poll 2000
+    ports:
+      - "${FRONTEND_DEV_PORT:-4200}:4200"
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=4096
+    networks:
+      - translator_net
+    volumes:
+      - ../src/pdftranslator/frontend:/app
+      - /app/node_modules
+      - /app/dist
+    profiles:
+      - dev
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Loki — Log Aggregation
+  # ─────────────────────────────────────────────────────────────────────────────
+  loki:
+    image: grafana/loki:3.1
+    container_name: pdftranslator_loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yaml
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    volumes:
+      - ./loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki_data:/loki
+    networks:
+      - translator_net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3100/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+    profiles:
+      - prod
+      - logging
+      - monitoring
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Promtail — Log Shipper
+  # ─────────────────────────────────────────────────────────────────────────────
+  promtail:
+    image: grafana/promtail:3.1
+    container_name: pdftranslator_promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    volumes:
+      - ./promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/log:/var/log:ro
+      - backend_logs:/var/log/backend:ro
+    networks:
+      - translator_net
+    depends_on:
+      - loki
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+    profiles:
+      - prod
+      - logging
+      - monitoring
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Grafana — Log Visualization
+  # ─────────────────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:11.1
+    container_name: pdftranslator_grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+    networks:
+      - translator_net
+    depends_on:
+      - loki
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+    profiles:
+      - prod
+      - logging
+      - monitoring
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # CloudBeaver — Database Web UI
+  # ─────────────────────────────────────────────────────────────────────────────
   admin-panel:
     image: dbeaver/cloudbeaver:latest
-    container_name: cloudbeaver_web
+    container_name: pdftranslator_cloudbeaver
     restart: unless-stopped
     ports:
       - "${CLOUDBEAVER_PORT:-8978}:8978"
     depends_on:
       db:
-        condition: service_healthy    # Espera al healthcheck real de Postgres
+        condition: service_healthy
     volumes:
-      # Persiste la configuración del workspace (conexiones guardadas, etc.)
       - cloudbeaver_workspace:/opt/cloudbeaver/workspace
     networks:
       - translator_net
@@ -84,24 +327,31 @@ services:
           memory: 512M
         reservations:
           memory: 128M
+    profiles:
+      - prod
+      - dev
 
 # =============================================================================
-# Volúmenes nombrados — datos persisten entre reinicios y recreaciones
+# Volumes
 # =============================================================================
 volumes:
   postgres_data:
     driver: local
+  loki_data:
+    driver: local
+  grafana_data:
+    driver: local
   cloudbeaver_workspace:
+    driver: local
+  backend_logs:
     driver: local
 
 # =============================================================================
-# Red interna aislada
-# Los servicios se comunican por nombre (db, admin-panel)
-# Solo los puertos definidos en 'ports' se exponen al host
+# Networks
 # =============================================================================
 networks:
   translator_net:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.28.0.0/16
+        - subnet: 172.29.0.0/16

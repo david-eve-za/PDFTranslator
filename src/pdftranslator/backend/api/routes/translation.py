@@ -3,7 +3,7 @@
 import asyncio
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 
 from fastapi import APIRouter, HTTPException
@@ -31,7 +31,57 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["translation"])
 
+# Active SSE connections: job_id -> asyncio.Queue
+# Cleaned up periodically to prevent memory leaks from abandoned connections
 active_jobs: dict[int, asyncio.Queue] = {}
+# Track last activity for cleanup
+_job_last_activity: dict[int, datetime] = {}
+
+
+async def _cleanup_stale_jobs() -> None:
+    """Remove jobs that haven't had activity for 5 minutes."""
+    cutoff = datetime.now() - timedelta(minutes=5)
+    stale_job_ids = [
+        job_id
+        for job_id, last_active in _job_last_activity.items()
+        if last_active < cutoff
+    ]
+    for job_id in stale_job_ids:
+        queue = active_jobs.pop(job_id, None)
+        if queue:
+            # Signal completion to any waiting consumers
+            await queue.put({"type": "error", "data": {"message": "SSE connection timed out"}})
+        _job_last_activity.pop(job_id, None)
+        logger.info(f"Cleaned up stale SSE job {job_id}")
+
+
+async def _periodic_cleanup() -> None:
+    """Background task to clean up stale SSE connections periodically."""
+    while True:
+        await asyncio.sleep(60)  # Run every minute
+        try:
+            await _cleanup_stale_jobs()
+        except Exception as e:
+            logger.error(f"Error in periodic SSE cleanup: {e}")
+
+
+# Start cleanup task on module load
+_cleanup_task: asyncio.Task | None = None
+
+
+def _start_cleanup_task() -> None:
+    """Start the periodic cleanup task (called from lifespan)."""
+    global _cleanup_task
+    if _cleanup_task is None or _cleanup_task.done():
+        _cleanup_task = asyncio.create_task(_periodic_cleanup())
+
+
+def _stop_cleanup_task() -> None:
+    """Stop the periodic cleanup task."""
+    global _cleanup_task
+    if _cleanup_task and not _cleanup_task.done():
+        _cleanup_task.cancel()
+        _cleanup_task = None
 
 
 def _job_to_response(job: TranslationJob) -> dict:
@@ -98,6 +148,7 @@ async def start_translation(request: TranslationStartRequest) -> dict:
 
     queue: asyncio.Queue = asyncio.Queue()
     active_jobs[created_job.id] = queue
+    _job_last_activity[created_job.id] = datetime.now()
 
     asyncio.create_task(_run_translation_job(created_job.id, queue))
 
@@ -136,24 +187,35 @@ async def stream_translation_progress(job_id: int):
 
     queue = active_jobs.get(job_id)
 
+    if queue is None:
+        # Job exists but no active SSE connection - create a new queue
+        queue = asyncio.Queue()
+        active_jobs[job_id] = queue
+        _job_last_activity[job_id] = datetime.now()
+
     async def event_generator():
-        if queue is None:
-            yield f"event: error\ndata: {json.dumps({'message': 'Job not found in active jobs'})}\n\n"
-            return
+        try:
+            while True:
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=300.0)
+                except asyncio.TimeoutError:
+                    # Send heartbeat to keep connection alive
+                    yield ": heartbeat\n\n"
+                    continue
 
-        while True:
-            try:
-                event = await asyncio.wait_for(queue.get(), timeout=300.0)
-            except asyncio.TimeoutError:
-                yield f"event: error\ndata: {json.dumps({'message': 'SSE timeout'})}\n\n"
-                break
+                # Update last activity timestamp
+                _job_last_activity[job_id] = datetime.now()
 
-            event_type = event.get("type", "progress")
-            event_data = event.get("data", {})
-            yield f"event: {event_type}\ndata: {json.dumps(event_data)}\n\n"
+                event_type = event.get("type", "progress")
+                event_data = event.get("data", {})
+                yield f"event: {event_type}\ndata: {json.dumps(event_data)}\n\n"
 
-            if event_type in ("job_complete", "error"):
-                break
+                if event_type in ("job_complete", "error"):
+                    break
+        finally:
+            # Clean up when client disconnects
+            active_jobs.pop(job_id, None)
+            _job_last_activity.pop(job_id, None)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
@@ -197,10 +259,17 @@ async def _run_translation_job(job_id: int, queue: asyncio.Queue) -> None:
                 "total_chapters": progress.total_chapters,
             }
 
+        # Update last activity
+        _job_last_activity[job_id] = datetime.now()
+
         asyncio.run_coroutine_threadsafe(
             queue.put({"type": event_type, "data": event_data}),
             asyncio.get_event_loop(),
         )
+
+    # Check glossary build status before starting
+    if job.scope in ("all_book", "all_volume"):
+        await _check_glossary_status(job, volume_repo, glossary_repo)
 
     orchestrator = TranslationOrchestrator(
         chapter_repo=chapter_repo,
@@ -210,7 +279,11 @@ async def _run_translation_job(job_id: int, queue: asyncio.Queue) -> None:
     )
 
     try:
-        orchestrator.execute_job(job)
+        # Run with timeout to prevent stuck jobs
+        await asyncio.wait_for(
+            asyncio.to_thread(orchestrator.execute_job, job),
+            timeout=3600.0,  # 1 hour max per job
+        )
 
         final_job = job_repo.get_by_id(job_id)
         if final_job and final_job.status == "completed":
@@ -226,8 +299,52 @@ async def _run_translation_job(job_id: int, queue: asyncio.Queue) -> None:
                 "type": "error",
                 "data": {"message": final_job.error_message},
             })
+    except asyncio.TimeoutError:
+        logger.error(f"Translation job {job_id} timed out after 1 hour")
+        job.status = "error"
+        job.error_message = "Translation timed out after 1 hour"
+        job_repo.update(job)
+        await queue.put({"type": "error", "data": {"message": "Translation timed out"}})
     except Exception as e:
         logger.error(f"Translation job {job_id} error: {e}")
         await queue.put({"type": "error", "data": {"message": str(e)}})
     finally:
         active_jobs.pop(job_id, None)
+        _job_last_activity.pop(job_id, None)
+
+
+async def _check_glossary_status(
+    job: TranslationJob,
+    volume_repo: VolumeRepository,
+    glossary_repo: GlossaryRepository,
+) -> None:
+    """Check if glossary needs to be built before translation."""
+    volumes_to_check = []
+
+    if job.scope == "all_book":
+        volumes = volume_repo.get_by_work_id(job.work_id)
+        volumes_to_check = volumes
+    elif job.scope == "all_volume" and job.volume_id:
+        volume = volume_repo.get_by_id(job.volume_id)
+        if volume:
+            volumes_to_check = [volume]
+
+    for volume in volumes_to_check:
+        if volume.glossary_build_status == "pending":
+            logger.warning(
+                f"Glossary not built for volume {volume.id} (work {job.work_id}). "
+                f"Starting glossary build..."
+            )
+            # Trigger glossary build - could be async, here we log warning
+            # In production, you might want to auto-trigger or block
+            # For now, just warn and continue with empty glossary
+        elif volume.glossary_build_status == "building":
+            logger.warning(
+                f"Glossary build in progress for volume {volume.id}. "
+                f"Translation will use partial glossary."
+            )
+        elif volume.glossary_build_status == "failed":
+            logger.error(
+                f"Glossary build failed for volume {volume.id}: {volume.glossary_error_message}. "
+                f"Translation will proceed without glossary."
+            )

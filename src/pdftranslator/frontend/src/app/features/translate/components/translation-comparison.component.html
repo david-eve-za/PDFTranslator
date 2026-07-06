@@ -1,0 +1,248 @@
+<div class="translation-comparison">
+  <div class="comparison-header">
+    <div class="header-left">
+      <h3 class="comparison-title">Chapter Comparison</h3>
+    </div>
+    <div class="header-right">
+      <div class="comparison-actions">
+        <button class="btn btn-sm btn-secondary" (click)="expandAll()" [disabled]="!hasVolumes()">
+          <span class="btn-icon">▾</span>
+          <span class="btn-text">Expand All</span>
+        </button>
+        <button class="btn btn-sm btn-secondary" (click)="collapseAll()" [disabled]="!hasVolumes()">
+          <span class="btn-icon">▸</span>
+          <span class="btn-text">Collapse All</span>
+        </button>
+      </div>
+      <div class="comparison-stats">
+        <span class="stat" [class.warning]="pendingChapters() > 0">
+          <span class="stat-value">{{ translatedChapters() }}</span>
+          <span class="stat-label">Translated</span>
+        </span>
+        <span class="stat" [class.warning]="pendingChapters() > 0">
+          <span class="stat-value">{{ pendingChapters() }}</span>
+          <span class="stat-label">Pending</span>
+        </span>
+        <span class="stat">
+          <span class="stat-value">{{ totalChapters() }}</span>
+          <span class="stat-label">Total</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="alert alert-error">
+      <span>⚠️</span>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  @if (successMessage()) {
+    <div class="alert alert-success">
+      <span>✓</span>
+      <span>{{ successMessage() }}</span>
+    </div>
+  }
+
+  @if (isLoadingVolumes()) {
+    <div class="loading-state">Loading volumes...</div>
+  } @else if (volumeGroups().length === 0) {
+    <div class="empty-state">No volumes found for this work.</div>
+  } @else {
+    <!-- Volume/Chapter List (Full Width) -->
+    <div class="chapter-list-full">
+      @for (group of volumeGroups(); track group.volumeId) {
+        <div class="volume-group">
+          <button
+            class="volume-group-header"
+            (click)="toggleVolume(group.volumeId)"
+            [attr.aria-expanded]="isVolumeExpanded(group.volumeId)">
+            <span class="volume-chevron">{{ isVolumeExpanded(group.volumeId) ? '▾' : '▸' }}</span>
+            <span class="volume-title">{{ group.title }}</span>
+            <span class="volume-meta">
+              {{ group.chapters.length }} chapter{{ group.chapters.length !== 1 ? 's' : '' }}
+              @if (group.chapters.length > 0) {
+                <span class="progress-badge">
+                  {{ group.chapters.filter(c => c.is_translated).length }}/{{ group.chapters.length }} translated
+                </span>
+              }
+            </span>
+          </button>
+
+          @if (isVolumeExpanded(group.volumeId)) {
+            <div class="volume-chapters">
+              @if (group.chapters.length === 0) {
+                <div class="no-chapters">No chapters in this volume</div>
+              } @else {
+                @for (chapter of group.chapters; track chapter.id) {
+                  <div
+                    class="chapter-item"
+                    [class.selected]="selectedChapter()?.id === chapter.id"
+                    [class.has-translation]="chapter.is_translated"
+                    (click)="onChapterClick(chapter)">
+                    <div class="chapter-main">
+                      <span class="chapter-status" [class]="getStatusClass(getTranslationStatus(chapter))">
+                        {{ getStatusIcon(getTranslationStatus(chapter)) }}
+                      </span>
+                      <div class="chapter-info">
+                        <span class="chapter-number">
+                          @if (chapter.chapter_type !== 'chapter') {
+                            <span class="chapter-type-badge">{{ chapter.chapter_type }}</span>
+                          } @else {
+                            Chapter {{ chapter.chapter_number }}
+                          }
+                        </span>
+                        <span class="chapter-title">{{ chapter.title || 'Untitled' }}</span>
+                      </div>
+                    </div>
+                    <div class="chapter-meta">
+                      <span class="char-count" title="Original characters">
+                        📝 {{ chapter.original_text?.length || 0 }}
+                      </span>
+                      <span class="char-count translated" title="Translated characters">
+                        🌐 {{ chapter.translated_text?.length || 0 }}
+                      </span>
+                    </div>
+                    <div class="chapter-actions">
+                      @if (chapter.original_text) {
+                        <button
+                          class="btn-icon btn-retranslate"
+                          (click)="retranslateChapter(chapter, $event)"
+                          title="Re-translate this chapter"
+                          [disabled]="selectedChapter()?.id === chapter.id || isRetranslating()">
+                          ⟳
+                        </button>
+                      }
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Empty State Message -->
+    @if (!selectedChapter()) {
+      <div class="empty-hint">
+        <span class="empty-icon">📖</span>
+        <p>Click on a chapter to open the comparison window</p>
+      </div>
+    }
+  }
+
+  <!-- Floating Modal Window for Chapter Detail -->
+  @if (selectedChapter(); as chapter) {
+    <div class="modal-overlay" (click)="closeChapterDetail()">
+      <div class="modal-window" (click)="$event.stopPropagation()">
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <div class="modal-title">
+            <span class="chapter-badge">
+              @if (chapter.chapter_type !== 'chapter') {
+                <span class="chapter-type-badge">{{ chapter.chapter_type }}</span>
+              } @else {
+                Chapter {{ chapter.chapter_number }}
+              }
+            </span>
+            {{ chapter.title }}
+          </div>
+          <div class="modal-status">
+            <span class="status-badge" [class]="getStatusClass(getTranslationStatus(chapter))">
+              {{ getStatusIcon(getTranslationStatus(chapter)) }} {{ getTranslationStatus(chapter) | titlecase }}
+            </span>
+          </div>
+          <button class="modal-close" (click)="closeChapterDetail()" aria-label="Close">✕</button>
+        </div>
+
+        <!-- Modal Content -->
+        <div class="modal-content">
+          <!-- Original Text Area -->
+          <div class="text-section">
+            <div class="section-header">
+              <span class="section-title">Original ({{ work().source_lang || 'en' }})</span>
+              <span class="char-count">{{ chapter.original_text?.length || 0 }} chars</span>
+            </div>
+            <div class="text-area-wrapper">
+              @if (chapter.original_text) {
+                <textarea 
+                  #originalTextarea
+                  class="text-area" 
+                  [value]="chapter.original_text" 
+                  readonly
+                  spellcheck="false"
+                  (scroll)="onScrollSync('original', $event)">
+                </textarea>
+              } @else {
+                <textarea 
+                  #originalTextarea
+                  class="text-area empty" 
+                  readonly
+                  spellcheck="false"
+                  (scroll)="onScrollSync('original', $event)">
+No original text available
+                </textarea>
+              }
+            </div>
+          </div>
+
+          <!-- Translated Text Area -->
+          <div class="text-section">
+            <div class="section-header">
+              <span class="section-title">Translation ({{ work().target_lang || 'es' }})</span>
+              <span class="char-count">{{ chapter.translated_text?.length || 0 }} chars</span>
+            </div>
+            <div class="text-area-wrapper">
+              @if (chapter.translated_text && chapter.translated_text.length > 0) {
+                <textarea 
+                  #translatedTextarea
+                  class="text-area" 
+                  [value]="chapter.translated_text" 
+                  readonly
+                  spellcheck="false"
+                  (scroll)="onScrollSync('translated', $event)">
+                </textarea>
+              } @else {
+                <textarea 
+                  #translatedTextarea
+                  class="text-area empty" 
+                  readonly
+                  spellcheck="false"
+                  (scroll)="onScrollSync('translated', $event)">
+Not translated yet
+                </textarea>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="modal-actions">
+          @if (chapter.original_text) {
+            <button
+              class="btn btn-primary"
+              (click)="retranslateChapter(chapter, $event)"
+              [disabled]="isRetranslating()">
+              @if (isRetranslating()) {
+                <span class="spinner"></span> Re-translating...
+              } @else {
+                ⟳ Re-translate Chapter
+              }
+            </button>
+            <button
+              class="btn btn-secondary"
+              (click)="copyTranslation(chapter)"
+              [disabled]="!chapter.translated_text || chapter.translated_text.length === 0">
+              📋 Copy Translation
+            </button>
+          }
+          <button class="btn btn-secondary" (click)="closeChapterDetail()">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

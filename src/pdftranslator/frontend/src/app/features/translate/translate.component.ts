@@ -45,7 +45,9 @@ export class TranslateComponent implements OnDestroy {
   dryRun = signal(false);
   jobId = signal<number | null>(null);
   progressData = signal<TranslationProgressEvent | null>(null);
-  chapterStatuses = signal<Array<{ title: string; status: string }>>([]);
+
+  // Use Map keyed by chapter_id for uniqueness
+  chapterStatuses = signal<Map<number, { title: string; status: string }>>(new Map());
   errorMessage = signal<string | null>(null);
   successMessage = signal<string | null>(null);
   isTranslating = signal(false);
@@ -125,6 +127,18 @@ export class TranslateComponent implements OnDestroy {
     return true;
   }
 
+  // Validation for config step - always valid, just show warnings if needed
+  getConfigWarnings(): string[] {
+    const warnings: string[] = [];
+    if (this.dryRun()) {
+      warnings.push('Dry run mode: No changes will be saved to the database');
+    }
+    if (!this.skipTranslated()) {
+      warnings.push('Re-translating existing chapters will overwrite previous translations');
+    }
+    return warnings;
+  }
+
   startTranslation(): void {
     const work = this.selectedWork();
     const scope = this.selectedScope();
@@ -132,7 +146,7 @@ export class TranslateComponent implements OnDestroy {
 
     this.isTranslating.set(true);
     this.clearMessages();
-    this.chapterStatuses.set([]);
+    this.chapterStatuses.set(new Map());
     this.progressData.set(null);
     this.currentStep.set(4);
 
@@ -168,14 +182,9 @@ export class TranslateComponent implements OnDestroy {
       next: (event: TranslationProgressEvent) => {
         this.progressData.set(event);
 
-        if (event.event_type === 'chapter_complete' && event.title) {
-          const statuses = [...this.chapterStatuses()];
-          const existingIdx = statuses.findIndex(s => s.title === event.title);
-          if (existingIdx >= 0) {
-            statuses[existingIdx] = { title: event.title, status: event.chapter_status || 'success' };
-          } else {
-            statuses.push({ title: event.title, status: event.chapter_status || 'success' });
-          }
+        if (event.event_type === 'chapter_complete' && event.title && event.chapter_id) {
+          const statuses = new Map(this.chapterStatuses());
+          statuses.set(event.chapter_id, { title: event.title, status: event.chapter_status || 'success' });
           this.chapterStatuses.set(statuses);
         }
 
@@ -183,7 +192,8 @@ export class TranslateComponent implements OnDestroy {
           this.isTranslating.set(false);
           this.summarySuccess.set(event.success_count ?? 0);
           this.summaryFailure.set(event.failure_count ?? 0);
-          const skipped = this.chapterStatuses().filter(s => s.status === 'skipped').length;
+          const statuses = this.chapterStatuses();
+          const skipped = Array.from(statuses.values()).filter(s => s.status === 'skipped').length;
           this.summarySkipped.set(skipped);
           this.currentStep.set(5);
           this.showSuccess('Translation completed!');
@@ -211,7 +221,7 @@ export class TranslateComponent implements OnDestroy {
     this.dryRun.set(false);
     this.jobId.set(null);
     this.progressData.set(null);
-    this.chapterStatuses.set([]);
+    this.chapterStatuses.set(new Map());
     this.isTranslating.set(false);
     this.summarySuccess.set(0);
     this.summaryFailure.set(0);
@@ -230,5 +240,10 @@ export class TranslateComponent implements OnDestroy {
     this.clearMessageTimeout();
     this.errorMessage.set(null);
     this.successMessage.set(null);
+  }
+
+  // Helper for template to iterate Map
+  getChapterStatusEntries(): Array<[number, { title: string; status: string }]> {
+    return Array.from(this.chapterStatuses().entries());
   }
 }

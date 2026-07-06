@@ -1,0 +1,57 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - img [ref=e7]
+        - heading "❝PDFTranslator❞" [level=1] [ref=e10]
+        - text: ✦
+      - generic [ref=e11]:
+        - text: ⬥
+        - link "Dashboard" [ref=e12] [cursor=pointer]:
+          - /url: /dashboard
+          - img [ref=e13]
+          - generic [ref=e18]: Dashboard
+        - link "Library" [ref=e19] [cursor=pointer]:
+          - /url: /library
+          - img [ref=e20]
+          - generic [ref=e23]: Library
+        - link "Files" [ref=e24] [cursor=pointer]:
+          - /url: /files
+          - img [ref=e25]
+          - generic [ref=e27]: Files
+        - link "Translate" [ref=e28] [cursor=pointer]:
+          - /url: /translate
+          - img [ref=e29]
+          - generic [ref=e33]: Translate
+        - link "Audio" [ref=e34] [cursor=pointer]:
+          - /url: /audio
+          - img [ref=e35]
+          - generic [ref=e38]: Audio
+        - link "Glossary" [ref=e39] [cursor=pointer]:
+          - /url: /glossary
+          - img [ref=e40]
+          - generic [ref=e43]: Glossary
+        - link "Split" [ref=e44] [cursor=pointer]:
+          - /url: /split
+          - img [ref=e45]
+          - generic [ref=e48]: Split
+        - link "Settings" [ref=e49] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e50]
+          - generic [ref=e53]: Settings
+        - link "Logs" [ref=e54] [cursor=pointer]:
+          - /url: /logs
+          - img [ref=e55]
+          - generic [ref=e58]: Logs
+        - text: ⬥
+      - button "Toggle dark mode" [ref=e60] [cursor=pointer]:
+        - img [ref=e61]
+  - main [ref=e63]:
+    - generic [ref=e67]:
+      - heading "Dashboard" [level=1] [ref=e68]
+      - paragraph [ref=e69]: Welcome to PDFTranslator
+  - contentinfo [ref=e118]:
+    - text: ❦
+    - generic [ref=e119]:
+      - paragraph [ref=e120]: 📚 © 2026 PDFTranslator. All rights reserved. 📚
+      - paragraph [ref=e121]: Built with Angular 21+

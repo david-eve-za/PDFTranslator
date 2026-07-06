@@ -1,8 +1,8 @@
 <div class="progress-container">
-  @if (progressData()) {
+  @if (progressData(); as data) {
     <div class="progress-header">
-      <span class="progress-counter">{{ progressData().completed_chapters }}/{{ progressData().total_chapters }}</span>
-      <span class="progress-chapter">{{ progressData().current }}</span>
+      <span class="progress-counter">{{ data.completed_chapters }}/{{ data.total_chapters }}</span>
+      <span class="progress-chapter">{{ data.current }}</span>
     </div>
 
     <div class="progress-bar">
@@ -10,12 +10,12 @@
     </div>
   }
 
-  @if (chapterStatuses().length > 0) {
+  @if (chapterStatuses().size > 0) {
     <div class="chapter-list">
-      @for (ch of chapterStatuses(); track ch.title) {
-        <div class="chapter-item" [class]="getStatusClass(ch.status)">
-          <span class="chapter-icon">{{ getStatusIcon(ch.status) }}</span>
-          <span class="chapter-title">{{ ch.title }}</span>
+      @for (entry of getChapterEntries(); track entry[0]) {
+        <div class="chapter-item" [class]="getStatusClass(entry[1].status)">
+          <span class="chapter-icon">{{ getStatusIcon(entry[1].status) }}</span>
+          <span class="chapter-title">{{ entry[1].title }}</span>
         </div>
       }
     </div>

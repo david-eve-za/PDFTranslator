@@ -1,8 +1,8 @@
 import { Component, OnInit, inject, signal, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { WorkService, WorkListResponse } from '../../core/services/work.service';
-import { Work } from '../../core/models';
+import { WorkService, WorkListResponse } from '../../../core/services/work.service';
+import { Work } from '../../../core/models';
 
 @Component({
   selector: 'app-work-selector',

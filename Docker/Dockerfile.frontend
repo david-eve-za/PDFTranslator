@@ -1,0 +1,65 @@
+# =============================================================================
+# PDFTranslator Frontend — Multi-stage Build
+# =============================================================================
+# Stage 1: Build Angular app (Node 22 + npm)
+# Stage 2: Nginx serve with SPA routing + API proxy + SSE support
+# =============================================================================
+
+# ---- Stage 1: Builder -------------------------------------------------------
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+# Enable corepack for pnpm/yarn if needed
+RUN corepack enable
+
+# Copy package files for better cache
+COPY package.json package-lock.json ./
+
+# Install dependencies (including devDeps for build)
+RUN npm ci --prefer-offline --no-audit --no-fund
+
+# Copy source code
+COPY . .
+
+# Build production bundle
+# Use --configuration production for optimized build
+RUN npm run build -- --configuration production
+
+# ---- Stage 2: Nginx Runtime -------------------------------------------------
+FROM nginx:1.27-alpine AS runtime
+
+# Install curl for healthcheck
+RUN apk add --no-cache curl
+
+# Create non-root user
+RUN addgroup -g 1001 -S nginxgroup && \
+    adduser -S -D -H -u 1001 -h /var/cache/nginx -s /sbin/nologin -G nginxgroup nginxuser
+
+# Copy custom nginx config
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Copy built Angular app from builder
+COPY --from=builder /app/dist/frontend/browser /usr/share/nginx/html
+
+# Copy prod proxy config (used by nginx for API proxying)
+# Note: nginx config includes the proxy rules directly, this is for reference
+COPY --from=builder /app/Docker/proxy.conf.prod.json /etc/nginx/proxy.conf.prod.json
+
+# Set permissions for nginx user
+RUN chown -R nginxuser:nginxgroup /usr/share/nginx/html && \
+    chown -R nginxuser:nginxgroup /var/cache/nginx && \
+    chown -R nginxuser:nginxgroup /var/log/nginx && \
+    chown -R nginxuser:nginxgroup /etc/nginx/conf.d
+
+# Switch to non-root user
+USER nginxuser
+
+# Healthcheck - nginx status page
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost/health || exit 1
+
+EXPOSE 80
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
