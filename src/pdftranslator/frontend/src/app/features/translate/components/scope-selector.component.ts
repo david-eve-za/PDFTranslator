@@ -1,12 +1,12 @@
 import { Component, OnInit, inject, signal, output, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Work } from '../../core/models';
-import { VolumeService, VolumeListResponse } from '../../core/services/volume.service';
-import { ChapterService, ChapterListResponse } from '../../core/services/chapter.service';
-import { Volume } from '../../core/models/volume.model';
-import { Chapter } from '../../core/models/chapter.model';
-import { TranslationScope } from '../../core/models/translation-progress.model';
+import { Work } from '../../../core/models';
+import { VolumeService, VolumeListResponse } from '../../../core/services/volume.service';
+import { ChapterService, ChapterListResponse } from '../../../core/services/chapter.service';
+import { Volume } from '../../../core/models/volume.model';
+import { Chapter } from '../../../core/models/chapter.model';
+import { TranslationScope } from '../../../core/models/translation-progress.model';
 
 @Component({
   selector: 'app-scope-selector',

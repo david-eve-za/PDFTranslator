@@ -1,6 +1,6 @@
 import { Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TranslationProgressEvent } from '../../core/models/translation-progress.model';
+import { TranslationProgressEvent } from '../../../core/models/translation-progress.model';
 
 @Component({
   selector: 'app-translate-progress',
@@ -11,11 +11,12 @@ import { TranslationProgressEvent } from '../../core/models/translation-progress
 })
 export class TranslateProgressComponent {
   progressData = input<TranslationProgressEvent | null>(null);
-  chapterStatuses = input<Array<{ title: string; status: string }>>([]);
+  // Map<chapter_id, { title: string; status: string }>
+  chapterStatuses = input<Map<number, { title: string; status: string }>>(new Map());
 
   get progressPercentage(): number {
     const data = this.progressData();
-    if (!data || !data.total_chapters) return 0;
+    if (!data || !data.total_chapters || data.completed_chapters === undefined) return 0;
     return Math.round((data.completed_chapters / data.total_chapters) * 100);
   }
 
@@ -37,5 +38,10 @@ export class TranslateProgressComponent {
       case 'translating': return 'status-translating';
       default: return 'status-pending';
     }
+  }
+
+  // Template helpers
+  getChapterEntries(): Array<[number, { title: string; status: string }]> {
+    return Array.from(this.chapterStatuses().entries());
   }
 }

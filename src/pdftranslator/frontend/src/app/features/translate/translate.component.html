@@ -73,7 +73,7 @@
 
     @if (currentStep() === 2 && selectedWork()) {
       <section class="step-section">
-        <h2 class="section-title">Choose translation scope for "{{ selectedWork().title }}"</h2>
+        <h2 class="section-title">Choose translation scope for "{{ selectedWork()!.title }}"</h2>
         <app-scope-selector
           [work]="selectedWork()!"
           (scopeSelected)="onScopeSelected($event)"
@@ -89,9 +89,23 @@
       <section class="step-section">
         <h2 class="section-title">Configure translation</h2>
         <app-translate-config
-          [sourceLang]="selectedWork().source_lang || 'en'"
-          [targetLang]="selectedWork().target_lang || 'es'"
+          [sourceLang]="selectedWork()!.source_lang || 'en'"
+          [targetLang]="selectedWork()!.target_lang || 'es'"
           (configChanged)="onConfigChanged($event)" />
+
+        @if (getConfigWarnings().length > 0) {
+          <div class="config-warning">
+            <span class="warning-icon">ℹ️</span>
+            <div class="warning-content">
+              <ul>
+                @for (warning of getConfigWarnings(); track warning) {
+                  <li>{{ warning }}</li>
+                }
+              </ul>
+            </div>
+          </div>
+        }
+
         <div class="step-actions">
           <button class="btn btn-back" (click)="goBack()">Back</button>
           <button
