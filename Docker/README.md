@@ -6,20 +6,20 @@ All Docker-related files for PDFTranslator consolidated in one place.
 
 ```
 docker/
-├── docker-compose.yml          # Unified compose (main app + logging stack)
+├── docker-compose.yml          # Unified compose (main app + ELK logging stack)
 ├── Dockerfile.backend          # Backend multi-stage build
 ├── Dockerfile.frontend         # Frontend multi-stage build
 ├── nginx.conf                  # Nginx reverse proxy config
-├── loki-config.yaml            # Loki 3.x single-process config
-├── promtail-config.yaml        # Promtail log shipper config
+├── logstash/
+│   ├── logstash.conf           # Logstash pipeline configuration
+│   └── patterns/
+│       └── pdftranslator       # Custom Grok patterns
+├── filebeat/
+│   └── filebeat.yml            # Filebeat configuration
 ├── init/
 │   └── 001_schema.sql          # Complete PostgreSQL schema
-├── grafana/
-│   ├── provisioning/
-│   │   ├── datasources/        # Auto-provision Loki datasource
-│   │   └── dashboards/         # Auto-load dashboards
-│   └── dashboards/
-│       └── pdftranslator-logs.json  # Pre-built log dashboard
+├── elk-init.sh                 # ELK Stack initialization script
+├── start-elk.sh                # Start ELK + initialize
 ├── env.example                 # Environment variables template
 └── README.md                   # This file
 ```
@@ -29,6 +29,7 @@ docker/
 ### 1. Prerequisites
 - Docker 24+ and Docker Compose 2.20+
 - `.env` file with required secrets (see below)
+- **Minimum 4GB RAM** recommended for ELK Stack (Elasticsearch heap: 1GB)
 
 ### 2. Configuration
 ```bash
@@ -49,11 +50,13 @@ docker compose --profile prod up -d
 
 This starts:
 - **PostgreSQL + pgvector** (port 5432)
-- **Loki** (port 3100) - Log aggregation
-- **Grafana** (port 3000) - Log visualization (admin/admin)
-- **Promtail** - Ships container logs to Loki
-- **Backend API** (port 8000) - FastAPI + Loki logging
+- **Elasticsearch** (port 9200) - Search & analytics engine
+- **Logstash** (port 5044/9600) - Log processing pipeline
+- **Filebeat** - Lightweight log shipper (Docker autodiscover)
+- **Kibana** (port 5601) - Visualization & dashboards
+- **Backend API** (port 8000) - FastAPI + structured logging
 - **Frontend** (port 80) - Angular via Nginx
+- **CloudBeaver** (port 8978) - Database web UI
 
 ### 4. Development Mode (Hot Reload)
 ```bash
@@ -64,6 +67,16 @@ This adds:
 - **Backend Dev** (port 8000) - Hot reload via `uvicorn --reload`
 - **Frontend Dev** (port 4200) - `ng serve` with file watching
 
+### 5. Start Only ELK Stack (Logging)
+```bash
+# Quick start script (starts ELK + runs initialization)
+./start-elk.sh
+
+# Or manually:
+docker compose --profile logging up -d
+./elk-init.sh
+```
+
 ## Access Points
 
 | Service | URL | Credentials |
@@ -71,16 +84,36 @@ This adds:
 | Frontend App | http://localhost | - |
 | Backend API | http://localhost:8000 | - |
 | API Docs | http://localhost:8000/docs | - |
-| Grafana | http://localhost:3000 | admin / admin |
-| Loki | http://localhost:3100/ready | - |
+| Kibana | http://localhost:5601 | - |
+| Elasticsearch | http://localhost:9200 | - |
+| CloudBeaver | http://localhost:8978 | - |
 
 ## Key Features
 
-### Unified Logging (Loki + Grafana)
-- All backend logs → Loki via `logging_loki` handler
-- Structured JSON logs with `correlation_id`
-- Pre-built dashboard at `grafana/dashboards/pdftranslator-logs.json`
-- Promtail ships Docker container logs automatically
+### Unified Logging (ELK Stack)
+- **Filebeat** autodiscovers Docker containers with `com.docker.compose.project=pdftranslator` label
+- **Logstash** parses JSON logs, extracts `correlation_id`, `level`, `logger`, `service`
+- **Nginx** access/error logs parsed via Grok patterns
+- **Elasticsearch** stores logs in data stream `pdftranslator-logs*` with ILM (90-day retention)
+- **Kibana** for searching, dashboards, and alerting
+
+### Query Examples (KQL in Kibana Discover)
+```kql
+# Backend errors
+level:ERROR and service:backend
+
+# Traced requests
+correlation_id:*
+
+# Translation failures
+service:backend and message:"translation failed"
+
+# Slow translation chapters
+service:backend and duration_ms:>5000
+
+# Nginx 5xx errors
+service:nginx and response:[500 TO 599]
+```
 
 ### Database Initialization
 Schema auto-applied on first DB start via `init/001_schema.sql` (includes pgvector, all tables, indexes, triggers).
@@ -98,9 +131,16 @@ docker compose --profile prod up -d
 # Start dev stack (hot reload)
 docker compose --profile dev up -d
 
+# Start only ELK stack
+docker compose --profile logging up -d
+
+# Initialize ELK (index templates, ILM, data stream)
+./elk-init.sh
+
 # View logs
 docker compose logs -f backend
-docker compose logs -f loki
+docker compose logs -f logstash
+docker compose logs -f filebeat
 
 # Stop and remove volumes (clean slate)
 docker compose down -v
@@ -110,6 +150,15 @@ docker compose build --no-cache backend
 
 # Access DB
 docker exec -it pdftranslator_db psql -U translator_user -d book_translator
+
+# Check Elasticsearch health
+curl http://localhost:9200/_cluster/health?pretty
+
+# Check data stream
+curl http://localhost:9200/_cat/data_streams?v
+
+# View ILM policy
+curl http://localhost:9200/_ilm/policy/pdftranslator-logs?pretty
 ```
 
 ## Environment Variables
@@ -126,8 +175,10 @@ Optional overrides:
 POSTGRES_USER=translator_user
 POSTGRES_DB=book_translator
 POSTGRES_PORT=5432
-APP_PORT=80
-NLP_USE_KEYBERT=true
+ELASTIC_HEAP_SIZE=1g
+LOGSTASH_HEAP_SIZE=512m
+KIBANA_HEAP_SIZE=512m
+LOG_LEVEL=INFO
 ```
 
 ## Notes
@@ -138,5 +189,19 @@ NLP_USE_KEYBERT=true
 - **Resources**: Memory limits/reservations configured per service
 - **Security**: Non-root user in backend container, immutable nginx assets
 
-## Deprecated
-- Root-level `docker-compose.yml` - Use `docker/docker-compose.yml`
+## Migration from Loki/Grafana
+
+If upgrading from the old Loki + Grafana stack:
+```bash
+# 1. Stop old stack
+docker compose down -v  # This removes loki_data, grafana_data volumes
+
+# 2. Remove old config files (already done in this version)
+# rm loki-config.yaml promtail-config.yaml
+# rm -rf grafana/
+
+# 3. Update .env with new variables (ELASTIC_HEAP_SIZE, etc.)
+# 4. Start new stack
+docker compose --profile prod up -d
+./elk-init.sh
+```

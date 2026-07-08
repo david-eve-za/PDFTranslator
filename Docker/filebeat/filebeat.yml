@@ -1,0 +1,234 @@
+# =============================================================================
+# PDFTranslator — Filebeat Configuration for ELK Stack
+# =============================================================================
+# Collects:
+#   - Docker container logs (autodiscover)
+#   - Backend application logs (file input)
+#   - Nginx access/error logs (file input)
+# Ships to: Logstash (port 5044)
+# =============================================================================
+
+# ============================= Filebeat Inputs =============================
+filebeat.inputs:
+  # ── Backend Application Logs (structured JSON) ──
+  - type: log
+    id: backend-logs
+    enabled: true
+    paths:
+      - /var/log/backend/*.log
+    fields:
+      service: backend
+      component: backend
+      type: application
+    fields_under_root: true
+    json.keys_under_root: true
+    json.add_error_key: true
+    json.message_key: message
+    # Processors applied per event
+    processors:
+      - decode_json_fields:
+          fields: ["message"]
+          target: ""
+          overwrite_keys: true
+          add_error_key: true
+      - script:
+          lang: javascript
+          id: normalize_backend
+          source: >
+            function process(event) {
+              // Normalize level
+              var level = event.Get("level");
+              if (level) {
+                var upper = level.toUpperCase();
+                if (upper === "FATAL" || upper === "CRITICAL") event.Put("level", "CRITICAL");
+                else if (upper === "ERR" || upper === "ERROR") event.Put("level", "ERROR");
+                else if (upper === "WARN" || upper === "WARNING") event.Put("level", "WARN");
+                else if (upper === "INFO" || upper === "INFORMATION") event.Put("level", "INFO");
+                else if (upper === "DEBUG" || upper === "TRACE") event.Put("level", "DEBUG");
+              }
+              // Ensure service
+              if (!event.Get("service")) event.Put("service", "backend");
+              // Tag traced requests
+              if (event.Get("correlation_id")) event.Put("tags", ["traced"]);
+              // Drop healthcheck noise
+              var msg = event.Get("message");
+              if (msg && msg.indexOf("/health") !== -1 && event.Get("level") === "DEBUG") {
+                return null; // drop
+              }
+              return event;
+            }
+
+  # ── Nginx Access Logs ──
+  - type: log
+    id: nginx-access
+    enabled: true
+    paths:
+      - /var/log/nginx/access.log
+    fields:
+      service: nginx
+      component: frontend
+      type: access
+    fields_under_root: true
+    ignore_older: 24h
+    close_inactive: 5m
+    # Tail only new lines
+    tail_files: true
+
+  # ── Nginx Error Logs ──
+  - type: log
+    id: nginx-error
+    enabled: true
+    paths:
+      - /var/log/nginx/error.log
+    fields:
+      service: nginx
+      component: frontend
+      type: error
+    fields_under_root: true
+    ignore_older: 24h
+    close_inactive: 5m
+
+# ============================= Docker Autodiscover =============================
+# Collects logs from ALL containers with label: com.docker.compose.project=pdftranslator
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      host: unix:///var/run/docker.sock
+      hints.enabled: false
+      templates:
+        - condition:
+            equals:
+              docker.container.labels.com.docker.compose.project: "pdftranslator"
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              processors:
+                - add_docker_metadata:
+                    host: "unix:///var/run/docker.sock"
+                    match_fields: ["container.id"]
+                    match_names: ["container.name"]
+                    match_source: true
+                    match_source_index: 4
+                    match_short_id: false
+                    cleanup_timeout: 60
+                    labels.dedot: true
+                - decode_json_fields:
+                    fields: ["log"]
+                    target: "parsed"
+                    overwrite_keys: true
+                    add_error_key: true
+                - script:
+                    lang: javascript
+                    id: extract_backend_fields
+                    source: >
+                      function process(event) {
+                        var parsed = event.Get("parsed");
+                        if (parsed) {
+                          // Extract structured fields
+                          if (parsed.correlation_id) event.Put("correlation_id", parsed.correlation_id);
+                          if (parsed.level) event.Put("level", parsed.level);
+                          if (parsed.logger) event.Put("logger", parsed.logger);
+                          if (parsed.service_name) event.Put("service", parsed.service_name);
+                          if (parsed.message) event.Put("message", parsed.message);
+                          if (parsed.timestamp) event.Put("@timestamp", parsed.timestamp);
+                          // Tag
+                          if (parsed.correlation_id) {
+                            var tags = event.Get("tags") || [];
+                            tags.push("traced");
+                            event.Put("tags", tags);
+                          }
+                        }
+                        // Ensure container metadata
+                        if (!event.Get("container_name")) {
+                          event.Put("container_name", event.Get("container.name"));
+                        }
+                        // Drop healthcheck noise
+                        var msg = event.Get("message") || event.Get("log");
+                        if (msg && msg.indexOf("/health") !== -1 && event.Get("level") === "DEBUG") {
+                          return null;
+                        }
+                        return event;
+                      }
+
+# ============================= Global Processors =============================
+processors:
+  # Add host metadata (hostname, IP, etc.)
+  - add_host_metadata:
+      netinfo.enabled: true
+      cache.ttl: 5m
+      geo.name: "host"
+  # Add Docker metadata to all events
+  - add_docker_metadata:
+      host: "unix:///var/run/docker.sock"
+      match_fields: ["container.id"]
+      match_names: ["container.name"]
+      match_source: true
+      match_source_index: 4
+  # Add Kubernetes metadata (if running in K8s)
+  - add_kubernetes_metadata: ~
+  # Add cloud metadata (AWS/GCP/Azure)
+  - add_cloud_metadata: ~
+
+# ============================= Output (Logstash) =============================
+output.logstash:
+  hosts: ["logstash:5044"]
+  # Load balancing
+  loadbalance: true
+  # Worker count
+  worker: 2
+  # Compression
+  compression_level: 3
+  # Timeout
+  timeout: 30
+  # Retry
+  backoff.init: 1s
+  backoff.max: 60s
+  max_retries: 10
+  # SSL (if enabled)
+  ssl.enabled: false
+  # Pipeline
+  pipeline: ""
+  # Index (handled by Logstash)
+  index: ""
+
+# Alternative: Direct to Elasticsearch (if not using Logstash)
+# output.elasticsearch:
+#   hosts: ["http://elasticsearch:9200"]
+#   username: "${ELASTIC_USER:elastic}"
+#   password: "${ELASTIC_PASSWORD:}"
+#   api_key: "${ELASTIC_API_KEY:}"
+#   data_stream: "true"
+#   data_stream_type: "logs"
+#   data_stream_dataset: "pdftranslator"
+
+# ============================= Logging =============================
+logging.level: info
+logging.to_files: true
+logging.to_syslog: false
+logging.metrics.enabled: true
+logging.metrics.period: 30s
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0644
+  rotateeverybytes: 10485760 # 10MB
+
+# ============================= Monitoring =============================
+monitoring.enabled: true
+monitoring.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+  # username: "${ELASTIC_USER:elastic}"
+  # password: "${ELASTIC_PASSWORD:}"
+
+# ============================= Queue (Memory) =============================
+queue.mem:
+  events: 4096
+  flush.min_events: 512
+  flush.timeout: 5s
+
+# ============================= HTTP Endpoint (for debugging) =============================
+http.enabled: true
+http.host: "0.0.0.0"
+http.port: 5066

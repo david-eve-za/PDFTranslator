@@ -3,6 +3,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 
+
 from pdftranslator.core.config.llm import LLMSettings, LLMProvider
 from pdftranslator.core.config.database import DatabaseSettings
 from pdftranslator.core.config.nlp import NLPSettings
@@ -32,6 +33,39 @@ class Settings(BaseSettings):
         extra="ignore",
         case_sensitive=False,
     )
+
+    # Application settings
+    app_name: str = "PDFTranslator"
+    app_version: str = "0.2.0"
+    log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+    cors_origins: str = Field(default="*", alias="CORS_ORIGINS")
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        """
+        Parse CORS_ORIGINS from string.
+
+        Accepts:
+        - JSON array: ["http://localhost", "http://localhost:4200"]
+        - Comma-separated string: "http://localhost,http://localhost:4200"
+        - Single string: "http://localhost"
+        - "*" for all origins
+        """
+        v = self.cors_origins.strip()
+        if not v:
+            return ["*"]
+        # Handle "*" wildcard
+        if v == "*":
+            return ["*"]
+        # Try JSON first
+        if v.startswith("["):
+            import json
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                pass
+        # Fall back to comma-separated
+        return [origin.strip() for origin in v.split(",") if origin.strip()]
 
     # Nested configurations
     llm: LLMSettings = Field(default_factory=LLMSettings)

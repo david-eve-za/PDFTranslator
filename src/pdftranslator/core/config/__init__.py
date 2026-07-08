@@ -12,6 +12,7 @@ from pdftranslator.core.config.llm import (
 from pdftranslator.core.config.database import DatabaseSettings
 from pdftranslator.core.config.nlp import NLPSettings
 from pdftranslator.core.config.paths import PathSettings
+from pdftranslator.core.config.logging import setup_logging, get_logger
 
 __all__ = [
     "Settings",
@@ -24,4 +25,6 @@ __all__ = [
     "DatabaseSettings",
     "NLPSettings",
     "PathSettings",
+    "setup_logging",
+    "get_logger",
 ]

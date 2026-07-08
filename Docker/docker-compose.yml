@@ -1,11 +1,11 @@
 # =============================================================================
-# PDFTranslator — Complete Docker Compose Stack
+# PDFTranslator — Complete Docker Compose Stack (with ELK Logging)
 # =============================================================================
 # Profiles:
-#   - prod:  Production stack (backend, frontend, db, logging, monitoring)
+#   - prod:  Production stack (backend, frontend, db, elk, admin)
 #   - dev:   Development stack with hot reload
-#   - logging: Logging stack only (loki, grafana, promtail)
-#   - monitoring: Grafana + Loki (no app services)
+#   - logging: ELK stack only (elasticsearch, logstash, filebeat, kibana)
+#   - monitoring: Grafana + ELK (legacy, kept for compatibility)
 #
 # Usage:
 #   docker compose --profile prod up -d
@@ -15,7 +15,7 @@
 
 services:
   # ─────────────────────────────────────────────────────────────────────────────
-  # PostgreSQL 16 + pgvector (Official Image)
+  # PostgreSQL 16 + pgvector (Official Image) — NO PROFILE (always runs)
   # ─────────────────────────────────────────────────────────────────────────────
   db:
     image: pgvector/pgvector:pg16
@@ -83,7 +83,7 @@ services:
       - LLM__NVIDIA__TOP_P=${LLM__NVIDIA__TOP_P:-0.95}
       - LLM__NVIDIA__MAX_OUTPUT_TOKENS=${LLM__NVIDIA__MAX_OUTPUT_TOKENS:-4096}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - CORS_ORIGINS=http://localhost,http://localhost:80,http://frontend:80
+      - CORS_ORIGINS=["http://localhost","http://localhost:80","http://frontend:80"]
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
@@ -133,7 +133,7 @@ services:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - LLM__AGENT=${LLM__AGENT:-nvidia}
       - LOG_LEVEL=DEBUG
-      - CORS_ORIGINS=http://localhost,http://localhost:4200,http://localhost:8080
+      - CORS_ORIGINS=["http://localhost","http://localhost:4200","http://localhost:8080"]
     ports:
       - "${BACKEND_DEV_PORT:-8000}:8000"
     depends_on:
@@ -154,8 +154,8 @@ services:
   # ─────────────────────────────────────────────────────────────────────────────
   frontend:
     build:
-      context: ../src/pdftranslator/frontend
-      dockerfile: ../../../Docker/Dockerfile.frontend
+      context: ..
+      dockerfile: Docker/Dockerfile.frontend
       target: runtime
     container_name: pdftranslator_frontend
     restart: unless-stopped
@@ -166,6 +166,8 @@ services:
         condition: service_healthy
     networks:
       - translator_net
+    volumes:
+      - nginx_logs:/var/log/nginx
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
       interval: 30s
@@ -205,55 +207,107 @@ services:
     profiles:
       - dev
 
-  # ─────────────────────────────────────────────────────────────────────────────
-  # Loki — Log Aggregation
-  # ─────────────────────────────────────────────────────────────────────────────
-  loki:
-    image: grafana/loki:3.1
-    container_name: pdftranslator_loki
+  # ════════════════════════════════════════════════════════════════════════════════
+  # ELK STACK — Logging & Observability
+  # ════════════════════════════════════════════════════════════════════════════════
+  # Elasticsearch — Search & Analytics Engine
+  # ════════════════════════════════════════════════════════════════════════════════
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: pdftranslator_elasticsearch
     restart: unless-stopped
-    command: -config.file=/etc/loki/loki-config.yaml
-    ports:
-      - "${LOKI_PORT:-3100}:3100"
+    environment:
+      - node.name=pdftranslator-es
+      - cluster.name=pdftranslator-cluster
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
     volumes:
-      - ./loki-config.yaml:/etc/loki/loki-config.yaml:ro
-      - loki_data:/loki
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "${ELASTIC_PORT:-9200}:9200"
     networks:
       - translator_net
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:3100/ready || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 15s
+      retries: 10
+      start_period: 30s
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 3G
         reservations:
-          memory: 256M
+          memory: 1G
     profiles:
       - prod
       - logging
       - monitoring
 
-  # ─────────────────────────────────────────────────────────────────────────────
-  # Promtail — Log Shipper
-  # ─────────────────────────────────────────────────────────────────────────────
-  promtail:
-    image: grafana/promtail:3.1
-    container_name: pdftranslator_promtail
+  # ════════════════════════════════════════════════════════════════════════════════
+  # Logstash — Log Processing Pipeline
+  # ════════════════════════════════════════════════════════════════════════════════
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.15.0
+    container_name: pdftranslator_logstash
     restart: unless-stopped
-    command: -config.file=/etc/promtail/promtail-config.yaml
+    command: logstash -f /usr/share/logstash/pipeline/logstash.conf
     volumes:
-      - ./promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/log:/var/log:ro
+      - ./logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+      - ./logstash/patterns:/usr/share/logstash/patterns:ro
       - backend_logs:/var/log/backend:ro
+      - nginx_logs:/var/log/nginx:ro
+    environment:
+      - "LS_JAVA_OPTS=-Xms512m -Xmx512m"
+      - XPACK_MONITORING_ENABLED=false
+    ports:
+      - "5044:5044"   # Beats input
+      - "9600:9600"   # Monitoring API
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
     networks:
       - translator_net
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    profiles:
+      - prod
+      - logging
+      - monitoring
+
+  # ════════════════════════════════════════════════════════════════════════════════
+  # Filebeat — Lightweight Log Shipper (Docker Autodiscover)
+  # ════════════════════════════════════════════════════════════════════════════════
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.15.0
+    container_name: pdftranslator_filebeat
+    restart: unless-stopped
+    command: ["--strict.perms=false"]
+    user: root
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - backend_logs:/var/log/backend:ro
+      - nginx_logs:/var/log/nginx:ro
     depends_on:
-      - loki
+      - logstash
+    networks:
+      - translator_net
     deploy:
       resources:
         limits:
@@ -265,41 +319,37 @@ services:
       - logging
       - monitoring
 
-  # ─────────────────────────────────────────────────────────────────────────────
-  # Grafana — Log Visualization
-  # ─────────────────────────────────────────────────────────────────────────────
-  grafana:
-    image: grafana/grafana:11.1
-    container_name: pdftranslator_grafana
+  # ════════════════════════════════════════════════════════════════════════════════
+  # Kibana — Visualization & Dashboards
+  # ════════════════════════════════════════════════════════════════════════════════
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.15.0
+    container_name: pdftranslator_kibana
     restart: unless-stopped
     environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_INSTALL_PLUGINS=
-      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - XPACK_SECURITY_ENABLED=false
+      - XPACK_MONITORING_ENABLED=false
+      - SERVER_HOST=0.0.0.0
     ports:
-      - "${GRAFANA_PORT:-3000}:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - "${KIBANA_PORT:-5601}:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
     networks:
       - translator_net
-    depends_on:
-      - loki
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/health || exit 1"]
-      interval: 15s
-      timeout: 10s
+      test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
+      interval: 10s
+      timeout: 5s
       retries: 5
-      start_period: 20s
+      start_period: 30s
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 1G
         reservations:
-          memory: 128M
+          memory: 256M
     profiles:
       - prod
       - logging
@@ -337,13 +387,13 @@ services:
 volumes:
   postgres_data:
     driver: local
-  loki_data:
-    driver: local
-  grafana_data:
+  elasticsearch_data:
     driver: local
   cloudbeaver_workspace:
     driver: local
   backend_logs:
+    driver: local
+  nginx_logs:
     driver: local
 
 # =============================================================================
