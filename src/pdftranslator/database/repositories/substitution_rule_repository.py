@@ -1,4 +1,4 @@
-"""Substitution rule repository."""
+"""Substitution rule repository for SQLite."""
 
 from typing import Optional, List
 
@@ -11,122 +11,96 @@ class SubstitutionRuleRepository(BaseRepository[SubstitutionRule]):
     def __init__(self, pool: Optional[DatabasePool] = None):
         self._pool = pool or DatabasePool.get_instance()
 
-    def _row_to_rule(self, row: tuple) -> SubstitutionRule:
+    def _row_to_rule(self, row) -> SubstitutionRule:
         return SubstitutionRule(
-            id=row[0],
-            name=row[1],
-            pattern=row[2],
-            replacement=row[3],
-            description=row[4] if len(row) > 4 and row[4] else None,
-            is_active=row[5] if len(row) > 5 else True,
-            apply_on_extract=row[6] if len(row) > 6 else True,
-            created_at=row[7] if len(row) > 7 else None,
-            updated_at=row[8] if len(row) > 8 else None,
+            id=row["id"],
+            name=row["name"],
+            pattern=row["pattern"],
+            replacement=row["replacement"],
+            description=row["description"] if "description" in row.keys() else None,
+            is_active=bool(row["is_active"]) if "is_active" in row.keys() else True,
+            apply_on_extract=bool(row["apply_on_extract"]) if "apply_on_extract" in row.keys() else True,
+            created_at=row["created_at"] if "created_at" in row.keys() else None,
+            updated_at=row["updated_at"] if "updated_at" in row.keys() else None,
         )
 
     def get_by_id(self, id: int) -> Optional[SubstitutionRule]:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    SELECT id, name, pattern, replacement, description,
-                           is_active, apply_on_extract, created_at, updated_at
-                    FROM text_substitution_rules
-                    WHERE id = %s
-                    """,
-                    (id,),
-                )
-                row = cur.fetchone()
-                return self._row_to_rule(row) if row else None
+        with self._pool.connection() as conn:
+            cur = conn.execute("SELECT * FROM text_substitution_rules WHERE id = ?", (id,))
+            row = cur.fetchone()
+            if row is None:
+                return None
+            return self._row_to_rule(row)
 
     def get_all(self, active_only: bool = False) -> List[SubstitutionRule]:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                query = """
-                    SELECT id, name, pattern, replacement, description,
-                           is_active, apply_on_extract, created_at, updated_at
-                    FROM text_substitution_rules
-                """
-                if active_only:
-                    query += " WHERE is_active = TRUE"
-                query += " ORDER BY name"
-                cur.execute(query)
-                rows = cur.fetchall()
-                return [self._row_to_rule(row) for row in rows]
+        with self._pool.connection() as conn:
+            if active_only:
+                cur = conn.execute(
+                    "SELECT * FROM text_substitution_rules WHERE is_active = 1 ORDER BY name"
+                )
+            else:
+                cur = conn.execute(
+                    "SELECT * FROM text_substitution_rules ORDER BY name"
+                )
+            return [self._row_to_rule(row) for row in cur.fetchall()]
 
     def get_auto_apply_rules(self) -> List[SubstitutionRule]:
         """Get rules that should be applied on extraction."""
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    SELECT id, name, pattern, replacement, description,
-                           is_active, apply_on_extract, created_at, updated_at
-                    FROM text_substitution_rules
-                    WHERE is_active = TRUE AND apply_on_extract = TRUE
-                    ORDER BY name
-                    """
-                )
-                rows = cur.fetchall()
-                return [self._row_to_rule(row) for row in rows]
+        with self._pool.connection() as conn:
+            cur = conn.execute(
+                """
+                SELECT * FROM text_substitution_rules
+                WHERE is_active = 1 AND apply_on_extract = 1
+                ORDER BY name
+                """
+            )
+            return [self._row_to_rule(row) for row in cur.fetchall()]
 
     def create(self, entity: SubstitutionRule) -> SubstitutionRule:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO text_substitution_rules
-                        (name, pattern, replacement, description, is_active, apply_on_extract)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                    RETURNING id, name, pattern, replacement, description,
-                              is_active, apply_on_extract, created_at, updated_at
-                    """,
-                    (
-                        entity.name,
-                        entity.pattern,
-                        entity.replacement,
-                        entity.description,
-                        entity.is_active,
-                        entity.apply_on_extract,
-                    ),
-                )
-                row = cur.fetchone()
-                return self._row_to_rule(row)
+        with self._pool.connection() as conn:
+            cur = conn.execute(
+                """
+                INSERT INTO text_substitution_rules (name, pattern, replacement, description, is_active, apply_on_extract)
+                VALUES (?, ?, ?, ?, ?, ?)
+                RETURNING *
+                """,
+                (
+                    entity.name,
+                    entity.pattern,
+                    entity.replacement,
+                    entity.description,
+                    entity.is_active,
+                    entity.apply_on_extract,
+                ),
+            )
+            row = cur.fetchone()
+            return self._row_to_rule(row)
 
-    def update(self, entity: SubstitutionRule) -> SubstitutionRule:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    UPDATE text_substitution_rules
-                    SET name = %s, pattern = %s, replacement = %s,
-                        description = %s, is_active = %s, apply_on_extract = %s,
-                        updated_at = NOW()
-                    WHERE id = %s
-                    RETURNING id, name, pattern, replacement, description,
-                              is_active, apply_on_extract, created_at, updated_at
-                    """,
-                    (
-                        entity.name,
-                        entity.pattern,
-                        entity.replacement,
-                        entity.description,
-                        entity.is_active,
-                        entity.apply_on_extract,
-                        entity.id,
-                    ),
-                )
-                row = cur.fetchone()
-                return self._row_to_rule(row) if row else None
+    def update(self, entity: SubstitutionRule) -> Optional[SubstitutionRule]:
+        with self._pool.connection() as conn:
+            cur = conn.execute(
+                """
+                UPDATE text_substitution_rules
+                SET name = ?, pattern = ?, replacement = ?,
+                    description = ?, is_active = ?, apply_on_extract = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                RETURNING *
+                """,
+                (
+                    entity.name,
+                    entity.pattern,
+                    entity.replacement,
+                    entity.description,
+                    entity.is_active,
+                    entity.apply_on_extract,
+                    entity.id,
+                ),
+            )
+            row = cur.fetchone()
+            return self._row_to_rule(row) if row else None
 
     def delete(self, id: int) -> bool:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("DELETE FROM text_substitution_rules WHERE id = %s", (id,))
-                return cur.rowcount > 0
+        with self._pool.connection() as conn:
+            cur = conn.execute("DELETE FROM text_substitution_rules WHERE id = ?", (id,))
+            return cur.rowcount > 0

@@ -77,13 +77,12 @@ def _settings_to_response(settings) -> dict:
             "google_api_key": "***" if settings.llm.google_api_key else "",
         },
         "database": {
-            "host": settings.database.host,
-            "port": settings.database.port,
-            "name": settings.database.name,
-            "user": settings.database.user,
-            "password": "***",
-            "min_connections": settings.database.min_connections,
-            "max_connections": settings.database.max_connections,
+            "path": str(settings.database.path),
+            "journal_mode": settings.database.journal_mode,
+            "synchronous": settings.database.synchronous,
+            "cache_size": settings.database.cache_size,
+            "temp_store": settings.database.temp_store,
+            "busy_timeout": settings.database.busy_timeout,
         },
         "document": {
             "enable_ocr": settings.document.enable_ocr,
@@ -132,16 +131,15 @@ def _flatten_db_settings(data: dict) -> dict:
     """Flatten database settings to env variable names."""
     result = {}
     mapping = {
-        "host": "DB_HOST",
-        "port": "DB_PORT",
-        "name": "DB_NAME",
-        "user": "DB_USER",
-        "password": "DB_PASSWORD",
-        "min_connections": "DB_MIN_CONNECTIONS",
-        "max_connections": "DB_MAX_CONNECTIONS",
+        "path": "SQLITE_DB_PATH",
+        "journal_mode": "DB_JOURNAL_MODE",
+        "synchronous": "DB_SYNCHRONOUS",
+        "cache_size": "DB_CACHE_SIZE",
+        "temp_store": "DB_TEMP_STORE",
+        "busy_timeout": "DB_BUSY_TIMEOUT",
     }
     for key, env_key in mapping.items():
-        if key in data and (key != "password" or data[key] != "***"):
+        if key in data:
             result[env_key] = str(data[key])
     return result
 

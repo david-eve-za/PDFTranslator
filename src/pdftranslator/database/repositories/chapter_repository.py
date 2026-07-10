@@ -1,5 +1,8 @@
-from typing import Optional, List
+"""Chapter repository for SQLite."""
+
+import logging
 import numpy as np
+from typing import Optional, List
 
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.base import BaseRepository
@@ -7,157 +10,150 @@ from pdftranslator.database.models import Chapter
 from pdftranslator.database.services.vector_store import VectorStoreService
 from langchain_core.documents import Document
 
+logger = logging.getLogger(__name__)
+
 
 class ChapterRepository(BaseRepository[Chapter]):
     def __init__(self, pool: Optional[DatabasePool] = None):
         self._pool = pool or DatabasePool.get_instance()
         self._vector_service = VectorStoreService()
 
-    def _row_to_chapter(self, row: tuple) -> Chapter:
+    def _row_to_chapter(self, row) -> Chapter:
         return Chapter(
-            id=row[0],
-            volume_id=row[1],
-            chapter_number=row[2],
-            title=row[3],
-            start_position=row[4] if len(row) > 4 and row[4] is not None else None,
-            end_position=row[5] if len(row) > 5 and row[5] is not None else None,
-            original_text=row[6] if len(row) > 6 else row[4],
-            translated_text=row[7] if len(row) > 7 else row[5],
+            id=row["id"],
+            volume_id=row["volume_id"],
+            chapter_number=row["chapter_number"],
+            title=row["title"],
+            start_position=row["start_position"] if "start_position" in row.keys() and row["start_position"] is not None else None,
+            end_position=row["end_position"] if "end_position" in row.keys() and row["end_position"] is not None else None,
+            original_text=row["original_text"] if "original_text" in row.keys() else None,
+            translated_text=row["translated_text"] if "translated_text" in row.keys() else None,
         )
 
     def get_by_id(self, id: int) -> Optional[Chapter]:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    SELECT id, volume_id, chapter_number, title, start_position, 
-                           end_position, original_text, translated_text
-                    FROM chapters
-                    WHERE id = %s
-                    """,
-                    (id,),
-                )
-                row = cur.fetchone()
-                if row is None:
-                    return None
-                return self._row_to_chapter(row)
+        with self._pool.connection() as conn:
+            cur = conn.execute(
+                """
+                SELECT id, volume_id, chapter_number, title, start_position,
+                       end_position, original_text, translated_text
+                FROM chapters
+                WHERE id = ?
+                """,
+                (id,),
+            )
+            row = cur.fetchone()
+            if row is None:
+                return None
+            return self._row_to_chapter(row)
 
     def get_all(self) -> List[Chapter]:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    SELECT id, volume_id, chapter_number, title, start_position, 
-                           end_position, original_text, translated_text
-                    FROM chapters
-                    ORDER BY volume_id, chapter_number NULLS FIRST
-                    """
-                )
-                rows = cur.fetchall()
-                return [self._row_to_chapter(row) for row in rows]
+        with self._pool.connection() as conn:
+            cur = conn.execute(
+                """
+                SELECT id, volume_id, chapter_number, title, start_position,
+                       end_position, original_text, translated_text
+                FROM chapters
+                ORDER BY volume_id, chapter_number NULLS FIRST
+                """
+            )
+            rows = cur.fetchall()
+            return [self._row_to_chapter(row) for row in rows]
 
     def create(self, entity: Chapter) -> Chapter:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO chapters (volume_id, chapter_number, title, 
-                                         start_position, end_position, 
-                                         original_text, translated_text)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    RETURNING id, volume_id, chapter_number, title, start_position, 
-                              end_position, original_text, translated_text
-                    """,
-                    (
-                        entity.volume_id,
-                        entity.chapter_number,
-                        entity.title,
-                        entity.start_position,
-                        entity.end_position,
-                        entity.original_text,
-                        entity.translated_text,
-                    ),
-                )
-                row = cur.fetchone()
-                return self._row_to_chapter(row)
+        with self._pool.connection() as conn:
+            cur = conn.execute(
+                """
+                INSERT INTO chapters (volume_id, chapter_number, title,
+                                     start_position, end_position,
+                                     original_text, translated_text)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                RETURNING id, volume_id, chapter_number, title, start_position,
+                          end_position, original_text, translated_text
+                """,
+                (
+                    entity.volume_id,
+                    entity.chapter_number,
+                    entity.title,
+                    entity.start_position,
+                    entity.end_position,
+                    entity.original_text,
+                    entity.translated_text,
+                ),
+            )
+            row = cur.fetchone()
+            return self._row_to_chapter(row)
 
-    def update(self, entity: Chapter) -> Chapter:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    UPDATE chapters
-                    SET volume_id = %s, chapter_number = %s, title = %s,
-                        start_position = %s, end_position = %s,
-                        original_text = %s, translated_text = %s
-                    WHERE id = %s
-                    RETURNING id, volume_id, chapter_number, title, start_position, 
-                              end_position, original_text, translated_text
-                    """,
-                    (
-                        entity.volume_id,
-                        entity.chapter_number,
-                        entity.title,
-                        entity.start_position,
-                        entity.end_position,
-                        entity.original_text,
-                        entity.translated_text,
-                        entity.id,
-                    ),
-                )
-                row = cur.fetchone()
-                if row is None:
-                    return None
-                return self._row_to_chapter(row)
+    def update(self, entity: Chapter) -> Optional[Chapter]:
+        with self._pool.connection() as conn:
+            cur = conn.execute(
+                """
+                UPDATE chapters
+                SET volume_id = ?, chapter_number = ?, title = ?,
+                    start_position = ?, end_position = ?,
+                    original_text = ?, translated_text = ?
+                WHERE id = ?
+                RETURNING id, volume_id, chapter_number, title, start_position,
+                          end_position, original_text, translated_text
+                """,
+                (
+                    entity.volume_id,
+                    entity.chapter_number,
+                    entity.title,
+                    entity.start_position,
+                    entity.end_position,
+                    entity.original_text,
+                    entity.translated_text,
+                    entity.id,
+                ),
+            )
+            row = cur.fetchone()
+            if row is None:
+                return None
+            return self._row_to_chapter(row)
 
     def delete(self, id: int) -> bool:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("DELETE FROM chapters WHERE id = %s", (id,))
-                return cur.rowcount > 0
+        with self._pool.connection() as conn:
+            cur = conn.execute("DELETE FROM chapters WHERE id = ?", (id,))
+            return cur.rowcount > 0
 
     def get_by_volume(self, volume_id: int) -> List[Chapter]:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    SELECT id, volume_id, chapter_number, title, start_position, 
-                           end_position, original_text, translated_text
-                    FROM chapters
-                    WHERE volume_id = %s
-                    ORDER BY chapter_number NULLS FIRST
-                    """,
-                    (volume_id,),
-                )
-                rows = cur.fetchall()
-                return [self._row_to_chapter(row) for row in rows]
+        with self._pool.connection() as conn:
+            cur = conn.execute(
+                """
+                SELECT id, volume_id, chapter_number, title, start_position,
+                       end_position, original_text, translated_text
+                FROM chapters
+                WHERE volume_id = ?
+                ORDER BY chapter_number NULLS FIRST
+                """,
+                (volume_id,),
+            )
+            rows = cur.fetchall()
+            return [self._row_to_chapter(row) for row in rows]
 
     def search_content(
         self, volume_id: int, query: str, limit: int = 10
     ) -> List[Chapter]:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    SELECT id, volume_id, chapter_number, title, start_position, 
-                           end_position, original_text, translated_text
-                    FROM chapters
-                    WHERE volume_id = %s
-                    AND (original_text % %s OR title % %s)
-                    ORDER BY GREATEST(similarity(original_text, %s), similarity(title, %s)) DESC
-                    LIMIT %s
-                    """,
-                    (volume_id, query, query, query, query, limit),
-                )
-                rows = cur.fetchall()
-                return [self._row_to_chapter(row) for row in rows]
+        """
+        Search chapters by content using Python-side fuzzy matching.
+        Since SQLite doesn't have pg_trgm, we fetch all and filter in Python.
+        """
+        chapters = self.get_by_volume(volume_id)
+        if not chapters:
+            return []
+
+        # Use rapidfuzz for fuzzy matching
+        from rapidfuzz import fuzz, process
+
+        results = []
+        for chapter in chapters:
+            if chapter.original_text:
+                score = fuzz.partial_ratio(query.lower(), chapter.original_text.lower())
+                if score > 50:  # threshold
+                    results.append((chapter, score))
+
+        results.sort(key=lambda x: x[1], reverse=True)
+        return [c for c, _ in results[:limit]]
 
     def find_similar(
         self,
@@ -166,35 +162,32 @@ class ChapterRepository(BaseRepository[Chapter]):
         limit: int = 10,
         threshold: float = 0.8,
     ) -> List[Chapter]:
-        """Find chapters similar to the given embedding using vector similarity."""
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                if volume_id:
-                    cur.execute(
-                        """
-                        SELECT id, volume_id, chapter_number, title, start_position, 
-                               end_position, original_text, translated_text
-                        FROM chapters
-                        WHERE volume_id = %s
-                        ORDER BY embedding <=> %s
-                        LIMIT %s
-                        """,
-                        (volume_id, embedding.tolist(), limit),
-                    )
-                else:
-                    cur.execute(
-                        """
-                        SELECT id, volume_id, chapter_number, title, start_position, 
-                               end_position, original_text, translated_text
-                        FROM chapters
-                        ORDER BY embedding <=> %s
-                        LIMIT %s
-                        """,
-                        (embedding.tolist(), limit),
-                    )
-                rows = cur.fetchall()
-                return [self._row_to_chapter(row) for row in rows]
+        """
+        Find chapters similar to the given embedding using Python-side cosine similarity.
+        """
+        chapters = self.get_by_volume(volume_id) if volume_id else self.get_all()
+        if not chapters:
+            return []
+
+        # Filter chapters with embeddings
+        chapters_with_emb = [c for c in chapters if c.embedding is not None]
+        if not chapters_with_emb:
+            return []
+
+        # Compute cosine similarity in Python
+        query_vec = np.array(embedding)
+        doc_vecs = np.array([c.embedding for c in chapters_with_emb])
+
+        query_norm = query_vec / np.linalg.norm(query_vec)
+        doc_norms = doc_vecs / np.linalg.norm(doc_vecs, axis=1, keepdims=True)
+        similarities = np.dot(doc_norms, query_norm)
+
+        # Filter by threshold and sort
+        results = [(chapters_with_emb[i], similarities[i]) for i in range(len(similarities))
+                   if similarities[i] >= threshold]
+        results.sort(key=lambda x: x[1], reverse=True)
+
+        return [c for c, _ in results[:limit]]
 
     def search_with_rerank(
         self, query: str, volume_id: int, top_n: int = 5

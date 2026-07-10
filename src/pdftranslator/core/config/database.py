@@ -1,19 +1,23 @@
-"""Database configuration models."""
+"""Database configuration models for SQLite."""
 
+from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
 class DatabaseSettings(BaseSettings):
-    """Database connection settings."""
+    """SQLite database connection settings."""
 
-    host: str = Field(default="localhost", alias="DB_HOST", validation_alias="POSTGRES_HOST")
-    port: int = Field(default=5432, gt=0, alias="DB_PORT", validation_alias="POSTGRES_PORT")
-    name: str = Field(default="book_translator", alias="DB_NAME", validation_alias="POSTGRES_DB")
-    user: str = Field(default="translator_user", alias="DB_USER", validation_alias="POSTGRES_USER")
-    password: str = Field(default="postgres", alias="DB_PASSWORD", validation_alias="POSTGRES_PASSWORD")
-    min_connections: int = Field(default=1, ge=1, alias="DB_MIN_CONNECTIONS")
-    max_connections: int = Field(default=10, ge=1, alias="DB_MAX_CONNECTIONS")
+    path: Path = Field(
+        default=Path("data/pdftranslator.db"),
+        alias="DB_PATH",
+        validation_alias="SQLITE_PATH",
+    )
+    journal_mode: str = Field(default="WAL", alias="DB_JOURNAL_MODE")
+    synchronous: str = Field(default="NORMAL", alias="DB_SYNCHRONOUS")
+    cache_size: int = Field(default=-32768, alias="DB_CACHE_SIZE")
+    temp_store: str = Field(default="MEMORY", alias="DB_TEMP_STORE")
+    busy_timeout: int = Field(default=5000, alias="DB_BUSY_TIMEOUT")
 
     model_config = {
         "env_file": ".env",
@@ -24,14 +28,14 @@ class DatabaseSettings(BaseSettings):
 
     @property
     def connection_string(self) -> str:
-        """Build PostgreSQL connection string."""
-        return f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.name}"
+        """Build SQLite connection string."""
+        return f"sqlite:///{self.path}"
 
     @property
     def async_connection_string(self) -> str:
-        """Build async PostgreSQL connection string."""
-        return f"postgresql+asyncpg://{self.user}:{self.password}@{self.host}:{self.port}/{self.name}"
+        """Build async SQLite connection string."""
+        return f"sqlite+aiosqlite:///{self.path}"
 
     def __repr__(self) -> str:
-        """Safe representation that masks password."""
-        return f"DatabaseSettings(host='{self.host}', port={self.port}, name='{self.name}', user='{self.user}', password='***')"
+        """Safe representation."""
+        return f"DatabaseSettings(path='{self.path}')"

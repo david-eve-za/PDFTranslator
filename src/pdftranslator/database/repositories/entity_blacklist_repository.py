@@ -1,4 +1,6 @@
-from typing import Optional, Set
+"""Entity Blacklist repository for SQLite."""
+
+from typing import Optional, List
 
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.base import BaseRepository
@@ -9,100 +11,97 @@ class EntityBlacklistRepository(BaseRepository[EntityBlacklist]):
     def __init__(self, pool: Optional[DatabasePool] = None):
         self._pool = pool or DatabasePool.get_instance()
 
-    def _row_to_entity_blacklist(self, row: tuple) -> EntityBlacklist:
+    def _row_to_blacklist(self, row) -> EntityBlacklist:
         return EntityBlacklist(
-            id=row[0],
-            term=row[1],
-            reason=row[2] if len(row) > 2 else None,
+            id=row["id"],
+            term=row["term"],
+            reason=row["reason"],
         )
 
     def get_by_id(self, id: int) -> Optional[EntityBlacklist]:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT id, term, reason FROM entity_blacklist WHERE id = %s",
-                    (id,),
-                )
-                row = cur.fetchone()
-                return self._row_to_entity_blacklist(row) if row else None
+        with self._pool.connection() as conn:
+            cur = conn.execute(
+                "SELECT id, term, reason FROM entity_blacklist WHERE id = ?",
+                (id,),
+            )
+            row = cur.fetchone()
+            if row is None:
+                return None
+            return self._row_to_blacklist(row)
 
-    def get_all(self) -> list[EntityBlacklist]:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT id, term, reason FROM entity_blacklist ORDER BY term"
-                )
-                rows = cur.fetchall()
-                return [self._row_to_entity_blacklist(row) for row in rows]
+    def get_all(self) -> List[EntityBlacklist]:
+        with self._pool.connection() as conn:
+            cur = conn.execute(
+                "SELECT id, term, reason FROM entity_blacklist ORDER BY term"
+            )
+            return [self._row_to_blacklist(row) for row in cur.fetchall()]
 
-    def get_all_terms(self) -> Set[str]:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT term FROM entity_blacklist")
-                return {row[0].lower() for row in cur.fetchall()}
+    def get_all_terms(self) -> List[str]:
+        """Get all blacklisted terms as a list of strings."""
+        with self._pool.connection() as conn:
+            cur = conn.execute("SELECT term FROM entity_blacklist")
+            return [row["term"] for row in cur.fetchall()]
 
     def create(self, entity: EntityBlacklist) -> EntityBlacklist:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO entity_blacklist (term, reason)
-                    VALUES (%s, %s)
-                    RETURNING id, term, reason
-                    """,
-                    (entity.term.lower(), entity.reason),
-                )
-                row = cur.fetchone()
-                return self._row_to_entity_blacklist(row)
+        with self._pool.connection() as conn:
+            cur = conn.execute(
+                "INSERT INTO entity_blacklist (term, reason) VALUES (?, ?) RETURNING id, term, reason",
+                (entity.term.lower(), entity.reason),
+            )
+            row = cur.fetchone()
+            return self._row_to_blacklist(row)
 
     def add(self, term: str, reason: Optional[str] = None) -> EntityBlacklist:
         return self.create(EntityBlacklist(id=None, term=term, reason=reason))
 
     def delete(self, id: int) -> bool:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("DELETE FROM entity_blacklist WHERE id = %s", (id,))
-                return cur.rowcount > 0
+        with self._pool.connection() as conn:
+            cur = conn.execute("DELETE FROM entity_blacklist WHERE id = ?", (id,))
+            return cur.rowcount > 0
 
     def remove(self, term: str) -> bool:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "DELETE FROM entity_blacklist WHERE LOWER(term) = LOWER(%s)",
-                    (term,),
-                )
-                return cur.rowcount > 0
+        with self._pool.connection() as conn:
+            cur = conn.execute(
+                "DELETE FROM entity_blacklist WHERE LOWER(term) = LOWER(?)",
+                (term,),
+            )
+            return cur.rowcount > 0
 
     def exists(self, term: str) -> bool:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT 1 FROM entity_blacklist WHERE LOWER(term) = LOWER(%s)",
-                    (term,),
-                )
-                return cur.fetchone() is not None
+        with self._pool.connection() as conn:
+            cur = conn.execute(
+                "SELECT 1 FROM entity_blacklist WHERE LOWER(term) = LOWER(?)",
+                (term,),
+            )
+            return cur.fetchone() is not None
 
-    def update(self, entity: EntityBlacklist) -> EntityBlacklist:
-        pool = self._pool.get_sync_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    UPDATE entity_blacklist
-                    SET term = %s, reason = %s
-                    WHERE id = %s
-                    RETURNING id, term, reason
-                    """,
-                    (entity.term.lower(), entity.reason, entity.id),
-                )
-                row = cur.fetchone()
-                if row is None:
-                    return None
-                return self._row_to_entity_blacklist(row)
+    def update(self, entity: EntityBlacklist) -> Optional[EntityBlacklist]:
+        with self._pool.connection() as conn:
+            cur = conn.execute(
+                """
+                UPDATE entity_blacklist
+                SET term = ?, reason = ?
+                WHERE id = ?
+                RETURNING id, term, reason
+                """,
+                (entity.term.lower(), entity.reason, entity.id),
+            )
+            row = cur.fetchone()
+            if row is None:
+                return None
+            return self._row_to_blacklist(row)
+
+    def find_by_term(self, term: str) -> Optional[EntityBlacklist]:
+        with self._pool.connection() as conn:
+            cur = conn.execute(
+                "SELECT id, term, reason FROM entity_blacklist WHERE term = ?",
+                (term,),
+            )
+            row = cur.fetchone()
+            if row is None:
+                return None
+            return self._row_to_blacklist(row)
+
+    def is_blacklisted(self, term: str) -> bool:
+        """Check if a term is in the blacklist."""
+        return self.find_by_term(term) is not None

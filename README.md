@@ -58,8 +58,7 @@ PDFTranslator is a comprehensive document processing tool that combines:
 **Backend:**
 - ![Python 3.11](https://img.shields.io/badge/Python-3.11-blue?logo=python&logoColor=white)
 - ![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-green?logo=fastapi&logoColor=white)
-- ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-blue?logo=postgresql&logoColor=white)
-- ![pgvector](https://img.shields.io/badge/pgvector-0.2+-orange)
+- ![SQLite](https://img.shields.io/badge/SQLite-3.x-lightblue?logo=sqlite&logoColor=white)
 - ![Pydantic](https://img.shields.io/badge/Pydantic-2.0+-red)
 
 **Frontend:**
@@ -80,7 +79,6 @@ PDFTranslator is a comprehensive document processing tool that combines:
 ### Prerequisites
 
 - Python 3.11 or higher
-- PostgreSQL 14+ with pgvector extension
 - Node.js 18+ (for web UI)
 - API keys for LLM backends (NVIDIA, Google)
 
@@ -135,27 +133,15 @@ Create a `.env` file in the project root:
 NVIDIA_API_KEY=nvapi-xxx
 GOOGLE_API_KEY=xxx
 
-# Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=pdftranslator
-DB_USER=postgres
-DB_PASSWORD=yourpassword
+# Database Configuration (SQLite - no setup required)
+DATABASE_PATH=./data/translator.db
 
 # Frontend Configuration (for development)
 VITE_USE_MOCK_DATA=false
 VITE_API_BASE_URL=http://localhost:8000/api
 ```
 
-#### Database Setup
-
-```bash
-# Create PostgreSQL database
-createdb pdftranslator
-
-# Enable pgvector extension
-psql -d pdftranslator -c "CREATE EXTENSION IF NOT EXISTS vector;"
-```
+The SQLite database will be created automatically on first run. No manual database setup required.
 
 ---
 
@@ -411,7 +397,8 @@ Audio Generation → Video (optional) → Output Files
 - Ollama: Local model support
 
 #### 3. Glossary System (`database/`)
-- PostgreSQL with pgvector for semantic search
+- SQLite with WAL mode for local development
+- Python-level vector similarity via NVIDIA embeddings
 - Automatic term extraction and suggestion
 - Context-aware translation consistency
 
@@ -531,7 +518,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 - **[Angular](https://angular.dev/)** - Web application framework
 - **[Angular Material](https://material.angular.io/)** - UI component library
 - **[ng2-charts](https://valor-software.com/ng2-charts/)** - Chart.js wrapper for Angular
-- **[pgvector](https://github.com/pgvector/pgvector)** - Vector similarity search
+- **[SQLite](https://www.sqlite.org/)** - Lightweight embedded database
 
 ### AI Backends
 
