@@ -1,6 +1,7 @@
 import logging
 import re
 
+from pdftranslator.core.config.llm import BCP47Language
 from pdftranslator.core.config.settings import Settings
 from pdftranslator.infrastructure.llm.gemini import GeminiLLM
 from pdftranslator.infrastructure.llm.nvidia import NvidiaLLM
@@ -80,7 +81,27 @@ class Translator:
         return translated_chunks
 
     def translate_text(self, full_text: str, source_lang: str, target_lang: str) -> str:
-        original_chunks = self.llm_client.split_into_limit(full_text)
+        # Map source language to BCP47Language for NLTK splitting
+        split_lang_map = {
+            "en": BCP47Language.ENGLISH,
+            "es": BCP47Language.SPANISH,
+            "zh": BCP47Language.CHINESE,
+            "ja": BCP47Language.JAPANESE,
+            "ko": BCP47Language.KOREAN,
+            "fr": BCP47Language.FRENCH,
+            "de": BCP47Language.GERMAN,
+            "it": BCP47Language.ITALIAN,
+            "pt": BCP47Language.PORTUGUESE,
+            "ru": BCP47Language.RUSSIAN,
+            "ar": BCP47Language.ARABIC,
+            "hi": BCP47Language.HINDI,
+        }
+        split_lang = split_lang_map.get(source_lang.lower(), BCP47Language.ENGLISH)
+
+        # Split text into chunks using adaptive chunking with language pair
+        original_chunks = self.llm_client.split_into_limit(
+            full_text, split_lang, source_lang=source_lang, target_lang=target_lang
+        )
 
         logger.info(
             f" - Original text split into {len(original_chunks)} chunks for translation."

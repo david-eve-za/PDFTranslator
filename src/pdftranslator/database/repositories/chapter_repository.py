@@ -3,6 +3,7 @@
 import logging
 import numpy as np
 from typing import Optional, List
+from datetime import datetime
 
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.base import BaseRepository
@@ -18,6 +19,25 @@ class ChapterRepository(BaseRepository[Chapter]):
         self._pool = pool or DatabasePool.get_instance()
         self._vector_service = VectorStoreService()
 
+    def _parse_datetime(self, value) -> Optional[datetime]:
+        """Parse datetime from SQLite string format."""
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value
+        try:
+            # SQLite uses "YYYY-MM-DD HH:MM:SS" format (space), not ISO "T" separator
+            # Also handle potential "Z" suffix
+            value_str = str(value).strip()
+            # Replace space with T for ISO format parsing
+            if " " in value_str and "T" not in value_str:
+                value_str = value_str.replace(" ", "T")
+            if value_str.endswith("Z"):
+                value_str = value_str[:-1] + "+00:00"
+            return datetime.fromisoformat(value_str)
+        except (ValueError, AttributeError):
+            return None
+
     def _row_to_chapter(self, row) -> Chapter:
         return Chapter(
             id=row["id"],
@@ -28,6 +48,7 @@ class ChapterRepository(BaseRepository[Chapter]):
             end_position=row["end_position"] if "end_position" in row.keys() and row["end_position"] is not None else None,
             original_text=row["original_text"] if "original_text" in row.keys() else None,
             translated_text=row["translated_text"] if "translated_text" in row.keys() else None,
+            created_at=self._parse_datetime(row["created_at"]) if "created_at" in row.keys() else None,
         )
 
     def get_by_id(self, id: int) -> Optional[Chapter]:

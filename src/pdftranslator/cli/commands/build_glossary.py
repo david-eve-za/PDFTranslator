@@ -200,6 +200,8 @@ def _process_all_book(
                 target_lang=target_lang,
                 suggest_translations=not dry_run,
                 resume=resume,
+                progress=progress,
+                task_ids=None,  # build_from_text will create its own subtasks
             )
 
             total_extracted += result.extracted
@@ -240,9 +242,23 @@ def _process_volume_consolidated(
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
         console=console,
     ) as progress:
-        task = progress.add_task("[cyan]Extracting entities...", total=None)
+        task_ids = {}
+        task_ids["validate"] = progress.add_task(
+            "[blue]Validating entities...", total=None
+        )
+        task_ids["embed"] = progress.add_task(
+            "[magenta]Generating embeddings...", total=1, visible=False
+        )
+        task_ids["translate"] = progress.add_task(
+            "[cyan]Translating entities...", total=1, visible=False
+        )
+        task_ids["save"] = progress.add_task(
+            "[green]Saving to database...", total=1, visible=False
+        )
 
         result = manager.build_from_text(
             text=consolidated_text,
@@ -252,9 +268,9 @@ def _process_volume_consolidated(
             target_lang=target_lang,
             suggest_translations=not dry_run,
             resume=resume,
+            progress=progress,
+            task_ids=task_ids,
         )
-
-        progress.update(task, description="[green]Extraction complete")
 
     return result
 
@@ -471,15 +487,38 @@ def build_glossary(
             console.print("[red]Work has no ID.[/red]")
             raise typer.Exit(1)
 
-        result = manager.build_from_text(
-            text=selected_chapter.original_text,
-            work_id=work_id,
-            volume_id=selected_volume.id,
-            source_lang=source_lang,
-            target_lang=target_lang,
-            suggest_translations=not dry_run,
-            resume=resume,
-        )
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            console=console,
+        ) as progress:
+            task_ids = {}
+            task_ids["validate"] = progress.add_task(
+                "[blue]Validating entities...", total=None
+            )
+            task_ids["embed"] = progress.add_task(
+                "[magenta]Generating embeddings...", total=1, visible=False
+            )
+            task_ids["translate"] = progress.add_task(
+                "[cyan]Translating entities...", total=1, visible=False
+            )
+            task_ids["save"] = progress.add_task(
+                "[green]Saving to database...", total=1, visible=False
+            )
+
+            result = manager.build_from_text(
+                text=selected_chapter.original_text,
+                work_id=work_id,
+                volume_id=selected_volume.id,
+                source_lang=source_lang,
+                target_lang=target_lang,
+                suggest_translations=not dry_run,
+                resume=resume,
+                progress=progress,
+                task_ids=task_ids,
+            )
 
         total_extracted = result.extracted
         total_new = result.new

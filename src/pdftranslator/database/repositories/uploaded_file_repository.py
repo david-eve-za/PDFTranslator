@@ -1,5 +1,8 @@
 """Repository for uploaded files."""
 
+from datetime import datetime
+from typing import Optional
+
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.models import UploadedFile
 
@@ -7,6 +10,25 @@ from pdftranslator.database.models import UploadedFile
 class UploadedFileRepository:
     def __init__(self, pool: DatabasePool | None = None):
         self._pool = pool or DatabasePool.get_instance()
+
+    def _parse_datetime(self, value) -> Optional[datetime]:
+        """Parse datetime from SQLite string format."""
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value
+        try:
+            # SQLite uses "YYYY-MM-DD HH:MM:SS" format (space), not ISO "T" separator
+            # Also handle potential "Z" suffix
+            value_str = str(value).strip()
+            # Replace space with T for ISO format parsing
+            if " " in value_str and "T" not in value_str:
+                value_str = value_str.replace(" ", "T")
+            if value_str.endswith("Z"):
+                value_str = value_str[:-1] + "+00:00"
+            return datetime.fromisoformat(value_str)
+        except (ValueError, AttributeError):
+            return None
 
     def _row_to_uploaded_file(self, row) -> UploadedFile:
         return UploadedFile(
@@ -21,8 +43,8 @@ class UploadedFileRepository:
             volume_id=row["volume_id"],
             status=row["status"],
             error_message=row["error_message"],
-            created_at=row["created_at"],
-            updated_at=row["updated_at"],
+            created_at=self._parse_datetime(row["created_at"]),
+            updated_at=self._parse_datetime(row["updated_at"]),
         )
 
     def get_by_id(self, id: int) -> UploadedFile | None:

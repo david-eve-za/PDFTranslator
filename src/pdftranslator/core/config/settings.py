@@ -8,7 +8,6 @@ from pdftranslator.core.config.llm import LLMSettings, LLMProvider
 from pdftranslator.core.config.database import DatabaseSettings
 from pdftranslator.core.config.nlp import NLPSettings
 from pdftranslator.core.config.paths import PathSettings
-from pdftranslator.core.config.document import DoclingConfig
 from pdftranslator.core.config.processing import ProcessingSettings
 
 
@@ -72,7 +71,6 @@ class Settings(BaseSettings):
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
     nlp: NLPSettings = Field(default_factory=NLPSettings)
     paths: PathSettings = Field(default_factory=PathSettings)
-    document: DoclingConfig = Field(default_factory=DoclingConfig)
     processing: ProcessingSettings = Field(default_factory=ProcessingSettings)
 
     @property

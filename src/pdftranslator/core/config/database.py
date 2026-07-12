@@ -1,7 +1,7 @@
 """Database configuration models for SQLite."""
 
 from pathlib import Path
-from pydantic import Field
+from pydantic import Field, AliasChoices
 from pydantic_settings import BaseSettings
 
 
@@ -9,9 +9,8 @@ class DatabaseSettings(BaseSettings):
     """SQLite database connection settings."""
 
     path: Path = Field(
-        default=Path("data/pdftranslator.db"),
-        alias="DB_PATH",
-        validation_alias="SQLITE_PATH",
+        default=Path("data/translator.db"),
+        validation_alias=AliasChoices("DB_PATH", "SQLITE_PATH", "DATABASE_PATH"),
     )
     journal_mode: str = Field(default="WAL", alias="DB_JOURNAL_MODE")
     synchronous: str = Field(default="NORMAL", alias="DB_SYNCHRONOUS")

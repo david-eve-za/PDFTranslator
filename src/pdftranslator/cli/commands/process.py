@@ -24,7 +24,6 @@ from pdftranslator.cli.app import (
     DEFAULT_FILE_TYPE_TO_PROCESS,
 )
 from pdftranslator.core.config.settings import Settings
-from pdftranslator.tools.VideoGenerator import VideoGenerator
 from pdftranslator.tools.AudioGenerator import AudioGenerator
 from pdftranslator.tools.FileFinder import FileFinder, IsFileFilter, ExcludeTranslatedFilter
 from pdftranslator.tools.TextExtractor import TextExtractor
@@ -68,34 +67,6 @@ def generate_audio(
     return success
 
 
-def generate_video(
-    video_generator: VideoGenerator,
-    images_list: List[Path],
-    audio_path: Path,
-    file_path: Path,
-) -> bool:
-    if not images_list:
-        logging.info(" - No images found, skipping video generation.")
-        return True
-
-    logging.info(f" - Found {len(images_list)} images. Attempting to generate video.")
-    output_video_path = audio_path.with_suffix(".mp4")
-    try:
-        video_generator.create_video_from_images_and_audio(
-            image_paths=images_list,
-            audio_path=audio_path,
-            output_video_path=output_video_path,
-            fps=1,
-        )
-        logging.info(f" - Video created successfully at: {output_video_path}")
-        return True
-    except Exception as e:
-        logging.error(
-            f" - Error during video generation for {os.path.basename(file_path)}: {e}"
-        )
-        return False
-
-
 def prepare_output_paths(
     file_path: Path, target_lang: str, output_format: str
 ) -> Optional[Tuple[Path, Path]]:
@@ -123,9 +94,8 @@ def process_single_file(
     source_lang: str,
     target_lang: str,
     output_format: str,
-    gen_video: bool,
 ) -> bool:
-    translation_agent, audio_generator, video_generator = services
+    translation_agent, audio_generator = services
 
     logging.info(f"\n--- Processing file: {os.path.basename(file_path)} ---")
 
@@ -194,16 +164,6 @@ def process_single_file(
         )
         return False
 
-    if gen_video:
-        video_success = generate_video(
-            video_generator, [], output_audio_filename, file_path
-        )
-        if not video_success:
-            logging.error(
-                f"--- Processing failed (video) for: {os.path.basename(file_path)} ---"
-            )
-            return False
-
     logging.info(f"--- Processing completed for: {os.path.basename(file_path)} ---")
     return True
 
@@ -212,11 +172,9 @@ def initialize_services() -> Optional[Tuple]:
     try:
         translation_agent = Translator()
         audio_generator = AudioGenerator()
-        video_generator = VideoGenerator()
         return (
             translation_agent,
             audio_generator,
-            video_generator,
         )
     except Exception as e:
         logging.error(f"Error initializing services: {e}")
@@ -229,7 +187,6 @@ def process_files_with_progress(
     source_lang: str,
     target_lang: str,
     output_format: str,
-    gen_video: bool,
 ) -> Tuple[int, int]:
     file_finder = FileFinder(input_path)
 
@@ -263,7 +220,7 @@ def process_files_with_progress(
         for file_path in files_to_process:
             progress.update(task, description=f"[cyan]Processing: {file_path.name}")
             success = process_single_file(
-                file_path, services, source_lang, target_lang, output_format, gen_video
+                file_path, services, source_lang, target_lang, output_format
             )
             if success:
                 successful_file_count += 1
@@ -297,7 +254,6 @@ def process(
     voice: str = typer.Option(
         "Paulina", "--voice", help="macOS 'say' voice for the target language"
     ),
-    gen_video: bool = typer.Option(False, "--gen-video", help="Generate a video"),
     agent: str = typer.Option(
         "nvidia",
         "--agent",
@@ -338,7 +294,6 @@ def process(
             source_lang_code,
             target_lang_code,
             output_format,
-            gen_video,
         ):
             successful_file_count = 1
         else:
@@ -351,7 +306,6 @@ def process(
             source_lang_code,
             target_lang_code,
             output_format,
-            gen_video,
         )
     else:
         console.print(f"[red]Invalid path: {input_path}[/red]")

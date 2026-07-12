@@ -124,7 +124,11 @@ class GeminiLLM(BaseLLM):
         return len(self._tokenizer.encode(text, out_type=int))
 
     def split_into_limit(
-        self, text: str, language: BCP47Language = BCP47Language.ENGLISH
+        self,
+        text: str,
+        language: BCP47Language = BCP47Language.ENGLISH,
+        source_lang: str = "en",
+        target_lang: str = "es",
     ) -> list[str]:
         """Split text into chunks for translation."""
         text_splitter = NLTKTextSplitter(

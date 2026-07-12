@@ -37,7 +37,7 @@ async def list_glossary(
 ):
     """List all glossary terms with optional filters."""
     if work_id:
-        entries = repo.get_by_work(work_id)
+        entries = repo.get_by_work_id(work_id)
     else:
         entries = repo.get_all()
 

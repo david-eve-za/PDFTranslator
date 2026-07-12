@@ -37,7 +37,7 @@
 
 PDFTranslator is a comprehensive document processing tool that combines:
 
-- **Intelligent Document Extraction**: Uses Docling for accurate PDF/EPUB text extraction with structure preservation
+- **Intelligent Document Extraction**: Uses PyMuPDF and ebooklib for accurate PDF/EPUB text extraction with structure preservation
 - **AI-Powered Translation**: Supports multiple LLM backends (NVIDIA NIM, Google Gemini, Ollama) for high-quality translation
 - **Glossary Management**: PostgreSQL with pgvector for terminology consistency across translations
 - **Chapter Splitting**: Automatic chapter detection and manual adjustment capabilities
@@ -311,7 +311,7 @@ PDFTranslator/
 │   │   └── services/      # Database services
 │   ├── infrastructure/    # External integrations
 │   │   ├── llm/           # LLM clients (NVIDIA, Gemini, Ollama)
-│   │   └── document/      # Document extractors (Docling)
+│   │   └── document/      # Document extractors (PyMuPDF, ebooklib)
 │   ├── services/          # Business logic
 │   └── frontend/          # Angular web application
 │       ├── src/
@@ -365,7 +365,6 @@ PDFTranslator/
 │
 ├── tools/                 # Utilities
 │   ├── AudioGenerator.py
-│   ├── VideoGenerator.py
 │   └── Translator.py
 │
 └── tests/                 # Test suite
@@ -380,15 +379,17 @@ Document Upload → Text Extraction → Chapter Splitting
        ↓
 Translation (LLM) → Overlap Cleaning → Post-Processing
        ↓
-Audio Generation → Video (optional) → Output Files
+Audio Generation → Output Files
 ```
 
 ### Key Components
 
+### Key Components
+
 #### 1. Document Extraction (`infrastructure/document/`)
-- Uses Docling for PDF/EPUB text extraction
+- Uses PyMuPDF and ebooklib for PDF/EPUB text extraction
 - Preserves document structure and formatting
-- Extracts images for video generation
+- Extracts images for document analysis
 
 #### 2. LLM Integration (`infrastructure/llm/`)
 - Protocol-based design for swappable backends
@@ -512,8 +513,9 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ### Libraries & Frameworks
 
-- **[Docling](https://github.com/DS4SD/docling)** - Advanced document parsing
 - **[Typer](https://typer.tiangolo.com/)** - CLI framework with Rich integration
+- **[PyMuPDF](https://github.com/pymupdf/PyMuPDF)** - Fast PDF processing
+- **[ebooklib](https://github.com/aerkalov/ebooklib)** - EPUB processing
 - **[FastAPI](https://fastapi.tiangolo.com/)** - Modern Python web framework
 - **[Angular](https://angular.dev/)** - Web application framework
 - **[Angular Material](https://material.angular.io/)** - UI component library

@@ -1,7 +1,10 @@
 """LLM configuration models."""
 
 from enum import Enum
+from typing import Dict
+
 from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class LLMProvider(str, Enum):
@@ -74,19 +77,51 @@ class GeminiConfig(BaseModel):
     retry_attempts: int = Field(default=3, gt=0)
 
 
-class NvidiaConfig(BaseModel):
+class NvidiaConfig(BaseSettings):
     """NVIDIA NIM configuration."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="LLM__NVIDIA__",
+        env_nested_delimiter="__",
+    )
 
     model_name: str = Field(default="mistralai/mistral-large-3-675b-instruct-2512")
     temperature: float = Field(default=0.2, ge=0.0, le=2.0)
     top_p: float = Field(default=0.95, ge=0.0, le=1.0)
-    max_output_tokens: int = Field(default=1024, gt=0)
+    max_output_tokens: int = Field(
+        default=8192,
+        ge=1024,
+        le=131072,
+        description="Max tokens reserved for model output per request"
+    )
     rate_limit: int = Field(default=30, gt=0, description="Requests per minute")
     retry_attempts: int = Field(default=6, gt=0)
     request_timeout: int = Field(
         default=3600, gt=0, description="Request timeout in seconds"
     )
     max_bucket_size: int = Field(default=10, gt=0)
+    context_size: int = Field(
+        default=131072,
+        frozen=True,
+        description="Model context window (input + output)"
+    )
+    chunk_safety_margin_pct: float = Field(
+        default=0.15,
+        ge=0.05,
+        le=0.30,
+        description="Percentage margin to prevent truncation"
+    )
+    max_chunk_tokens: int = Field(
+        default=32768,
+        ge=512,
+        le=65536,
+        description="Practical upper bound per chunk"
+    )
+    min_chunk_tokens: int = Field(
+        default=512,
+        ge=128,
+        description="Minimum viable chunk size"
+    )
     local_tokenizer_name: str = Field(
         default="mistralai/Mistral-Large-3-675B-Instruct-2512"
     )
@@ -95,6 +130,11 @@ class NvidiaConfig(BaseModel):
     embed_model: str = Field(default="nvidia/nv-embedqa-e5-v5")
     rerank_model: str = Field(default="nvidia/nv-rerankqa-mistral-2b-4b-4096-v1")
     rerank_top_n: int = Field(default=5, gt=0)
+    # NEW: Custom expansion ratios per language pair
+    expansion_ratios: Dict[str, float] = Field(
+        default_factory=dict,
+        description="Custom ratios: 'en-es': 1.3, 'en-zh': 0.6, etc."
+    )
 
 
 class OllamaConfig(BaseModel):

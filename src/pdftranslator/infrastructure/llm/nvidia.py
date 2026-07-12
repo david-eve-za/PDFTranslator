@@ -11,6 +11,7 @@ from transformers import AutoTokenizer
 from pdftranslator.core.config.settings import Settings
 from pdftranslator.core.config.llm import BCP47Language
 from pdftranslator.infrastructure.llm.base import BaseLLM
+from pdftranslator.infrastructure.llm.token_chunk_calculator import TokenChunkCalculator
 
 logger = logging.getLogger(__name__)
 
@@ -79,21 +80,42 @@ class NvidiaLLM(BaseLLM):
         return len(token_ids)
 
     def split_into_limit(
-        self, text: str, language: BCP47Language = BCP47Language.ENGLISH
+        self,
+        text: str,
+        language: BCP47Language = BCP47Language.ENGLISH,
+        source_lang: str = "en",
+        target_lang: str = "es",
     ) -> list[str]:
         """
-        Split text into chunks for translation.
+        Split text into chunks optimized for translation.
 
         Args:
             text: Text to split.
-            language: BCP 47 language code for splitting.
+            language: BCP 47 language code for NLTK sentence splitting.
+            source_lang: Source language code for expansion ratio.
+            target_lang: Target language code for expansion ratio.
 
         Returns:
             List of text chunks.
         """
-        # Use 3x output tokens as chunk size (input can be larger)
-        chunk_size = self._settings.llm.nvidia.max_output_tokens
+        # Load prompt template
+        template = self._load_prompt_template()
 
+        # Calculate optimal chunk size using TokenChunkCalculator
+        calculator = TokenChunkCalculator(self, self._settings.llm.nvidia)
+        prompt_tokens = calculator.measure_prompt_tokens(
+            template, source_lang, target_lang
+        )
+        expansion_ratio = calculator.get_expansion_ratio(source_lang, target_lang)
+        chunk_size = calculator.calculate_chunk_size(prompt_tokens, expansion_ratio)
+
+        logger.info(
+            f"Adaptive chunking: prompt={prompt_tokens} tokens, "
+            f"expansion={expansion_ratio:.2f} ({source_lang}->{target_lang}), "
+            f"chunk_size={chunk_size} tokens"
+        )
+
+        # Use NLTKTextSplitter with calculated chunk size
         text_splitter = NLTKTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=0,
@@ -102,6 +124,12 @@ class NvidiaLLM(BaseLLM):
         )
 
         return text_splitter.split_text(text)
+
+    def _load_prompt_template(self) -> str:
+        """Load translation prompt template from configured path."""
+        prompt_path = self._settings.paths.translation_prompt_path
+        with open(prompt_path, "r", encoding="utf-8") as f:
+            return f.read()
 
     def _load_tokenizer(self, config) -> AutoTokenizer:
         """

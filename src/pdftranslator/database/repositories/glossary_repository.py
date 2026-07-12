@@ -2,6 +2,7 @@
 
 from typing import Optional, List
 import json
+from datetime import datetime
 
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.repositories.base import BaseRepository
@@ -14,6 +15,25 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
     def __init__(self, pool: Optional[DatabasePool] = None):
         self._pool = pool or DatabasePool.get_instance()
         self._vector_service = VectorStoreService()
+
+    def _parse_datetime(self, value) -> Optional[datetime]:
+        """Parse datetime from SQLite string format."""
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value
+        try:
+            # SQLite uses "YYYY-MM-DD HH:MM:SS" format (space), not ISO "T" separator
+            # Also handle potential "Z" suffix
+            value_str = str(value).strip()
+            # Replace space with T for ISO format parsing
+            if " " in value_str and "T" not in value_str:
+                value_str = value_str.replace(" ", "T")
+            if value_str.endswith("Z"):
+                value_str = value_str[:-1] + "+00:00"
+            return datetime.fromisoformat(value_str)
+        except (ValueError, AttributeError):
+            return None
 
     def _row_to_entry(self, row) -> GlossaryEntry:
         return GlossaryEntry(
@@ -32,8 +52,8 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
             source_lang=row["source_lang"] if "source_lang" in row.keys() else "en",
             target_lang=row["target_lang"] if "target_lang" in row.keys() else "es",
             embedding=None,  # Embeddings not stored in SQLite
-            created_at=row["created_at"] if "created_at" in row.keys() else None,
-            updated_at=row["updated_at"] if "updated_at" in row.keys() else None,
+            created_at=self._parse_datetime(row["created_at"]) if "created_at" in row.keys() else None,
+            updated_at=self._parse_datetime(row["updated_at"]) if "updated_at" in row.keys() else None,
         )
 
     def _row_to_context(self, row) -> TermContext:
@@ -43,7 +63,7 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
             context_hint=row["context_hint"],
             translation=row["translation"],
             example_usage=row["example_usage"] if "example_usage" in row.keys() else None,
-            created_at=row["created_at"] if "created_at" in row.keys() else None,
+            created_at=self._parse_datetime(row["created_at"]) if "created_at" in row.keys() else None,
         )
 
     def _row_to_example(self, row) -> ContextExample:
@@ -53,7 +73,7 @@ class GlossaryRepository(BaseRepository[GlossaryEntry]):
             original_sentence=row["original_sentence"],
             translated_sentence=row["translated_sentence"],
             chapter_id=row["chapter_id"] if "chapter_id" in row.keys() else None,
-            created_at=row["created_at"] if "created_at" in row.keys() else None,
+            created_at=self._parse_datetime(row["created_at"]) if "created_at" in row.keys() else None,
         )
 
     def get_by_id(self, id: int) -> Optional[GlossaryEntry]:

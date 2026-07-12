@@ -21,6 +21,7 @@ import os
 import signal
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -47,6 +48,7 @@ logger = logging.getLogger(__name__)
 _backend_proc: subprocess.Popen | None = None
 _frontend_proc: subprocess.Popen | None = None
 _proxy_file: Path | None = None
+_shutdown_event = threading.Event()  # Thread-safe flag for shutdown signaling
 
 
 def _generate_proxy_config(frontend_dir: Path, backend_host: str, backend_port: int) -> Path:
@@ -96,40 +98,83 @@ def _wait_for_backend_ready(host: str, port: int, timeout: float = 30.0) -> bool
     return False
 
 
+def _kill_process_tree(pid: int) -> None:
+    """Kill a process and all its children (for uvicorn reload worker handling)."""
+    try:
+        import psutil
+    except ImportError:
+        # Fallback if psutil not available - just kill the parent
+        try:
+            os.kill(pid, signal.SIGKILL if hasattr(signal, "SIGKILL") else signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        return
+
+    try:
+        parent = psutil.Process(pid)
+        children = parent.children(recursive=True)
+        for child in children:
+            try:
+                child.kill()
+            except psutil.NoSuchProcess:
+                pass
+        parent.kill()
+    except psutil.NoSuchProcess:
+        pass
+
+
+def _terminate_process(proc: subprocess.Popen, name: str, timeout: float = 5.0) -> None:
+    """Gracefully terminate a process with timeout, then force kill."""
+    if proc is None or proc.poll() is not None:
+        return
+
+    logger.info(f"Stopping {name} (PID: {proc.pid})...")
+
+    # Try graceful termination first
+    try:
+        proc.terminate()
+    except ProcessLookupError:
+        return
+
+    try:
+        proc.wait(timeout=timeout)
+        logger.info(f"{name} stopped gracefully")
+    except subprocess.TimeoutExpired:
+        logger.warning(f"{name} did not stop gracefully, forcing kill...")
+        try:
+            _kill_process_tree(proc.pid)
+        except Exception as e:
+            logger.error(f"Error killing {name} process tree: {e}")
+        try:
+            proc.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            logger.error(f"Failed to kill {name}")
+
+
 def _cleanup() -> None:
     """Cleanup processes and temporary files on exit."""
     global _backend_proc, _frontend_proc, _proxy_file
 
-    if _backend_proc and _backend_proc.poll() is None:
-        logger.info("Stopping backend...")
-        _backend_proc.terminate()
-        try:
-            _backend_proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            _backend_proc.kill()
-            _backend_proc.wait()
+    # Prevent multiple cleanup calls
+    if _shutdown_event.is_set():
+        return
+    _shutdown_event.set()
 
-    if _frontend_proc and _frontend_proc.poll() is None:
-        logger.info("Stopping frontend...")
-        _frontend_proc.terminate()
-        try:
-            _frontend_proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            _frontend_proc.kill()
-            _frontend_proc.wait()
+    _terminate_process(_backend_proc, "backend")
+    _terminate_process(_frontend_proc, "frontend")
 
     if _proxy_file and _proxy_file.exists():
         try:
             _proxy_file.unlink()
+            logger.debug(f"Removed proxy config: {_proxy_file}")
         except Exception:
             pass
 
 
 def _signal_handler(signum: int, frame) -> None:
-    """Handle shutdown signals."""
-    logger.info(f"Received signal {signum}, shutting down...")
-    _cleanup()
-    sys.exit(0)
+    """Handle shutdown signals - just set the event, don't call cleanup directly."""
+    logger.info(f"Received signal {signum}, initiating shutdown...")
+    _shutdown_event.set()
 
 
 # Register signal handlers and atexit
@@ -319,11 +364,33 @@ def dev(
             env=env,
         )
 
-        # Wait for frontend process to complete (blocks until Ctrl+C)
-        _frontend_proc.wait()
+        # Monitor both processes without blocking indefinitely
+        # This allows signal handlers to work properly
+        console.print("[green]✓ Development servers running![/green]")
+        console.print("[dim]Press Ctrl+C to stop both servers[/dim]")
+        try:
+            while True:
+                # Check shutdown signal (from SIGINT/SIGTERM)
+                if _shutdown_event.is_set():
+                    logger.info("Shutdown signal received")
+                    break
 
-    except KeyboardInterrupt:
-        logger.info("Interrupted by user")
+                # Check if either process has exited unexpectedly
+                backend_status = _backend_proc.poll() if _backend_proc else None
+                frontend_status = _frontend_proc.poll() if _frontend_proc else None
+
+                if backend_status is not None:
+                    logger.error(f"Backend process exited unexpectedly with code {backend_status}")
+                    break
+                if frontend_status is not None:
+                    logger.error(f"Frontend process exited unexpectedly with code {frontend_status}")
+                    break
+
+                time.sleep(0.5)  # Check every 500ms
+
+        except KeyboardInterrupt:
+            logger.info("Interrupted by user (Ctrl+C)")
+
     except subprocess.CalledProcessError as e:
         logger.error(f"Failed to start frontend: {e}")
         raise typer.Exit(code=1)

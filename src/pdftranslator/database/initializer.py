@@ -16,29 +16,25 @@ class DatabaseInitializer:
         """Check if tables exist and create schema if not."""
         logger.debug("Checking if database tables exist")
         cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='works'")
-        result = cursor.fetchone()
-        if result is None:
-            logger.info("Tables not found, initializing database schema")
-            self._execute_schema_scripts(cur=cursor)
-            conn.commit()
-            logger.info("Database schema initialized successfully")
-        else:
-            logger.debug("Database tables already exist")
+
+        # Always execute schema scripts - they use CREATE TABLE IF NOT EXISTS
+        # so they will only create missing tables
+        logger.info("Initializing/updating database schema")
+        self._execute_schema_scripts(cur=cursor)
+        conn.commit()
+        logger.info("Database schema initialized/updated successfully")
 
     async def ensure_tables_exist_async(self, conn: aiosqlite.Connection) -> None:
         """Async version - check if tables exist and create schema if not."""
         logger.debug("Checking if database tables exist (async)")
         cursor = await conn.cursor()
-        await cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='works'")
-        result = await cursor.fetchone()
-        if result is None:
-            logger.info("Tables not found, initializing database schema (async)")
-            await self._execute_schema_scripts_async(cursor)
-            await conn.commit()
-            logger.info("Database schema initialized successfully (async)")
-        else:
-            logger.debug("Database tables already exist")
+
+        # Always execute schema scripts - they use CREATE TABLE IF NOT EXISTS
+        # so they will only create missing tables
+        logger.info("Initializing/updating database schema (async)")
+        await self._execute_schema_scripts_async(cursor)
+        await conn.commit()
+        logger.info("Database schema initialized/updated successfully (async)")
 
     def _table_exists_query(self, table_name: str) -> str:
         """Query to check if a table exists in SQLite."""

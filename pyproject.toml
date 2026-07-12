@@ -70,11 +70,8 @@ ollama = [
     "ollama>=0.1.0",
     "langchain-ollama>=0.1.0",
 ]
-docling = [
-    "docling>=2.0.0",
-]
 all = [
-    "pdftranslator[dev,gemini,ollama,docling]",
+    "pdftranslator[dev,gemini,ollama]",
     "sentence-transformers>=3.0.0",
 ]
 

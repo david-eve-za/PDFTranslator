@@ -44,6 +44,25 @@ class TranslationJobRepository(BaseRepository[TranslationJob]):
     def __init__(self, pool: Optional[DatabasePool] = None):
         self._pool = pool or DatabasePool.get_instance()
 
+    def _parse_datetime(self, value) -> Optional[datetime]:
+        """Parse datetime from SQLite string format."""
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value
+        try:
+            # SQLite uses "YYYY-MM-DD HH:MM:SS" format (space), not ISO "T" separator
+            # Also handle potential "Z" suffix
+            value_str = str(value).strip()
+            # Replace space with T for ISO format parsing
+            if " " in value_str and "T" not in value_str:
+                value_str = value_str.replace(" ", "T")
+            if value_str.endswith("Z"):
+                value_str = value_str[:-1] + "+00:00"
+            return datetime.fromisoformat(value_str)
+        except (ValueError, AttributeError):
+            return None
+
     def _row_to_job(self, row) -> TranslationJob:
         return TranslationJob(
             id=row["id"],
@@ -62,8 +81,8 @@ class TranslationJobRepository(BaseRepository[TranslationJob]):
             failure_count=row["failure_count"],
             current_chapter_info=row["current_chapter_info"],
             error_message=row["error_message"],
-            created_at=row["created_at"],
-            updated_at=row["updated_at"],
+            created_at=self._parse_datetime(row["created_at"]),
+            updated_at=self._parse_datetime(row["updated_at"]),
         )
 
     def get_by_id(self, id: int) -> Optional[TranslationJob]:

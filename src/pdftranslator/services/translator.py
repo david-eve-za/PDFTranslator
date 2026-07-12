@@ -83,8 +83,10 @@ class TranslatorService:
         Returns:
             TranslationResult with translated text and metadata.
         """
-        # Split text into chunks
-        chunks = self._llm_client.split_into_limit(text, language)
+        # Split text into chunks using adaptive chunking with language pair
+        chunks = self._llm_client.split_into_limit(
+            text, language, source_lang=source_lang, target_lang=target_lang
+        )
 
         logger.info(f"Text split into {len(chunks)} chunks for translation")
 

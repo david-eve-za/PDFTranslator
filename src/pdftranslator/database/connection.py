@@ -94,6 +94,16 @@ class DatabasePool:
     @contextmanager
     def connection(self) -> sqlite3.Connection:
         """Get a synchronous database connection (context manager)."""
+        # Ensure tables are initialized when getting a connection
+        if not DatabasePool._tables_initialized:
+            # Create a temporary connection to initialize tables
+            temp_conn = sqlite3.connect(str(self._db_path))
+            self._configure_connection(temp_conn)
+            DatabaseInitializer().ensure_tables_exist(temp_conn)
+            temp_conn.commit()
+            temp_conn.close()
+            DatabasePool._tables_initialized = True
+
         if self._sync_conn is None:
             self._sync_conn = sqlite3.connect(
                 str(self._db_path),
@@ -102,30 +112,58 @@ class DatabasePool:
             self._configure_connection(self._sync_conn)
             logger.debug(f"Opened SQLite connection to {self._db_path}")
 
-        yield self._sync_conn
+        try:
+            yield self._sync_conn
+            self._sync_conn.commit()
+        except Exception:
+            self._sync_conn.rollback()
+            raise
 
     def get_sync_pool(self) -> "DatabasePool":
         """Return self for compatibility with existing code."""
         # Ensure tables are initialized
         if not DatabasePool._tables_initialized:
-            DatabaseInitializer().ensure_tables_exist(self)
+            temp_conn = sqlite3.connect(str(self._db_path))
+            self._configure_connection(temp_conn)
+            DatabaseInitializer().ensure_tables_exist(temp_conn)
+            temp_conn.commit()
+            temp_conn.close()
             DatabasePool._tables_initialized = True
         return self
 
     @asynccontextmanager
     async def async_connection(self) -> AsyncGenerator[aiosqlite.Connection, None]:
         """Get an asynchronous database connection (context manager)."""
+        # Ensure tables are initialized when getting a connection
+        if not DatabasePool._tables_initialized:
+            # Create a temporary connection to initialize tables
+            temp_conn = await aiosqlite.connect(str(self._db_path))
+            await self._configure_async_connection(temp_conn)
+            await DatabaseInitializer().ensure_tables_exist_async(temp_conn)
+            await temp_conn.commit()
+            await temp_conn.close()
+            DatabasePool._tables_initialized = True
+
         if self._async_conn is None:
             self._async_conn = await aiosqlite.connect(str(self._db_path))
             await self._configure_async_connection(self._async_conn)
             logger.debug(f"Opened async SQLite connection to {self._db_path}")
 
-        yield self._async_conn
+        try:
+            yield self._async_conn
+            await self._async_conn.commit()
+        except Exception:
+            await self._async_conn.rollback()
+            raise
 
     async def get_async_pool(self) -> "DatabasePool":
         """Return self for compatibility with existing code."""
         if not DatabasePool._tables_initialized:
-            await DatabaseInitializer().ensure_tables_exist_async(self)
+            temp_conn = await aiosqlite.connect(str(self._db_path))
+            await self._configure_async_connection(temp_conn)
+            await DatabaseInitializer().ensure_tables_exist_async(temp_conn)
+            await temp_conn.commit()
+            await temp_conn.close()
             DatabasePool._tables_initialized = True
         return self
 

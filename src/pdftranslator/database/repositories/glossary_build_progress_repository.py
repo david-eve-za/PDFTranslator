@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from typing import Optional, List
+from datetime import datetime
 
 from pdftranslator.database.connection import DatabasePool
 from pdftranslator.database.models import EntityCandidate, GlossaryBuildProgress
@@ -14,6 +15,25 @@ logger = logging.getLogger(__name__)
 class GlossaryBuildProgressRepository:
     def __init__(self, pool: Optional[DatabasePool] = None):
         self._pool = pool or DatabasePool.get_instance()
+
+    def _parse_datetime(self, value) -> Optional[datetime]:
+        """Parse datetime from SQLite string format."""
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value
+        try:
+            # SQLite uses "YYYY-MM-DD HH:MM:SS" format (space), not ISO "T" separator
+            # Also handle potential "Z" suffix
+            value_str = str(value).strip()
+            # Replace space with T for ISO format parsing
+            if " " in value_str and "T" not in value_str:
+                value_str = value_str.replace(" ", "T")
+            if value_str.endswith("Z"):
+                value_str = value_str[:-1] + "+00:00"
+            return datetime.fromisoformat(value_str)
+        except (ValueError, AttributeError):
+            return None
 
     def _row_to_progress(self, row) -> GlossaryBuildProgress:
         return GlossaryBuildProgress(
@@ -29,8 +49,8 @@ class GlossaryBuildProgressRepository:
             embedding=None,  # Embeddings not stored in SQLite
             validation_batch=row["validation_batch"],
             translation_batch=row["translation_batch"],
-            created_at=row["created_at"],
-            updated_at=row["updated_at"],
+            created_at=self._parse_datetime(row["created_at"]) if "created_at" in row.keys() else None,
+            updated_at=self._parse_datetime(row["updated_at"]) if "updated_at" in row.keys() else None,
         )
 
     def save_extracted(

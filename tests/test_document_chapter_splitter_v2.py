@@ -1,5 +1,5 @@
 # tests/test_document_chapter_splitter_v2.py
-"""Tests for document_chapter_splitter_v2 with Docling."""
+"""Tests for document_chapter_splitter_v2."""
 
 import pytest
 from unittest.mock import MagicMock

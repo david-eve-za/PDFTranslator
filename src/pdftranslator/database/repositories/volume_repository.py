@@ -12,6 +12,25 @@ class VolumeRepository(BaseRepository[Volume]):
     def __init__(self, pool: Optional[DatabasePool] = None):
         self._pool = pool or DatabasePool.get_instance()
 
+    def _parse_datetime(self, value) -> Optional[datetime]:
+        """Parse datetime from SQLite string format."""
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value
+        try:
+            # SQLite uses "YYYY-MM-DD HH:MM:SS" format (space), not ISO "T" separator
+            # Also handle potential "Z" suffix
+            value_str = str(value).strip()
+            # Replace space with T for ISO format parsing
+            if " " in value_str and "T" not in value_str:
+                value_str = value_str.replace(" ", "T")
+            if value_str.endswith("Z"):
+                value_str = value_str[:-1] + "+00:00"
+            return datetime.fromisoformat(value_str)
+        except (ValueError, AttributeError):
+            return None
+
     def _row_to_volume(self, row) -> Volume:
         return Volume(
             id=row["id"],
@@ -20,8 +39,8 @@ class VolumeRepository(BaseRepository[Volume]):
             title=row["title"],
             full_text=row["full_text"],
             translated_text=row["translated_text"],
-            glossary_built_at=row["glossary_built_at"] if "glossary_built_at" in row.keys() else None,
-            created_at=row["created_at"] if "created_at" in row.keys() else None,
+            glossary_built_at=self._parse_datetime(row["glossary_built_at"]) if "glossary_built_at" in row.keys() else None,
+            created_at=self._parse_datetime(row["created_at"]) if "created_at" in row.keys() else None,
             glossary_build_status=row["glossary_build_status"] if "glossary_build_status" in row.keys() else "pending",
             glossary_error_message=row["glossary_error_message"] if "glossary_error_message" in row.keys() else None,
             glossary_resume_phase=row["glossary_resume_phase"] if "glossary_resume_phase" in row.keys() else None,

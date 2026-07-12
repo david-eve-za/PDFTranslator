@@ -40,7 +40,11 @@ class BaseLLM(ABC):
 
     @abstractmethod
     def split_into_limit(
-        self, text: str, language: BCP47Language = BCP47Language.ENGLISH
+        self,
+        text: str,
+        language: BCP47Language = BCP47Language.ENGLISH,
+        source_lang: str = "en",
+        target_lang: str = "es",
     ) -> list[str]:
         """Split text into chunks that fit within token limits."""
         pass

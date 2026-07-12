@@ -388,7 +388,9 @@ class GlossaryAwareTranslator(Translator):
             Translated text with glossary terms consistently applied
         """
         split_lang = self._get_language_for_split(source_lang)
-        chunks = self.llm_client.split_into_limit(full_text, language=split_lang)
+        chunks = self.llm_client.split_into_limit(
+            full_text, language=split_lang, source_lang=source_lang, target_lang=target_lang
+        )
 
         logger.info(f"Text split into {len(chunks)} chunks for translation.")
 
