@@ -1,0 +1,3 @@
+"""
+Glossary Service Domain Package.
+"""
