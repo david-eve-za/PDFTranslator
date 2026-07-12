@@ -1,0 +1,482 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1600" viewBox="0 0 1400 1600">
+  <defs>
+    <!-- Gradients for layer backgrounds -->
+    <linearGradient id="cliGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#e3f2fd;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#bbdefb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="serviceGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#e8f5e9;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#c8e6c9;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="dataGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#fff3e0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ffe0b2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="infraGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f3e5f5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e1bee7;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="frontendGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#e0f2f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#b2dfdb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#666;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#999;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Arrow marker -->
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+    </marker>
+
+    <!-- Styles -->
+    <style>
+      .layer-title { font: bold 18px 'Segoe UI', sans-serif; fill: #333; }
+      .component-box { fill: none; stroke: #666; stroke-width: 1.5; rx="8" ry="8"; }
+      .component-label { font: 12px 'Segoe UI', sans-serif; fill: #333; text-anchor: middle; }
+      .component-sub { font: 10px 'Segoe UI', sans-serif; fill: #666; text-anchor: middle; }
+      .arrow { fill: none; stroke: url(#arrowGrad); stroke-width: 2; marker-end: url(#arrowhead); }
+      .data-flow { font: 11px 'Segoe UI', sans-serif; fill: #555; text-anchor: middle; }
+      .legend-box { font: 12px 'Segoe UI', sans-serif; fill: #333; }
+      .legend-color { width: 20px; height: 12px; rx: 3; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1400" height="1600" fill="#fafafa"/>
+
+  <!-- Title -->
+  <text x="700" y="40" text-anchor="middle" font="bold 24px 'Segoe UI', sans-serif" fill="#2c3e50">PDFTranslator - Technical Runbook</text>
+  <text x="700" y="65" text-anchor="middle" font="13px 'Segoe UI', sans-serif" fill="#7f8c8d">PDF/EPUB → Audiobook Translation System | Architecture &#38; Data Flow</text>
+
+  <!-- ============================================================
+       LAYER 1: CLI COMMANDS (Top) - Blue Theme
+       ============================================================ -->
+  <g id="layer-cli">
+    <rect x="50" y="100" width="1300" height="160" fill="url(#cliGrad)" stroke="#1976d2" stroke-width="2" rx="10" ry="10"/>
+    <text x="100" y="130" class="layer-title">🖥️  CLI COMMANDS (Typer + Rich)</text>
+
+    <!-- Commands -->
+    <g id="cmd-process">
+      <rect x="70" y="150" width="200" height="90" class="component-box" fill="#e3f2fd" stroke="#1976d2"/>
+      <text x="170" y="175" class="component-label">process</text>
+      <text x="170" y="193" class="component-sub">Process PDFs → Audio</text>
+      <text x="170" y="210" class="component-sub">(orchestrates full pipeline)</text>
+      <text x="170" y="228" class="component-sub" style="font-size:9px; fill:#1976d2;">pdftranslator process</text>
+    </g>
+
+    <g id="cmd-glossary">
+      <rect x="290" y="150" width="200" height="90" class="component-box" fill="#e3f2fd" stroke="#1976d2"/>
+      <text x="390" y="175" class="component-label">build-glossary</text>
+      <text x="390" y="193" class="component-sub">Extract Terms → Glossary</text>
+      <text x="390" y="210" class="component-sub">(NLTK + LLM validation)</text>
+      <text x="390" y="228" class="component-sub" style="font-size:9px; fill:#1976d2;">--resume | --force-restart</text>
+    </g>
+
+    <g id="cmd-translate">
+      <rect x="510" y="150" width="200" height="90" class="component-box" fill="#e3f2fd" stroke="#1976d2"/>
+      <text x="610" y="175" class="component-label">translate-chapter</text>
+      <text x="610" y="193" class="component-sub">Translate Chapters</text>
+      <text x="610" y="210" class="component-sub">(chunked + glossary-aware)</text>
+      <text x="610" y="228" class="component-sub" style="font-size:9px; fill:#1976d2;">--work --volume</text>
+    </g>
+
+    <g id="cmd-audio">
+      <rect x="730" y="150" width="200" height="90" class="component-box" fill="#e3f2fd" stroke="#1976d2"/>
+      <text x="830" y="175" class="component-label">generate-audio</text>
+      <text x="830" y="193" class="component-sub">TTS Audio Generation</text>
+      <text x="830" y="210" class="component-sub">(macOS say / Edge TTS)</text>
+      <text x="830" y="228" class="component-sub" style="font-size:9px; fill:#1976d2;">--voice --format</text>
+    </g>
+
+    <g id="cmd-split">
+      <rect x="950" y="150" width="180" height="90" class="component-box" fill="#e3f2fd" stroke="#1976d2"/>
+      <text x="1040" y="175" class="component-label">split-text</text>
+      <text x="1040" y="193" class="component-sub">Split Large Texts</text>
+      <text x="1040" y="210" class="component-sub">(token-aware chunks)</text>
+      <text x="1040" y="228" class="component-sub" style="font-size:9px; fill:#1976d2;">--max-tokens</text>
+    </g>
+
+    <g id="cmd-db">
+      <rect x="1150" y="150" width="180" height="90" class="component-box" fill="#e3f2fd" stroke="#1976d2"/>
+      <text x="1240" y="175" class="component-label">add-to-database</text>
+      <text x="1240" y="193" class="component-sub">Import Documents</text>
+      <text x="1240" y="210" class="component-sub">(Docling extraction)</text>
+      <text x="1240" y="228" class="component-sub" style="font-size:9px; fill:#1976d2;">reset-database</text>
+    </g>
+  </g>
+
+  <!-- Arrows from CLI to Services -->
+  <path class="arrow" d="M 170 250 L 170 280"/>
+  <path class="arrow" d="M 390 250 L 390 280"/>
+  <path class="arrow" d="M 610 250 L 610 280"/>
+  <path class="arrow" d="M 830 250 L 830 280"/>
+  <path class="arrow" d="M 1040 250 L 1040 280"/>
+  <path class="arrow" d="M 1240 250 L 1240 280"/>
+
+  <!-- ============================================================
+       LAYER 2: CORE SERVICES - Green Theme
+       ============================================================ -->
+  <g id="layer-services">
+    <rect x="50" y="290" width="1300" height="200" fill="url(#serviceGrad)" stroke="#388e3c" stroke-width="2" rx="10" ry="10"/>
+    <text x="100" y="320" class="layer-title">⚙️  CORE SERVICES (Pipeline Orchestration)</text>
+
+    <!-- TranslationOrchestrator -->
+    <g id="svc-orchestrator">
+      <rect x="70" y="340" width="280" height="130" class="component-box" fill="#e8f5e9" stroke="#388e3c"/>
+      <text x="210" y="365" class="component-label">TranslationOrchestrator</text>
+      <text x="210" y="385" class="component-sub">Pipeline Coordinator</text>
+      <text x="210" y="402" class="component-sub" style="font-size:10px;">execute_job()</text>
+      <text x="210" y="420" class="component-sub" style="font-size:10px;">• Chunk → Translate → Merge</text>
+      <text x="210" y="438" class="component-sub" style="font-size:10px;">• Overlap handling (0.5k tokens)</text>
+      <text x="210" y="455" class="component-sub" style="font-size:10px;">• Glossary-aware post-process</text>
+    </g>
+
+    <!-- GlossaryManager -->
+    <g id="svc-glossary-mgr">
+      <rect x="370" y="340" width="280" height="130" class="component-box" fill="#e8f5e9" stroke="#388e3c"/>
+      <text x="510" y="365" class="component-label">GlossaryManager</text>
+      <text x="510" y="385" class="component-sub">Term Extraction &#38; Validation</text>
+      <text x="510" y="402" class="component-sub" style="font-size:10px;">build_from_text()</text>
+      <text x="510" y="420" class="component-sub" style="font-size:10px;">• NLTK entity extraction</text>
+      <text x="510" y="438" class="component-sub" style="font-size:10px;">• LLM validation (batched)</text>
+      <text x="510" y="455" class="component-sub" style="font-size:10px;">• Embeddings + translation</text>
+    </g>
+
+    <!-- GlossaryPostProcessor -->
+    <g id="svc-postproc">
+      <rect x="670" y="340" width="280" height="130" class="component-box" fill="#e8f5e9" stroke="#388e3c"/>
+      <text x="810" y="365" class="component-label">GlossaryPostProcessor</text>
+      <text x="810" y="385" class="component-sub">Post-Processing &#38; Fixes</text>
+      <text x="810" y="402" class="component-sub" style="font-size:10px;">process() / _validate_and_fix()</text>
+      <text x="810" y="420" class="component-sub" style="font-size:10px;">• Fix translations</text>
+      <text x="810" y="438" class="component-sub" style="font-size:10px;">• Remove false positives</text>
+      <text x="810" y="455" class="component-sub" style="font-size:10px;">• Consistency enforcement</text>
+    </g>
+
+    <!-- GlossaryTranslator -->
+    <g id="svc-glossary-trans">
+      <rect x="970" y="340" width="280" height="130" class="component-box" fill="#e8f5e9" stroke="#388e3c"/>
+      <text x="1110" y="365" class="component-label">GlossaryTranslator</text>
+      <text x="1110" y="385" class="component-sub">Term Translation</text>
+      <text x="1110" y="402" class="component-sub" style="font-size:10px;">translate_glossary()</text>
+      <text x="1110" y="420" class="component-sub" style="font-size:10px;">• Batch LLM translation</text>
+      <text x="1110" y="438" class="component-sub" style="font-size:10px;">• Context-aware</text>
+      <text x="1110" y="455" class="component-sub" style="font-size:10px;">• DB persistence</text>
+    </g>
+
+    <!-- EntityExtractor -->
+    <g id="svc-entity">
+      <rect x="1270" y="340" width="60" height="130" class="component-box" fill="#e8f5e9" stroke="#388e3c" transform="rotate(-90 1300 405)"/>
+      <text x="1300" y="405" text-anchor="middle" class="component-label" transform="rotate(-90 1300 405)">EntityExtractor (NLTK)</text>
+    </g>
+  </g>
+
+  <!-- Arrows from Services to Data Layer -->
+  <path class="arrow" d="M 210 470 L 210 500"/>
+  <path class="arrow" d="M 510 470 L 510 500"/>
+  <path class="arrow" d="M 810 470 L 810 500"/>
+  <path class="arrow" d="M 1110 470 L 1110 500"/>
+
+  <!-- ============================================================
+       LAYER 3: DATA LAYER - Orange Theme
+       ============================================================ -->
+  <g id="layer-data">
+    <rect x="50" y="510" width="1300" height="260" fill="url(#dataGrad)" stroke="#f57c00" stroke-width="2" rx="10" ry="10"/>
+    <text x="100" y="540" class="layer-title">💾  DATA LAYER (SQLite + WAL + Vector Store)</text>
+
+    <!-- Database -->
+    <g id="data-db">
+      <rect x="70" y="560" width="400" height="190" class="component-box" fill="#fff3e0" stroke="#f57c00"/>
+      <text x="270" y="585" class="component-label">SQLite Database (translator.db)</text>
+      <text x="270" y="605" class="component-sub" style="font-size:10px;">WAL mode | Foreign Keys ON | Connection Pool</text>
+
+      <!-- Tables -->
+      <text x="100" y="628" class="component-sub" style="font-size:10px; fill:#e65100; text-anchor:start;">📚 Works/Books</text>
+      <text x="100" y="643" class="component-sub" style="font-size:10px; text-anchor:start;">   BookRepository → works, volumes</text>
+      <text x="100" y="658" class="component-sub" style="font-size:10px; text-anchor:start;">   VolumeRepository → chapters, build_status</text>
+      <text x="100" y="673" class="component-sub" style="font-size:10px; text-anchor:start;">   ChapterRepository → original/translated text</text>
+
+      <text x="100" y="693" class="component-sub" style="font-size:10px; fill:#e65100; text-anchor:start;">📖 Glossary System</text>
+      <text x="100" y="708" class="component-sub" style="font-size:10px; text-anchor:start;">   GlossaryRepository → entries, embeddings</text>
+      <text x="100" y="723" class="component-sub" style="font-size:10px; text-anchor:start;">   GlossaryBuildProgress → resume checkpoints</text>
+
+      <text x="100" y="743" class="component-sub" style="font-size:10px; fill:#e65100; text-anchor:start;">⚙️  Other Tables</text>
+      <text x="100" y="758" class="component-sub" style="font-size:10px; text-anchor:start;">   EntityBlacklist, SubstitutionRule</text>
+      <text x="100" y="773" class="component-sub" style="font-size:10px; text-anchor:start;">   TranslationJob (async tracking)</text>
+      <text x="100" y="788" class="component-sub" style="font-size:10px; text-anchor:start;">   FantasyTerm (domain dict)</text>
+    </g>
+
+    <!-- Vector Store -->
+    <g id="data-vector">
+      <rect x="490" y="560" width="400" height="190" class="component-box" fill="#fff3e0" stroke="#f57c00"/>
+      <text x="690" y="585" class="component-label">Vector Store Service (RAG)</text>
+      <text x="690" y="605" class="component-sub" style="font-size:10px;">NVIDIA Embeddings (NV-Embed-QA)</text>
+      <text x="520" y="628" class="component-sub" style="font-size:10px; text-anchor:start;">• embed_entities_for_glossary()</text>
+      <text x="520" y="643" class="component-sub" style="font-size:10px; text-anchor:start;">• Cosine similarity search</text>
+      <text x="520" y="658" class="component-sub" style="font-size:10px; text-anchor:start;">• In-memory + SQLite persistence</text>
+      <text x="520" y="673" class="component-sub" style="font-size:10px; text-anchor:start;">• Context retrieval for translation</text>
+      <text x="520" y="693" class="component-sub" style="font-size:10px; fill:#e65100; text-anchor:start;">Glossary-Aware Translation:</text>
+      <text x="520" y="708" class="component-sub" style="font-size:10px; text-anchor:start;">• Find similar terms in glossary</text>
+      <text x="520" y="723" class="component-sub" style="font-size:10px; text-anchor:start;">• Inject context into LLM prompt</text>
+      <text x="520" y="738" class="component-sub" style="font-size:10px; text-anchor:start;">• Consistency enforcement</text>
+    </g>
+
+    <!-- Repositories Detail -->
+    <g id="data-repos">
+      <rect x="910" y="560" width="420" height="190" class="component-box" fill="#fff3e0" stroke="#f57c00"/>
+      <text x="1120" y="585" class="component-label">Repository Pattern (11 Repos)</text>
+      <text x="1120" y="605" class="component-sub" style="font-size:10px;">BaseRepository → CRUD + Connection Mgmt</text>
+
+      <text x="940" y="628" class="component-sub" style="font-size:10px; fill:#e65100; text-anchor:start;">Core Repositories:</text>
+      <text x="940" y="643" class="component-sub" style="font-size:10px; text-anchor:start;">• BookRepository — works, volumes</text>
+      <text x="940" y="658" class="component-sub" style="font-size:10px; text-anchor:start;">• VolumeRepository — chapters, status</text>
+      <text x="940" y="673" class="component-sub" style="font-size:10px; text-anchor:start;">• ChapterRepository — text content</text>
+
+      <text x="940" y="693" class="component-sub" style="font-size:10px; fill:#e65100; text-anchor:start;">Glossary Repositories:</text>
+      <text x="940" y="708" class="component-sub" style="font-size:10px; text-anchor:start;">• GlossaryRepository — terms, embeddings</text>
+      <text x="940" y="723" class="component-sub" style="font-size:10px; text-anchor:start;">• GlossaryBuildProgressRepository</text>
+
+      <text x="940" y="743" class="component-sub" style="font-size:10px; fill:#e65100; text-anchor:start;">Auxiliary Repositories:</text>
+      <text x="940" y="758" class="component-sub" style="font-size:10px; text-anchor:start;">• EntityBlacklistRepository</text>
+      <text x="940" y="773" class="component-sub" style="font-size:10px; text-anchor:start;">• SubstitutionRuleRepository</text>
+      <text x="940" y="788" class="component-sub" style="font-size:10px; text-anchor:start;">• TranslationJobRepository</text>
+      <text x="940" y="803" class="component-sub" style="font-size:10px; text-anchor:start;">• FantasyTermRepository</text>
+    </g>
+  </g>
+
+  <!-- Arrows from Data to Infrastructure -->
+  <path class="arrow" d="M 270 770 L 270 800"/>
+  <path class="arrow" d="M 690 770 L 690 800"/>
+  <path class="arrow" d="M 1120 770 L 1120 800"/>
+
+  <!-- ============================================================
+       LAYER 4: INFRASTRUCTURE - Purple Theme
+       ============================================================ -->
+  <g id="layer-infra">
+    <rect x="50" y="810" width="1300" height="240" fill="url(#infraGrad)" stroke="#7b1fa2" stroke-width="2" rx="10" ry="10"/>
+    <text x="100" y="840" class="layer-title">🔌  INFRASTRUCTURE &#38; EXTERNAL INTEGRATIONS</text>
+
+    <!-- LLM Clients -->
+    <g id="infra-llm">
+      <rect x="70" y="860" width="400" height="170" class="component-box" fill="#f3e5f5" stroke="#7b1fa2"/>
+      <text x="270" y="885" class="component-label">LLM Clients (Pluggable Protocol)</text>
+      <text x="270" y="905" class="component-sub" style="font-size:10px;">BaseLLMClient → call_model(prompt)</text>
+
+      <text x="100" y="925" class="component-sub" style="font-size:10px; fill:#4a148c; text-anchor:start;">🟢 NVIDIA NIM (Primary)</text>
+      <text x="100" y="940" class="component-sub" style="font-size:10px; text-anchor:start;">   Nemotron-3-Ultra | Llama-3.1</text>
+      <text x="100" y="955" class="component-sub" style="font-size:10px; text-anchor:start;">   Function calling | Reasoning</text>
+
+      <text x="100" y="975" class="component-sub" style="font-size:10px; fill:#4a148c; text-anchor:start;">🔵 Google Gemini</text>
+      <text x="100" y="990" class="component-sub" style="font-size:10px; text-anchor:start;">   gemini-1.5-pro | flash</text>
+      <text x="100" y="1005" class="component-sub" style="font-size:10px; text-anchor:start;">   Large context window</text>
+
+      <text x="100" y="1025" class="component-sub" style="font-size:10px; fill:#4a148c; text-anchor:start;">🟣 Ollama (Local)</text>
+      <text x="100" y="1040" class="component-sub" style="font-size:10px; text-anchor:start;">   Offline translation fallback</text>
+    </g>
+
+    <!-- Document Extractors -->
+    <g id="infra-doc">
+      <rect x="490" y="860" width="400" height="170" class="component-box" fill="#f3e5f5" stroke="#7b1fa2"/>
+      <text x="690" y="885" class="component-label">Document Extractors</text>
+      <text x="690" y="905" class="component-sub" style="font-size:10px;">Docling (Primary) + PyMuPDF fallback</text>
+
+      <text x="520" y="925" class="component-sub" style="font-size:10px; fill:#4a148c; text-anchor:start;">📄 PDF Extraction</text>
+      <text x="520" y="940" class="component-sub" style="font-size:10px; text-anchor:start;">   Layout analysis | Tables | Images</text>
+      <text x="520" y="955" class="component-sub" style="font-size:10px; text-anchor:start;">   Chapter detection (TOC/heuristics)</text>
+
+      <text x="520" y="975" class="component-sub" style="font-size:10px; fill:#4a148c; text-anchor:start;">📖 EPUB Extraction</text>
+      <text x="520" y="990" class="component-sub" style="font-size:10px; text-anchor:start;">   HTML parsing | Metadata | Cover</text>
+      <text x="520" y="1005" class="component-sub" style="font-size:10px; text-anchor:start;">   Spine order preservation</text>
+    </g>
+
+    <!-- Audio Generator -->
+    <g id="infra-audio">
+      <rect x="910" y="860" width="420" height="170" class="component-box" fill="#f3e5f5" stroke="#7b1fa2"/>
+      <text x="1120" y="885" class="component-label">Audio Generation (TTS)</text>
+
+      <text x="940" y="925" class="component-sub" style="font-size:10px; fill:#4a148c; text-anchor:start;">🎵 macOS 'say' (Default)</text>
+      <text x="940" y="940" class="component-sub" style="font-size:10px; text-anchor:start;">   Voices: Paulina, Jorge, Mónica</text>
+      <text x="940" y="955" class="component-sub" style="font-size:10px; text-anchor:start;">   Output: AIFF → m4a/mp3 (ffmpeg)</text>
+
+      <text x="940" y="975" class="component-sub" style="font-size:10px; fill:#4a148c; text-anchor:start;">🌐 Edge TTS (Cloud)</text>
+      <text x="940" y="990" class="component-sub" style="font-size:10px; text-anchor:start;">   Neural voices | SSML support</text>
+      <text x="940" y="1005" class="component-sub" style="font-size:10px; text-anchor:start;">   es-MX, es-ES, en-US voices</text>
+
+      <text x="940" y="1025" class="component-sub" style="font-size:10px; text-anchor:start;">Formats: m4a, mp3, aiff, wav</text>
+    </g>
+  </g>
+
+  <!-- Arrows from Infra to Frontend -->
+  <path class="arrow" d="M 270 980 L 270 1010"/>
+  <path class="arrow" d="M 690 980 L 690 1010"/>
+  <path class="arrow" d="M 1120 980 L 1120 1010"/>
+
+  <!-- ============================================================
+       LAYER 5: FRONTEND - Teal Theme
+       ============================================================ -->
+  <g id="layer-frontend">
+    <rect x="50" y="1020" width="1300" height="160" fill="url(#frontendGrad)" stroke="#00796b" stroke-width="2" rx="10" ry="10"/>
+    <text x="100" y="1050" class="layer-title">🌐  FRONTEND (Angular 18 + Angular Material)</text>
+
+    <g id="fe-lib">
+      <rect x="70" y="1070" width="260" height="100" class="component-box" fill="#e0f2f1" stroke="#00796b"/>
+      <text x="200" y="1095" class="component-label">Library Dashboard</text>
+      <text x="200" y="1115" class="component-sub" style="font-size:10px;">• Work/Volume/Chapter tree</text>
+      <text x="200" y="1135" class="component-sub" style="font-size:10px;">• Upload &#38; processing status</text>
+      <text x="200" y="1155" class="component-sub" style="font-size:9px; fill:#00796b;">MatTree + DragDrop</text>
+    </g>
+
+    <g id="fe-glossary">
+      <rect x="350" y="1070" width="260" height="100" class="component-box" fill="#e0f2f1" stroke="#00796b"/>
+      <text x="480" y="1095" class="component-label">Glossary Manager</text>
+      <text x="480" y="1115" class="component-sub" style="font-size:10px;">• Term CRUD + Search</text>
+      <text x="480" y="1135" class="component-sub" style="font-size:10px;">• Build progress (WebSocket)</text>
+      <text x="480" y="1155" class="component-sub" style="font-size:9px; fill:#00796b;">Real-time progress bars</text>
+    </g>
+
+    <g id="fe-translate">
+      <rect x="630" y="1070" width="260" height="100" class="component-box" fill="#e0f2f1" stroke="#00796b"/>
+      <text x="760" y="1095" class="component-label">Translation View</text>
+      <text x="760" y="1115" class="component-sub" style="font-size:10px;">• Side-by-side compare</text>
+      <text x="760" y="1135" class="component-sub" style="font-size:10px;">• Chapter navigation</text>
+      <text x="760" y="1155" class="component-sub" style="font-size:9px; fill:#00796b;">Glossary term highlights</text>
+    </g>
+
+    <g id="fe-audio">
+      <rect x="910" y="1070" width="260" height="100" class="component-box" fill="#e0f2f1" stroke="#00796b"/>
+      <text x="1040" y="1095" class="component-label">Audio Player</text>
+      <text x="1040" y="1115" class="component-sub" style="font-size:10px;">• Chapter playback</text>
+      <text x="1040" y="1135" class="component-sub" style="font-size:10px;">• Speed control</text>
+      <text x="1040" y="1155" class="component-sub" style="font-size:9px; fill:#00796b;">Web Audio API</text>
+    </g>
+
+    <g id="fe-api">
+      <rect x="1190" y="1070" width="140" height="100" class="component-box" fill="#e0f2f1" stroke="#00796b"/>
+      <text x="1260" y="1095" class="component-label">REST API</text>
+      <text x="1260" y="1115" class="component-sub" style="font-size:10px;">FastAPI backend</text>
+      <text x="1260" y="1135" class="component-sub" style="font-size:10px;">/api/works /glossary</text>
+      <text x="1260" y="1155" class="component-sub" style="font-size:9px; fill:#00796b;">/translate /jobs</text>
+    </g>
+  </g>
+
+  <!-- ============================================================
+       DATA FLOW SUMMARY (Bottom)
+       ============================================================ -->
+  <g id="dataflow">
+    <rect x="50" y="1200" width="1300" height="350" fill="#ffffff" stroke="#ddd" stroke-width="1.5" rx="10" ry="10"/>
+    <text x="100" y="1230" class="layer-title">🔄  END-TO-END DATA FLOW</text>
+
+    <!-- Flow steps -->
+    <g id="flow-steps">
+      <!-- Step 1 -->
+      <rect x="70" y="1250" width="160" height="80" fill="#e3f2fd" stroke="#1976d2" rx="8" ry="8"/>
+      <text x="150" y="1270" text-anchor="middle" class="component-label" style="font-size:11px;">1. INPUT</text>
+      <text x="150" y="1288" text-anchor="middle" class="component-sub" style="font-size:9px;">PDF / EPUB</text>
+      <text x="150" y="1305" text-anchor="middle" class="component-sub" style="font-size:9px;">File / Directory</text>
+      <path class="arrow" d="M 230 1290 L 270 1290"/>
+
+      <!-- Step 2 -->
+      <rect x="270" y="1250" width="160" height="80" fill="#e8f5e9" stroke="#388e3c" rx="8" ry="8"/>
+      <text x="350" y="1270" text-anchor="middle" class="component-label" style="font-size:11px;">2. EXTRACT</text>
+      <text x="350" y="1288" text-anchor="middle" class="component-sub" style="font-size:9px;">Docling</text>
+      <text x="350" y="1305" text-anchor="middle" class="component-sub" style="font-size:9px;">Text + Structure</text>
+      <path class="arrow" d="M 430 1290 L 470 1290"/>
+
+      <!-- Step 3 -->
+      <rect x="470" y="1250" width="160" height="80" fill="#e8f5e9" stroke="#388e3c" rx="8" ry="8"/>
+      <text x="550" y="1270" text-anchor="middle" class="component-label" style="font-size:11px;">3. SPLIT</text>
+      <text x="550" y="1288" text-anchor="middle" class="component-sub" style="font-size:9px;">ChapterSplitter</text>
+      <text x="550" y="1305" text-anchor="middle" class="component-sub" style="font-size:9px;">TOC / Heuristics</text>
+      <path class="arrow" d="M 630 1290 L 670 1290"/>
+
+      <!-- Step 4 -->
+      <rect x="670" y="1250" width="160" height="80" fill="#fff3e0" stroke="#f57c00" rx="8" ry="8"/>
+      <text x="750" y="1270" text-anchor="middle" class="component-label" style="font-size:11px;">4. GLOSSARY</text>
+      <text x="750" y="1288" text-anchor="middle" class="component-sub" style="font-size:9px;">NLTK NER</text>
+      <text x="750" y="1305" text-anchor="middle" class="component-sub" style="font-size:9px;">→ LLM Validate</text>
+      <path class="arrow" d="M 830 1290 L 870 1290"/>
+
+      <!-- Step 5 -->
+      <rect x="870" y="1250" width="160" height="80" fill="#fff3e0" stroke="#f57c00" rx="8" ry="8"/>
+      <text x="950" y="1270" text-anchor="middle" class="component-label" style="font-size:11px;">5. EMBED</text>
+      <text x="950" y="1288" text-anchor="middle" class="component-sub" style="font-size:9px;">NVIDIA Embed</text>
+      <text x="950" y="1305" text-anchor="middle" class="component-sub" style="font-size:9px;">Vector Store</text>
+      <path class="arrow" d="M 1030 1290 L 1070 1290"/>
+
+      <!-- Step 6 -->
+      <rect x="1070" y="1250" width="160" height="80" fill="#f3e5f5" stroke="#7b1fa2" rx="8" ry="8"/>
+      <text x="1150" y="1270" text-anchor="middle" class="component-label" style="font-size:11px;">6. TRANSLATE</text>
+      <text x="1150" y="1288" text-anchor="middle" class="component-sub" style="font-size:9px;">Chunked LLM</text>
+      <text x="1150" y="1305" text-anchor="middle" class="component-sub" style="font-size:9px;">+ Glossary RAG</text>
+      <path class="arrow" d="M 1230 1290 L 1270 1290"/>
+
+      <!-- Step 7 -->
+      <rect x="1270" y="1250" width="60" height="80" fill="#f3e5f5" stroke="#7b1fa2" rx="8" ry="8"/>
+      <text x="1300" y="1270" text-anchor="middle" class="component-label" style="font-size:11px;">7. AUDIO</text>
+      <text x="1300" y="1288" text-anchor="middle" class="component-sub" style="font-size:9px;">TTS</text>
+      <text x="1300" y="1305" text-anchor="middle" class="component-sub" style="font-size:9px;">say/Edge</text>
+    </g>
+
+    <!-- Key Features Box -->
+    <g id="key-features">
+      <text x="100" y="1360" class="layer-title" style="font-size:16px;">✨  KEY FEATURES &#38; PATTERNS</text>
+
+      <text x="100" y="1390" class="component-sub" style="font-size:11px; fill:#2c3e50; text-anchor:start;">🔧 Resumable Glossary Build:</text>
+      <text x="100" y="1408" class="component-sub" style="font-size:10px; text-anchor:start;">   GlossaryBuildProgress table tracks phase/batch — resume from extraction/validation/translation</text>
+
+      <text x="100" y="1430" class="component-sub" style="font-size:11px; fill:#2c3e50; text-anchor:start;">🎯 Glossary-Aware Translation:</text>
+      <text x="100" y="1448" class="component-sub" style="font-size:10px; text-anchor:start;">   Vector similarity search injects relevant terms into LLM context for consistency</text>
+
+      <text x="100" y="1470" class="component-sub" style="font-size:11px; fill:#2c3e50; text-anchor:start;">⚡ Token-Chunked Processing:</text>
+      <text x="100" y="1488" class="component-sub" style="font-size:10px; text-anchor:start;">   Overlap-aware chunking (500 token overlap) prevents context loss at boundaries</text>
+
+      <text x="600" y="1390" class="component-sub" style="font-size:11px; fill:#2c3e50; text-anchor:start;">🔌 Pluggable LLM Backends:</text>
+      <text x="600" y="1408" class="component-sub" style="font-size:10px; text-anchor:start;">   Protocol-based (NVIDIA NIM / Gemini / Ollama) — swap via CLI flag</text>
+
+      <text x="600" y="1430" class="component-sub" style="font-size:11px; fill:#2c3e50; text-anchor:start;">🗄️ SQLite + WAL Mode:</text>
+      <text x="600" y="1448" class="component-sub" style="font-size:10px; text-anchor:start;">   Connection pool, foreign keys, concurrent read/write, JSON columns for contexts</text>
+
+      <text x="600" y="1470" class="component-sub" style="font-size:11px; fill:#2c3e50; text-anchor:start;">📊 Rich Progress (TTY-aware):</text>
+      <text x="600" y="1488" class="component-sub" style="font-size:10px; text-anchor:start;">   Nested Progress contexts fixed — CLI shows live bars, logs to file in CI</text>
+
+      <text x="1100" y="1390" class="component-sub" style="font-size:11px; fill:#2c3e50; text-anchor:start;">🌐 Angular Frontend:</text>
+      <text x="1100" y="1408" class="component-sub" style="font-size:10px; text-anchor:start;">   Material Design, WebSocket progress, real-time glossary editing</text>
+
+      <text x="1100" y="1430" class="component-sub" style="font-size:11px; fill:#2c3e50; text-anchor:start;">🔍 Entity Extraction:</text>
+      <text x="1100" y="1448" class="component-sub" style="font-size:10px; text-anchor:start;">   NLTK NER + Fantasy-term dictionary + LLM validation (batched)</text>
+
+      <text x="1100" y="1470" class="component-sub" style="font-size:11px; fill:#2c3e50; text-anchor:start;">📦 Database Migrations:</text>
+      <text x="1100" y="1488" class="component-sub" style="font-size:10px; text-anchor:start;">   Versioned schema with rollback support (alembic-style)</text>
+    </g>
+  </g>
+
+  <!-- ============================================================
+       LEGEND
+       ============================================================ -->
+  <g id="legend" transform="translate(50, 1540)">
+    <rect x="0" y="0" width="1300" height="40" fill="#f5f5f5" stroke="#ddd" rx="5"/>
+    <text x="10" y="18" class="legend-box" style="font-weight:bold;">Legend:</text>
+
+    <rect x="80" y="4" width="20" height="12" class="legend-color" fill="url(#cliGrad)" stroke="#1976d2"/>
+    <text x="110" y="14" class="legend-box" style="font-size:11px;">CLI Commands</text>
+
+    <rect x="230" y="4" width="20" height="12" class="legend-color" fill="url(#serviceGrad)" stroke="#388e3c"/>
+    <text x="260" y="14" class="legend-box" style="font-size:11px;">Core Services</text>
+
+    <rect x="380" y="4" width="20" height="12" class="legend-color" fill="url(#dataGrad)" stroke="#f57c00"/>
+    <text x="410" y="14" class="legend-box" style="font-size:11px;">Data Layer</text>
+
+    <rect x="520" y="4" width="20" height="12" class="legend-color" fill="url(#infraGrad)" stroke="#7b1fa2"/>
+    <text x="550" y="14" class="legend-box" style="font-size:11px;">Infrastructure</text>
+
+    <rect x="700" y="4" width="20" height="12" class="legend-color" fill="url(#frontendGrad)" stroke="#00796b"/>
+    <text x="730" y="14" class="legend-box" style="font-size:11px;">Frontend</text>
+
+    <path class="arrow" d="M 850 10 L 900 10"/>
+    <text x="910" y="14" class="legend-box" style="font-size:11px;">Data Flow</text>
+  </g>
+</svg>

@@ -1,0 +1,166 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TranslationCompletedEvent",
+  "type": "record",
+  "name": "TranslationCompletedEvent",
+  "namespace": "com.pdftranslator.translation.events",
+  "doc": "Event emitted when Translation Service completes a translation job (success or failure)",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "Unique event identifier (UUID v4)"
+    },
+    {
+      "name": "event_type",
+      "type": "string",
+      "doc": "Event type constant: 'com.pdftranslator.translation.job.completed'"
+    },
+    {
+      "name": "event_version",
+      "type": "int",
+      "default": 1,
+      "doc": "Event schema version for schema evolution"
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "doc": "Event timestamp in milliseconds since epoch (UTC)"
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "doc": "Source service identifier: 'translation-service'"
+    },
+    {
+      "name": "trace_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "W3C traceparent trace-id for distributed tracing"
+    },
+    {
+      "name": "span_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "W3C traceparent span-id for distributed tracing"
+    },
+    {
+      "name": "payload",
+      "type": {
+        "type": "record",
+        "name": "TranslationCompletedPayload",
+        "fields": [
+          {
+            "name": "job_id",
+            "type": "long",
+            "doc": "Internal database ID of the translation job"
+          },
+          {
+            "name": "job_uuid",
+            "type": "string",
+            "doc": "Public UUID of the translation job"
+          },
+          {
+            "name": "work_id",
+            "type": "long",
+            "doc": "Work ID this translation belongs to"
+          },
+          {
+            "name": "volume_id",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "Volume ID if applicable"
+          },
+          {
+            "name": "source_lang",
+            "type": "string",
+            "doc": "ISO 639-1 source language code"
+          },
+          {
+            "name": "target_lang",
+            "type": "string",
+            "doc": "ISO 639-1 target language code"
+          },
+          {
+            "name": "status",
+            "type": {
+              "type": "enum",
+              "name": "JobStatus",
+              "symbols": ["completed", "failed", "cancelled"]
+            },
+            "doc": "Final job status"
+          },
+          {
+            "name": "llm_provider",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "LLM provider used (e.g., 'nvidia', 'gemini', 'ollama')"
+          },
+          {
+            "name": "model_name",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Model name used for translation"
+          },
+          {
+            "name": "glossary_id",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Glossary UUID used for terminology consistency"
+          },
+          {
+            "name": "segment_count",
+            "type": "int",
+            "doc": "Total segments processed"
+          },
+          {
+            "name": "word_count_source",
+            "type": "long",
+            "doc": "Source word count"
+          },
+          {
+            "name": "word_count_target",
+            "type": "long",
+            "doc": "Target word count"
+          },
+          {
+            "name": "error_message",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Error message if status is failed"
+          },
+          {
+            "name": "error_code",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Structured error code for programmatic handling"
+          },
+          {
+            "name": "started_at",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "Job start timestamp (milliseconds since epoch)"
+          },
+          {
+            "name": "completed_at",
+            "type": "long",
+            "doc": "Job completion timestamp (milliseconds since epoch)"
+          },
+          {
+            "name": "duration_ms",
+            "type": "long",
+            "doc": "Total job duration in milliseconds"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "cloudevent": {
+      "specversion": "1.0",
+      "type": "com.pdftranslator.translation.job.completed",
+      "source": "/pdftranslator/translation-service",
+      "datacontenttype": "application/avro"
+    }
+  }
+}

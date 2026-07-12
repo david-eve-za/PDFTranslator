@@ -1,0 +1,139 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AudioGeneratedEvent",
+  "type": "record",
+  "name": "AudioGeneratedEvent",
+  "namespace": "com.pdftranslator.audio.events",
+  "doc": "Event emitted when audiobook generation completes",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "Unique event identifier (UUID v4)"
+    },
+    {
+      "name": "event_type",
+      "type": "string",
+      "doc": "Event type constant: 'com.pdftranslator.audio.generated'"
+    },
+    {
+      "name": "event_version",
+      "type": "int",
+      "default": 1,
+      "doc": "Event schema version for schema evolution"
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "doc": "Event timestamp in milliseconds since epoch (UTC)"
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "doc": "Source service identifier: 'audio-service'"
+    },
+    {
+      "name": "trace_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "W3C traceparent trace-id for distributed tracing"
+    },
+    {
+      "name": "span_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "W3C traceparent span-id for distributed tracing"
+    },
+    {
+      "name": "payload",
+      "type": {
+        "type": "record",
+        "name": "AudioGeneratedPayload",
+        "fields": [
+          {
+            "name": "audio_id",
+            "type": "string",
+            "doc": "UUID of the generated audio"
+          },
+          {
+            "name": "work_id",
+            "type": "long",
+            "doc": "Work ID this audio belongs to"
+          },
+          {
+            "name": "volume_id",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "Volume ID if applicable"
+          },
+          {
+            "name": "language",
+            "type": "string",
+            "doc": "Language of the audio (ISO 639-1)"
+          },
+          {
+            "name": "voice",
+            "type": "string",
+            "doc": "TTS voice used (e.g., 'paulina', 'en-US-JennyNeural')"
+          },
+          {
+            "name": "engine",
+            "type": "string",
+            "doc": "TTS engine: 'macos_say', 'piper', 'coqui', 'edge'"
+          },
+          {
+            "name": "format",
+            "type": "string",
+            "doc": "Audio format: 'm4a', 'mp3', 'wav', 'opus'"
+          },
+          {
+            "name": "duration_seconds",
+            "type": "double",
+            "doc": "Total audio duration in seconds"
+          },
+          {
+            "name": "file_size_bytes",
+            "type": "long",
+            "doc": "Generated file size in bytes"
+          },
+          {
+            "name": "storage_path",
+            "type": "string",
+            "doc": "S3/MinIO object path or local file path"
+          },
+          {
+            "name": "chapters",
+            "type": {
+              "type": "array",
+              "items": {
+                "type": "record",
+                "name": "AudioChapter",
+                "fields": [
+                  {"name": "chapter_number", "type": "int"},
+                  {"name": "title", "type": "string"},
+                  {"name": "start_time_seconds", "type": "double"},
+                  {"name": "end_time_seconds", "type": "double"},
+                  {"name": "file_path", "type": "string"}
+                ]
+              }
+            },
+            "doc": "Per-chapter audio segments"
+          },
+          {
+            "name": "generated_at",
+            "type": "long",
+            "doc": "Generation completion timestamp in milliseconds since epoch"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "cloudevent": {
+      "specversion": "1.0",
+      "type": "com.pdftranslator.audio.generated",
+      "source": "/pdftranslator/audio-service",
+      "datacontenttype": "application/avro"
+    }
+  }
+}

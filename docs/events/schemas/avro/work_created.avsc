@@ -1,0 +1,102 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WorkCreatedEvent",
+  "type": "record",
+  "name": "WorkCreatedEvent",
+  "namespace": "com.pdftranslator.catalog.events",
+  "doc": "Event emitted when a new Work is created in Catalog Service",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "Unique event identifier (UUID v4)"
+    },
+    {
+      "name": "event_type",
+      "type": "string",
+      "doc": "Event type constant: 'com.pdftranslator.catalog.work.created'"
+    },
+    {
+      "name": "event_version",
+      "type": "int",
+      "default": 1,
+      "doc": "Event schema version for schema evolution"
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "doc": "Event timestamp in milliseconds since epoch (UTC)"
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "doc": "Source service identifier: 'catalog-service'"
+    },
+    {
+      "name": "trace_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "W3C traceparent trace-id for distributed tracing"
+    },
+    {
+      "name": "span_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "W3C traceparent span-id for distributed tracing"
+    },
+    {
+      "name": "payload",
+      "type": {
+        "type": "record",
+        "name": "WorkCreatedPayload",
+        "fields": [
+          {
+            "name": "work_id",
+            "type": "string",
+            "doc": "Work UUID"
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "doc": "Work title"
+          },
+          {
+            "name": "title_translated",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Translated title if available"
+          },
+          {
+            "name": "author",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Author name if available"
+          },
+          {
+            "name": "source_lang",
+            "type": "string",
+            "doc": "Source language (ISO 639-1)"
+          },
+          {
+            "name": "target_lang",
+            "type": "string",
+            "doc": "Target language (ISO 639-1)"
+          },
+          {
+            "name": "created_at",
+            "type": "long",
+            "doc": "Creation timestamp in milliseconds since epoch"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "cloudevent": {
+      "specversion": "1.0",
+      "type": "com.pdftranslator.catalog.work.created",
+      "source": "/pdftranslator/catalog-service",
+      "datacontenttype": "application/avro"
+    }
+  }
+}

@@ -1,0 +1,50 @@
+[project]
+name = "pdftranslator-catalog"
+version = "0.2.0"
+description = "Catalog Service for PDFTranslator - Works, Volumes, Chapters API"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{name = "PDFTranslator Team"}]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3.11",
+    "Framework :: FastAPI",
+]
+
+dependencies = [
+    "fastapi>=0.109,<0.110",
+    "uvicorn[standard]>=0.27,<0.28",
+    "pydantic>=2.6,<3.0",
+    "pydantic-settings>=2.1,<3.0",
+    "aiosqlite>=0.19,<0.20",
+    "python-multipart>=0.0.6,<0.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0,<9.0",
+    "pytest-asyncio>=0.23,<0.24",
+    "httpx>=0.26,<0.27",
+    "pact-python>=1.6,<2.0",
+    "ruff>=0.3,<0.4",
+]
+
+[tool.uvicorn]
+app = "pdftranslator.services.catalog.main:app"
+host = "0.0.0.0"
+port = 8001
+reload = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+select = ["E", "F", "I", "W", "UP", "B", "C4", "DTZ", "T20"]
+ignore = ["E501"]

@@ -1,0 +1,124 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "JobStatusChangedEvent",
+  "type": "record",
+  "name": "JobStatusChangedEvent",
+  "namespace": "com.pdftranslator.job.events",
+  "doc": "Event emitted when a translation job changes status (for Job Orchestrator)",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "Unique event identifier (UUID v4)"
+    },
+    {
+      "name": "event_type",
+      "type": "string",
+      "doc": "Event type constant: 'com.pdftranslator.job.status.changed'"
+    },
+    {
+      "name": "event_version",
+      "type": "int",
+      "default": 1,
+      "doc": "Event schema version for schema evolution"
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "doc": "Event timestamp in milliseconds since epoch (UTC)"
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "doc": "Source service identifier: 'translation-service' or 'job-orchestrator'"
+    },
+    {
+      "name": "trace_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "W3C traceparent trace-id for distributed tracing"
+    },
+    {
+      "name": "span_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "W3C traceparent span-id for distributed tracing"
+    },
+    {
+      "name": "payload",
+      "type": {
+        "type": "record",
+        "name": "JobStatusChangedPayload",
+        "fields": [
+          {
+            "name": "job_id",
+            "type": "string",
+            "doc": "Translation job UUID"
+          },
+          {
+            "name": "work_id",
+            "type": "long",
+            "doc": "Work ID this job belongs to"
+          },
+          {
+            "name": "volume_id",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "Volume ID if applicable"
+          },
+          {
+            "name": "previous_status",
+            "type": {
+              "type": "enum",
+              "name": "JobStatus",
+              "symbols": ["PENDING", "QUEUED", "IN_PROGRESS", "COMPLETED", "FAILED", "PAUSED", "CANCELLED"]
+            },
+            "doc": "Previous job status"
+          },
+          {
+            "name": "new_status",
+            "type": "JobStatus",
+            "doc": "New job status"
+          },
+          {
+            "name": "progress_percent",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Progress percentage (0-100) if applicable"
+          },
+          {
+            "name": "error_message",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Error message if status is FAILED"
+          },
+          {
+            "name": "llm_provider",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "LLM provider if IN_PROGRESS/COMPLETED"
+          },
+          {
+            "name": "model_name",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Model name if IN_PROGRESS/COMPLETED"
+          },
+          {
+            "name": "changed_at",
+            "type": "long",
+            "doc": "Status change timestamp in milliseconds since epoch"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "cloudevent": {
+      "specversion": "1.0",
+      "type": "com.pdftranslator.job.status.changed",
+      "source": "/pdftranslator/translation-service",
+      "datacontenttype": "application/avro"
+    }
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DocumentExtractedEvent",
+  "type": "record",
+  "name": "DocumentExtractedEvent",
+  "namespace": "com.pdftranslator.document.events",
+  "doc": "Event emitted when Document Service completes PDF extraction",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "Unique event identifier (UUID v4)"
+    },
+    {
+      "name": "event_type",
+      "type": "string",
+      "doc": "Event type constant: 'com.pdftranslator.document.extracted'"
+    },
+    {
+      "name": "event_version",
+      "type": "int",
+      "default": 1,
+      "doc": "Event schema version for schema evolution"
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "doc": "Event timestamp in milliseconds since epoch (UTC)"
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "doc": "Source service identifier: 'document-service'"
+    },
+    {
+      "name": "trace_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "W3C traceparent trace-id for distributed tracing"
+    },
+    {
+      "name": "span_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "W3C traceparent span-id for distributed tracing"
+    },
+    {
+      "name": "payload",
+      "type": {
+        "type": "record",
+        "name": "DocumentExtractedPayload",
+        "fields": [
+          {
+            "name": "document_id",
+            "type": "string",
+            "doc": "Extracted document UUID"
+          },
+          {
+            "name": "filename",
+            "type": "string",
+            "doc": "Original PDF filename"
+          },
+          {
+            "name": "mime_type",
+            "type": "string",
+            "doc": "MIME type (application/pdf)"
+          },
+          {
+            "name": "page_count",
+            "type": "int",
+            "doc": "Total number of pages extracted"
+          },
+          {
+            "name": "total_char_count",
+            "type": "long",
+            "doc": "Total character count across all pages"
+          },
+          {
+            "name": "structure",
+            "type": {
+              "type": "record",
+              "name": "DocumentStructure",
+              "fields": [
+                {
+                  "name": "headings",
+                  "type": {
+                    "type": "array",
+                    "items": {
+                      "type": "record",
+                      "name": "Heading",
+                      "fields": [
+                        {"name": "level", "type": "int"},
+                        {"name": "text", "type": "string"},
+                        {"name": "page_number", "type": "int"},
+                        {"name": "position", "type": "int"}
+                      ]
+                    }
+                  },
+                  "doc": "Document headings hierarchy"
+                },
+                {
+                  "name": "tables_count",
+                  "type": "int",
+                  "doc": "Number of tables detected"
+                },
+                {
+                  "name": "images_count",
+                  "type": "int",
+                  "doc": "Number of images detected"
+                },
+                {
+                  "name": "lists_count",
+                  "type": "int",
+                  "doc": "Number of lists detected"
+                }
+              ]
+            },
+            "doc": "Document structure analysis"
+          },
+          {
+            "name": "extracted_at",
+            "type": "long",
+            "doc": "Extraction completion timestamp in milliseconds since epoch"
+          },
+          {
+            "name": "storage_path",
+            "type": "string",
+            "doc": "S3/MinIO path to extracted JSON output"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "cloudevent": {
+      "specversion": "1.0",
+      "type": "com.pdftranslator.document.extracted",
+      "source": "/pdftranslator/document-service",
+      "datacontenttype": "application/avro"
+    }
+  }
+}

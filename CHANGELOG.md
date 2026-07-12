@@ -8,7 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Work plan for CUPID microservices migration (docs/WORK_PLAN_CUPID.md)
+- Sprint 1.4: Event Schemas (CloudEvents + Avro) (v0.4.0)
+  - Avro schemas for core domain events: WorkCreated, DocumentExtracted, GlossaryBuilt, TranslationCompleted, AudioGenerated, JobStatusChanged
+  - CloudEvents 1.0 envelope specification with trace context propagation
+  - Schema Registry configuration (Apicurio/Confluent) with BACKWARD compatibility
+  - Python event client library with Avro serialization (fastavro + cloudevents-sdk)
+  - Go/TypeScript code generation scaffolding
+  - GitOps-ready schema registration scripts
+  - Event versioning strategy and migration patterns
+  - Contract tests for schema validation
+
+### Added
+- Sprint 1.3: Translation Service Read-Only API (v0.3.0)
+  - TranslationJob aggregate root with state machine (pending→queued→in_progress→completed/failed/paused/cancelled)
+  - Segment entity for translation unit management
+  - GlossaryReference value object for glossary linking
+  - Repository protocols (TranslationJobRepository, SegmentRepository) with UnitOfWork
+  - SQLite implementations with JSON glossary_refs storage
+  - FastAPI routes: GET/POST /jobs, GET /jobs/{id}/segments, PUT /jobs/{id}/status
+  - Health endpoints: /health, /ready
+  - Pact contract tests for Angular frontend compatibility
+  - Database migrations (translation_jobs, translation_segments tables)
+
+---
 
 ---
 

@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GlossaryBuiltEvent",
+  "type": "record",
+  "name": "GlossaryBuiltEvent",
+  "namespace": "com.pdftranslator.glossary.events",
+  "doc": "Event emitted when Glossary Service completes glossary building for a volume",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "Unique event identifier (UUID v4)"
+    },
+    {
+      "name": "event_type",
+      "type": "string",
+      "doc": "Event type constant: 'com.pdftranslator.glossary.built'"
+    },
+    {
+      "name": "event_version",
+      "type": "int",
+      "default": 1,
+      "doc": "Event schema version for schema evolution"
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "doc": "Event timestamp in milliseconds since epoch (UTC)"
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "doc": "Source service identifier: 'glossary-service'"
+    },
+    {
+      "name": "trace_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "W3C traceparent trace-id for distributed tracing"
+    },
+    {
+      "name": "span_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "W3C traceparent span-id for distributed tracing"
+    },
+    {
+      "name": "payload",
+      "type": {
+        "type": "record",
+        "name": "GlossaryBuiltPayload",
+        "fields": [
+          {
+            "name": "glossary_id",
+            "type": "string",
+            "doc": "Glossary UUID"
+          },
+          {
+            "name": "work_id",
+            "type": "long",
+            "doc": "Work ID this glossary belongs to"
+          },
+          {
+            "name": "volume_id",
+            "type": "long",
+            "doc": "Volume ID this glossary was built for"
+          },
+          {
+            "name": "source_lang",
+            "type": "string",
+            "doc": "Source language (ISO 639-1)"
+          },
+          {
+            "name": "target_lang",
+            "type": "string",
+            "doc": "Target language (ISO 639-1)"
+          },
+          {
+            "name": "term_count",
+            "type": "int",
+            "doc": "Total number of terms extracted"
+          },
+          {
+            "name": "validated_count",
+            "type": "int",
+            "doc": "Number of terms validated by human/AI"
+          },
+          {
+            "name": "embedding_model",
+            "type": "string",
+            "doc": "Vector embedding model used (e.g., 'nvidia/nv-embed-v1')"
+          },
+          {
+            "name": "vector_dimensions",
+            "type": "int",
+            "doc": "Vector dimensions for the embeddings"
+          },
+          {
+            "name": "built_at",
+            "type": "long",
+            "doc": "Build completion timestamp in milliseconds since epoch"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "cloudevent": {
+      "specversion": "1.0",
+      "type": "com.pdftranslator.glossary.built",
+      "source": "/pdftranslator/glossary-service",
+      "datacontenttype": "application/avro"
+    }
+  }
+}
