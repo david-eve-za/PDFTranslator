@@ -5,10 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v0.5.0] - 2026-07-13
 
 ### Added
-- Sprint 2.2: Translation Service HTTP Microservice (v0.5.0)
+- Sprint 2.2: Translation Service HTTP Microservice
   - 5-stage translation pipeline: Detect → Segment → Translate → Quality-Check → Store
   - Individual stage endpoints for independent testing/debugging
   - Pipeline management: /pipelines/run, GET /pipelines/{job_id}, POST /pipelines/{job_id}/resume
@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Pipeline state tracking (pending→running→completed/failed/paused/cancelled)
   - Database migrations for translation_pipelines and translation_pipeline_stages tables
   - Contract tests for all pipeline endpoints
+
+## [Unreleased]
 
 ### Added
 - Sprint 1.4: Event Schemas (CloudEvents + Avro) (v0.4.0)
