@@ -19,7 +19,6 @@ sys.path.insert(0, str(project_root))
 
 from src.pdftranslator.services.glossary.config import get_glossary_settings
 from src.pdftranslator.services.glossary.infrastructure.database.connection import DatabaseConnection
-from src.pdftranslator.services.glossary.infrastructure.database.migrations import run_migrations
 
 logging.basicConfig(
     level=logging.INFO,
@@ -36,7 +35,10 @@ async def run_migrations() -> None:
     db = DatabaseConnection(settings)
     await db.connect()
     try:
-        await run_migrations(db)
+        # Use the actual pool connection for migrations
+        async with db.connection() as conn:
+            from src.pdftranslator.services.glossary.infrastructure.database.migrations import run_migrations
+            await run_migrations(conn)
         logger.info("Migrations completed successfully")
     finally:
         await db.close()
