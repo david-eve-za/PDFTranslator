@@ -30,7 +30,7 @@ from pdftranslator.services.glossary.infrastructure.database.repositories import
 @pytest.fixture
 async def db_connection():
     """Create in-memory database for testing."""
-    from pdftranslator.services.glossary.config.settings import GlossarySettings
+    from pdftranslator.services.glossary.config import GlossarySettings
     settings = GlossarySettings(database_path=":memory:")
     db = DatabaseConnection(settings)
     await db.connect()

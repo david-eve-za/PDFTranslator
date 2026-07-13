@@ -9,7 +9,7 @@ import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
-from src.pdftranslator.services.glossary.config.settings import GlossarySettings
+from src.pdftranslator.services.glossary.config import GlossarySettings
 from src.pdftranslator.services.glossary.infrastructure.database.connection import DatabaseConnection
 from src.pdftranslator.services.glossary.infrastructure.database.migrations import run_migrations
 from src.pdftranslator.services.glossary.main import create_app
