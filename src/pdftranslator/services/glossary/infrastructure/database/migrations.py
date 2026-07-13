@@ -11,6 +11,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List
 
+import aiosqlite
+
 
 @dataclass(frozen=True)
 class Migration:
@@ -293,3 +295,35 @@ MIGRATIONS: List[Migration] = [
         ],
     ),
 ]
+
+
+# ============================================================================
+# MIGRATION RUNNER
+# ============================================================================
+
+async def run_migrations(db: aiosqlite.Connection) -> None:
+    """Run all pending migrations on the database connection."""
+    # Create migrations table
+    await db.execute("""
+        CREATE TABLE IF NOT EXISTS _migrations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name VARCHAR(255) NOT NULL UNIQUE,
+            applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Get applied migrations
+    cursor = await db.execute("SELECT name FROM _migrations")
+    applied = {row[0] for row in await cursor.fetchall()}
+
+    # Apply pending migrations
+    for migration in MIGRATIONS:
+        if migration.name not in applied:
+            print(f"Applying migration: {migration.name}")
+            for statement in migration.statements:
+                await db.execute(statement)
+            await db.execute(
+                "INSERT INTO _migrations (name) VALUES (?)",
+                (migration.name,),
+            )
+            await db.commit()
