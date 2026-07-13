@@ -10,7 +10,7 @@ from __future__ import annotations
 from functools import lru_cache
 from fastapi import Depends
 
-from ...config import GlossarySettings
+from ..config import GlossarySettings
 from ...infrastructure.database.connection import DatabaseConnection
 from ...infrastructure.database.repositories import SQLiteGlossaryUnitOfWork
 from ...domain.services.glossary_service import GlossaryService
