@@ -114,6 +114,7 @@ class GlossarySettings(BaseSettings):
         env_file = ".env"
         env_prefix = "GLOSSARY_"
         case_sensitive = False
+        extra = "allow"
 
 
 # For convenience in code that needs settings
