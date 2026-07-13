@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
 
-from ...config.settings import GlossarySettings
+from ....config import GlossarySettings
 
 
 class DatabaseConnection:

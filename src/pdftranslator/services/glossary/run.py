@@ -17,7 +17,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.pdftranslator.services.glossary.config.settings import get_glossary_settings
+from src.pdftranslator.services.glossary.config import get_glossary_settings
 from src.pdftranslator.services.glossary.infrastructure.database.connection import DatabaseConnection
 from src.pdftranslator.services.glossary.infrastructure.database.migrations import run_migrations
 

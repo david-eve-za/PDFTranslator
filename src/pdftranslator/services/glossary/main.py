@@ -17,7 +17,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from .config.settings import GlossarySettings, get_glossary_settings
+from .config import GlossarySettings, get_glossary_settings
 from .api.routes import glossary as glossary_routes
 from .api.routes import health as health_routes
 from .infrastructure.database.connection import DatabaseConnection

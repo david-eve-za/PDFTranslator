@@ -13,7 +13,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from ...config.settings import GlossarySettings
+from ....config import GlossarySettings
 from ...infrastructure.database.connection import DatabaseConnection
 from ...api.dependencies import get_database_connection
 
