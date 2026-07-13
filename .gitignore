@@ -153,4 +153,6 @@ baseline_test_results.txt
 *.tmp
 
 # Output directories (generated content)
-audiobooks/
+audiobooks/*.db
+*.db-shm
+*.db-wal
