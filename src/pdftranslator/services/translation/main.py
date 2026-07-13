@@ -20,7 +20,7 @@ import logging
 from .config.settings import TranslationSettings
 from .infrastructure.database.connection import DatabaseConnection
 from .infrastructure.database.migrations import run_migrations
-from .api.routes import jobs_router_router
+from .api.routes import jobs_router, pipeline_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,10 +35,8 @@ async def lifespan(app: FastAPI):
     await db.connect()
 
     # Run database migrations
-    await run_migrations(
-        settings.database_path,
-        Path(__file__).parent / "infrastructure" / "database" / "migrations",
-    )
+    async with db.connection() as conn:
+        await run_migrations(conn)
 
     logger.info("Translation service started on %s:%s", settings.host, settings.port)
 
@@ -95,6 +93,7 @@ def create_app() -> FastAPI:
 
     # Include routers
     app.include_router(jobs_router)
+    app.include_router(pipeline_router)
 
     return app
 

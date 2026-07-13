@@ -3,7 +3,7 @@ Translation Job API Routes.
 """
 
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from ...domain.services.translation_service import TranslationService, CreateJobCommand

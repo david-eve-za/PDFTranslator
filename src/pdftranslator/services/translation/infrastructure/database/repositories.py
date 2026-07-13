@@ -8,7 +8,8 @@ from datetime import datetime
 import json
 import aiosqlite
 
-from ...domain.models.job import TranslationJob, JobStatus, JobPriority
+from ...domain.models.job import TranslationJob
+from ...domain.models.enums import JobStatus, JobPriority
 from ...domain.models.segment import Segment
 from ...domain.models.glossary_ref import GlossaryReference
 from ...domain.repositories.protocols import (
@@ -17,6 +18,10 @@ from ...domain.repositories.protocols import (
     TranslationUnitOfWork,
     PaginationParams,
     PaginatedResult,
+    TranslationPipelineRepository,
+    TranslationPipelineStageRepository,
+    TranslationPipeline,
+    PipelineStage,
 )
 from ...domain.repositories.exceptions import DomainError, NotFoundError
 from .connection import DatabaseConnection
@@ -243,6 +248,8 @@ class SQLiteUnitOfWork(TranslationUnitOfWork):
         self._db = db
         self._jobs: Optional[SQLiteJobRepository] = None
         self._segments: Optional[SQLiteSegmentRepository] = None
+        self._pipelines: Optional[SQLitePipelineRepository] = None
+        self._pipeline_stages: Optional[SQLitePipelineStageRepository] = None
         self._committed = False
 
     @property
@@ -257,6 +264,18 @@ class SQLiteUnitOfWork(TranslationUnitOfWork):
             self._segments = SQLiteSegmentRepository(self._db)
         return self._segments
 
+    @property
+    def pipelines(self) -> SQLitePipelineRepository:
+        if self._pipelines is None:
+            self._pipelines = SQLitePipelineRepository(self._db)
+        return self._pipelines
+
+    @property
+    def pipeline_stages(self) -> SQLitePipelineStageRepository:
+        if self._pipeline_stages is None:
+            self._pipeline_stages = SQLitePipelineStageRepository(self._db)
+        return self._pipeline_stages
+
     async def commit(self) -> None:
         self._committed = True
 
@@ -268,3 +287,137 @@ class SQLiteUnitOfWork(TranslationUnitOfWork):
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         pass
+
+
+# =================== PIPELINE REPOSITORIES ===================
+
+class SQLitePipelineRepository(TranslationPipelineRepository):
+    def __init__(self, db: DatabaseConnection):
+        self._db = db
+
+    async def get_by_job_id(self, job_id: int) -> Optional[TranslationPipeline]:
+        async with self._db.read_only() as conn:
+            cursor = await conn.execute("SELECT * FROM translation_pipelines WHERE job_id = ?", (job_id,))
+            row = await cursor.fetchone()
+            if not row:
+                return None
+            return self._row_to_pipeline(row)
+
+    async def create(self, pipeline: TranslationPipeline) -> TranslationPipeline:
+        async with self._db.transaction() as conn:
+            now = datetime.utcnow().isoformat()
+            pipeline.created_at = now
+            pipeline.updated_at = now
+            await conn.execute(
+                """
+                INSERT INTO translation_pipelines (
+                    id, job_id, work_id, volume_id, source_lang, target_lang,
+                    status, current_stage, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    pipeline.id, pipeline.job_id, pipeline.work_id, pipeline.volume_id,
+                    pipeline.source_lang, pipeline.target_lang, pipeline.status,
+                    pipeline.current_stage, pipeline.created_at, pipeline.updated_at,
+                ),
+            )
+            return pipeline
+
+    async def update(self, pipeline: TranslationPipeline) -> TranslationPipeline:
+        async with self._db.transaction() as conn:
+            pipeline.updated_at = datetime.utcnow().isoformat()
+            await conn.execute(
+                """
+                UPDATE translation_pipelines SET
+                    status = ?, current_stage = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (pipeline.status, pipeline.current_stage, pipeline.updated_at, pipeline.id),
+            )
+            return pipeline
+
+    async def delete(self, pipeline_id: str) -> bool:
+        async with self._db.transaction() as conn:
+            cursor = await conn.execute("DELETE FROM translation_pipelines WHERE id = ?", (pipeline_id,))
+            return cursor.rowcount > 0
+
+    def _row_to_pipeline(self, row: aiosqlite.Row) -> TranslationPipeline:
+        from dataclasses import replace
+        return TranslationPipeline(
+            id=row["id"],
+            job_id=row["job_id"],
+            work_id=row["work_id"],
+            volume_id=row["volume_id"],
+            source_lang=row["source_lang"],
+            target_lang=row["target_lang"],
+            status=row["status"],
+            current_stage=row["current_stage"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+        )
+
+
+class SQLitePipelineStageRepository(TranslationPipelineStageRepository):
+    def __init__(self, db: DatabaseConnection):
+        self._db = db
+
+    async def get_by_pipeline_id(self, pipeline_id: str) -> List[PipelineStage]:
+        async with self._db.read_only() as conn:
+            cursor = await conn.execute("SELECT * FROM translation_pipeline_stages WHERE pipeline_id = ? ORDER BY id", (pipeline_id,))
+            rows = await cursor.fetchall()
+            return [self._row_to_stage(row) for row in rows]
+
+    async def create(self, stage: PipelineStage) -> PipelineStage:
+        async with self._db.transaction() as conn:
+            now = datetime.utcnow().isoformat()
+            stage.created_at = now
+            stage.updated_at = now
+            cursor = await conn.execute(
+                """
+                INSERT INTO translation_pipeline_stages (
+                    pipeline_id, name, status, input_data, output_data, error_message,
+                    started_at, completed_at, retry_count, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    stage.pipeline_id, stage.name, stage.status, stage.input_data,
+                    stage.output_data, stage.error_message, stage.started_at,
+                    stage.completed_at, stage.retry_count, stage.created_at, stage.updated_at,
+                ),
+            )
+            stage.id = cursor.lastrowid
+            return stage
+
+    async def update(self, stage: PipelineStage) -> PipelineStage:
+        async with self._db.transaction() as conn:
+            stage.updated_at = datetime.utcnow().isoformat()
+            await conn.execute(
+                """
+                UPDATE translation_pipeline_stages SET
+                    status = ?, input_data = ?, output_data = ?, error_message = ?,
+                    started_at = ?, completed_at = ?, retry_count = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    stage.status, stage.input_data, stage.output_data, stage.error_message,
+                    stage.started_at, stage.completed_at, stage.retry_count,
+                    stage.updated_at, stage.id,
+                ),
+            )
+            return stage
+
+    def _row_to_stage(self, row: aiosqlite.Row) -> PipelineStage:
+        return PipelineStage(
+            id=row["id"],
+            pipeline_id=row["pipeline_id"],
+            name=row["name"],
+            status=row["status"],
+            input_data=row["input_data"],
+            output_data=row["output_data"],
+            error_message=row["error_message"],
+            started_at=row["started_at"],
+            completed_at=row["completed_at"],
+            retry_count=row["retry_count"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+        )

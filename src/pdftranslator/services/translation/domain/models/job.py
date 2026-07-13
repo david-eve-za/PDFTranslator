@@ -12,30 +12,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, List
 from uuid import UUID, uuid4
-from enum import Enum
 
 from .segment import Segment
 from .glossary_ref import GlossaryReference
+from .enums import JobStatus, JobPriority
 from ..repositories.exceptions import DomainError
-
-
-class JobStatus(str, Enum):
-    """Translation job status state machine."""
-    PENDING = "pending"
-    QUEUED = "queued"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    PAUSED = "paused"
-    CANCELLED = "cancelled"
-
-
-class JobPriority(int, Enum):
-    """Job priority levels."""
-    LOW = 0
-    NORMAL = 50
-    HIGH = 100
-    URGENT = 200
 
 
 @dataclass

@@ -46,3 +46,4 @@ class TranslationSettings(BaseSettings):
         env_file = ".env"
         env_prefix = "TRANSLATION_"
         case_sensitive = False
+        extra = "allow"

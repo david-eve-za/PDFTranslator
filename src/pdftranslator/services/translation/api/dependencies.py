@@ -10,10 +10,10 @@ from __future__ import annotations
 from functools import lru_cache
 from fastapi import Depends
 
-from ...config.settings import TranslationSettings
-from ...infrastructure.database.connection import DatabaseConnection
-from ...infrastructure.database.repositories import SQLiteUnitOfWork
-from ...domain.services.translation_service import TranslationService
+from ..config.settings import TranslationSettings
+from ..infrastructure.database.connection import DatabaseConnection
+from ..infrastructure.database.repositories import SQLiteUnitOfWork
+from ..domain.services.translation_service import TranslationService
 
 
 @lru_cache()

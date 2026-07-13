@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Sprint 2.2: Translation Service HTTP Microservice (v0.5.0)
+  - 5-stage translation pipeline: Detect → Segment → Translate → Quality-Check → Store
+  - Individual stage endpoints for independent testing/debugging
+  - Pipeline management: /pipelines/run, GET /pipelines/{job_id}, POST /pipelines/{job_id}/resume
+  - Language detection with confidence scoring and text statistics
+  - Sentence-based text segmentation with configurable max length
+  - LLM-powered translation with configurable provider/model/temperature
+  - Quality checks: completeness, terminology, fluency, consistency, formatting
+  - Translation persistence with automatic job completion
+  - Pipeline state tracking (pending→running→completed/failed/paused/cancelled)
+  - Database migrations for translation_pipelines and translation_pipeline_stages tables
+  - Contract tests for all pipeline endpoints
+
+### Added
 - Sprint 1.4: Event Schemas (CloudEvents + Avro) (v0.4.0)
   - Avro schemas for core domain events: WorkCreated, DocumentExtracted, GlossaryBuilt, TranslationCompleted, AudioGenerated, JobStatusChanged
   - CloudEvents 1.0 envelope specification with trace context propagation

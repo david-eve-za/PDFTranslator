@@ -31,16 +31,22 @@ class DatabaseConnection:
             self._pool = None
 
     @asynccontextmanager
-    async def transaction(self) -> AsyncGenerator[aiosqlite.Connection, None]:
-        if not self._pool:
+    async def connection(self) -> AsyncGenerator[aiosqlite.Connection, None]:
+        """Get database connection from pool."""
+        if self._pool is None:
             await self.connect()
-        async with self._pool.cursor() as cursor:
+        yield self._pool
+
+    @asynccontextmanager
+    async def transaction(self) -> AsyncGenerator[aiosqlite.Connection, None]:
+        """Get a transaction context."""
+        async with self.connection() as conn:
             try:
-                await cursor.execute("BEGIN")
-                yield self._pool
-                await self._pool.commit()
+                await conn.execute("BEGIN")
+                yield conn
+                await conn.commit()
             except Exception:
-                await self._pool.rollback()
+                await conn.rollback()
                 raise
 
     @asynccontextmanager
