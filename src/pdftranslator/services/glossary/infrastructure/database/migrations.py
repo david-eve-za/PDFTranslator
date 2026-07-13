@@ -298,11 +298,16 @@ MIGRATIONS: List[Migration] = [
 
 
 # ============================================================================
-# MIGRATION RUNNER
+# STANDALONE MIGRATION RUNNER
 # ============================================================================
 
 async def run_migrations(db: aiosqlite.Connection) -> None:
-    """Run all pending migrations on the database connection."""
+    """
+    Run pending migrations on the given database connection.
+
+    Args:
+        db: Connected aiosqlite.Connection with row_factory set
+    """
     # Create migrations table
     await db.execute("""
         CREATE TABLE IF NOT EXISTS _migrations (
