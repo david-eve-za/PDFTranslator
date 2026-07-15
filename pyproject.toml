@@ -12,7 +12,7 @@ requires-python = ">=3.11"
 authors = [
     {name = "David Gonzalez", email = "david@example.com"}
 ]
-keywords = ["pdf", "epub", "translation", "llm", "nvidia", "glossary", "ai", "nlp"]
+keywords = ["pdf", "epub", "translation", "llm", "nvidia", "glossary", "ai", "nlp", "text-processing"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -32,6 +32,7 @@ dependencies = [
     "pydantic-settings>=2.0.0",
     "aiosqlite>=0.20.0",
     "sentencepiece>=0.2",
+    "tiktoken>=0.7.0",
     "langchain-nvidia-ai-endpoints>=0.3.0",
     "langchain-core>=0.3.0",
     "langchain-text-splitters>=0.3.0",
@@ -78,6 +79,7 @@ all = [
 [project.scripts]
 pdftranslator = "pdftranslator.__main__:main"
 pdfagent = "pdftranslator.__main__:main"
+pdftranslator-text = "pdftranslator.text_processing.cli.main:app"
 
 [project.urls]
 Homepage = "https://github.com/david-eve-za/PDFTranslator"
