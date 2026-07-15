@@ -5,7 +5,7 @@ CUPID Principle: Composable - Modular core components.
 
 from .chunker import TextChunker, Tokenizer
 from .overlap import OverlapHandler, OverlapResult
-from .normalizer import TextNormalizer, NormalizationConfig, clean_for_tokenization
+from .normalizer import TextNormalizer, NormalizationForm, clean_for_tokenization
 
 __all__ = [
     "TextChunker",
@@ -13,6 +13,6 @@ __all__ = [
     "OverlapHandler",
     "OverlapResult",
     "TextNormalizer",
-    "NormalizationConfig",
+    "NormalizationForm",
     "clean_for_tokenization",
 ]
