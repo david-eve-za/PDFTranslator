@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.6.0] - 2026-07-14
+
+### Added
+- Sprint 2.3: Text Processing Library + CLI (v0.1.0)
+  - **TextChunker** with 4 splitting strategies: tokens, sentences, paragraphs, characters
+  - **OverlapHandler** for context preservation between consecutive chunks
+  - **TextNormalizer** with Unicode normalization (NFC/NFD/NFKC/NFKD), smart quotes/dashes/ellipsis
+  - **Tokenizer** wrapper with tiktoken caching (cl100k_base, o200k_base, p50k_base, r50k_base)
+  - **CLI: pdftranslator-text** with commands: chunk, tokenize, analyze, config
+  - Deterministic token-bounded chunking with configurable overlap
+  - Stdin/stdout pipeline support for Unix philosophy composition
+  - Rich output formatting: JSON, JSONL, text, tables
+  - Factory configs: for_translation(), for_embedding()
+  - CUPID-compliant: domain models with invariants, pure functions, typed protocols
+
 ## [v0.5.0] - 2026-07-13
 
 ### Added
