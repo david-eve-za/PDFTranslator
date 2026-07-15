@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.7.0] - 2026-07-14
+
+### Added
+- Sprint 2.4: Contract + Load Tests Phase 2
+  - **Contract Tests (43 tests)**: Full API contract coverage for text processing library
+    - TextChunker: deterministic chunking, all 4 strategies (tokens/sentences/paragraphs/characters)
+    - Tokenizer: singleton cache, encode/decode roundtrip, token counting consistency
+    - OverlapHandler: overlap application/removal with metadata tracking
+    - TextNormalizer: NFKC/NFD unicode, lowercase, control chars, dashes, ellipsis, whitespace
+    - ChunkConfig/NormalizationConfig: validation, factories (for_translation/for_embedding), serialization
+  - **Load Tests (15 tests)**: Performance baselines with latency percentiles
+    - TextChunker: sequential/concurrent for translation/embedding configs, all strategies
+    - Tokenizer: encoding performance under load, roundtrip consistency
+    - TextNormalizer: concurrent translation config normalization
+    - OverlapHandler: sequential and concurrent overlap application
+    - Full Pipeline: normalize→chunk→overlap under concurrent load (p50/p95/p99)
+    - Memory Stability: sustained operations without leaks (100+ iterations)
+
+### Changed
+- Consolidated NormalizationConfig into single source of truth in models.config (eliminated duplicate in core/normalizer.py)
+- Updated core.normalizer to use models.config with enum fields (NormalizationForm)
+- Fixed pytest configuration for proper src-layout test discovery
+- Added load/slow markers and pact-python, locust to dev dependencies
+
+### CUPID
+- Predictable: Deterministic chunking behavior verified across all strategies
+- Composable: Modular test components (contract, load, pipeline) can run independently
+- Unix Philosophy: Each test targets one behavior, pure functions with no side effects
+- Idiomatic: Uses pytest fixtures, parametrize, standard assertions
+- Domain-Focused: Tests mirror translation/embedding use cases
+
 ## [v0.6.0] - 2026-07-14
 
 ### Added
