@@ -9,24 +9,11 @@ import unicodedata
 from typing import Optional
 from dataclasses import dataclass, field
 
+from ..models.config import NormalizationConfig, NormalizationForm
 
-@dataclass(frozen=True, slots=True)
-class NormalizationConfig:
-    """Configuration for text normalization."""
 
-    unicode_normalize: bool = True
-    normalize_form: str = "NFKC"
-    remove_control_chars: bool = True
-    collapse_whitespace: bool = True
-    normalize_line_endings: bool = True
-    strip_margin: bool = False
-    margin_char: str = "|"
-    lower_case: bool = False
-    remove_duplicate_punctuation: bool = False
-
-    def __post_init__(self) -> None:
-        if self.normalize_form not in ("NFC", "NFD", "NFKC", "NFKD"):
-            raise ValueError("normalize_form must be NFC, NFD, NFKC, or NFKD")
+# Re-export the models config for backward compatibility
+__all__ = ["TextNormalizer", "NormalizationConfig", "NormalizationForm"]
 
 
 class TextNormalizer:
@@ -36,13 +23,13 @@ class TextNormalizer:
     """
 
     def __init__(self, config: Optional[NormalizationConfig] = None):
-        self._config = config or NormalizationConfig()
+        self._config = config or NormalizationConfig.for_translation()
 
     def normalize(self, text: str) -> str:
         """Apply all configured normalizations."""
         result = text
 
-        if self._config.unicode_normalize:
+        if self._config.unicode_form:
             result = self._normalize_unicode(result)
 
         if self._config.remove_control_chars:
@@ -51,23 +38,26 @@ class TextNormalizer:
         if self._config.collapse_whitespace:
             result = self._collapse_whitespace(result)
 
-        if self._config.normalize_line_endings:
-            result = self._normalize_line_endings(result)
-
-        if self._config.strip_margin:
-            result = self._strip_margin(result)
+        if self._config.strip_whitespace:
+            result = result.strip()
 
         if self._config.lower_case:
             result = result.lower()
 
-        if self._config.remove_duplicate_punctuation:
-            result = self._remove_duplicate_punctuation(result)
+        if self._config.normalize_quotes:
+            result = self._normalize_quotes(result)
 
-        return result.strip()
+        if self._config.normalize_dashes:
+            result = self._normalize_dashes(result)
+
+        if self._config.normalize_ellipsis:
+            result = self._normalize_ellipsis(result)
+
+        return result
 
     def _normalize_unicode(self, text: str) -> str:
         """Normalize Unicode characters."""
-        return unicodedata.normalize(self._config.normalize_form, text)
+        return unicodedata.normalize(self._config.unicode_form.value, text)
 
     def _remove_control_chars(self, text: str) -> str:
         """Remove control characters except common whitespace."""
@@ -83,26 +73,17 @@ class TextNormalizer:
         processed = [re.sub(r"[ \t]+", " ", line).strip() for line in lines]
         return "\n".join(processed)
 
-    def _normalize_line_endings(self, text: str) -> str:
-        """Normalize all line endings to \n."""
-        return text.replace("\r\n", "\n").replace("\r", "\n")
+    def _normalize_quotes(self, text: str) -> str:
+        """Normalize smart quotes to straight quotes."""
+        return text.replace(""", '"').replace(""", '"').replace("'", "'").replace("'", "'")
 
-    def _strip_margin(self, text: str) -> str:
-        """Strip margin characters from multi-line strings."""
-        lines = text.split("\n")
-        processed = []
-        for line in lines:
-            index = line.find(self._config.margin_char)
-            if index >= 0:
-                processed.append(line[index + 1 :])
-            else:
-                processed.append(line)
-        return "\n".join(processed)
+    def _normalize_dashes(self, text: str) -> str:
+        """Normalize em/en dashes to hyphen."""
+        return text.replace("—", "-").replace("–", "-")
 
-    def _remove_duplicate_punctuation(self, text: str) -> str:
-        """Remove repeated punctuation marks."""
-        # Replace 3+ same punctuation with 2
-        return re.sub(r"([.!?]){3,}", r"\1\1", text)
+    def _normalize_ellipsis(self, text: str) -> str:
+        """Normalize ellipsis character to three dots."""
+        return text.replace("…", "...")
 
 
 # Convenience functions for direct use

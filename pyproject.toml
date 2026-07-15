@@ -60,6 +60,8 @@ dev = [
     "httpx>=0.27.0",
     "idna>=3.7",
     "shellingham>=1.5",
+    "pact-python>=1.6.0",
+    "locust>=2.15.0",
 ]
 gemini = [
     "google-genai>=0.2.0",
@@ -144,14 +146,14 @@ module = [
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "src/pdftranslator/text_processing/tests", "src/pdftranslator/services/glossary/tests"]
+pythonpath = ["src"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
-python_functions = ["test_*"]
-addopts = "-v --tb=short --strict-markers"
 markers = [
     "integration: marks tests as integration tests",
     "slow: marks tests as slow running",
+    "load: marks tests as load/performance tests",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
