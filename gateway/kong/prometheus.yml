@@ -1,0 +1,40 @@
+# Prometheus Configuration for Kong metrics
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'pdftranslator'
+    environment: 'development'
+
+scrape_configs:
+  # Kong metrics
+  - job_name: 'kong'
+    static_configs:
+      - targets: ['kong:8001']
+    metrics_path: '/metrics'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'pdftranslator-kong'
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node exporter (if available)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['host.docker.internal:9100']
+
+  # Custom application metrics (translation service, etc.)
+  - job_name: 'pdftranslator-services'
+    static_configs:
+      - targets: ['translation-service:8003', 'catalog-service:8001', 'glossary-service:8002']
+        labels:
+          service: 'translation'
+      - targets: ['document-service:8004', 'audio-service:8005']
+        labels:
+          service: 'processing'
+    metrics_path: '/metrics'
+    scrape_interval: 30s

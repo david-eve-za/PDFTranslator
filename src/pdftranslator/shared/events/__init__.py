@@ -1,26 +1,18 @@
 """
-Shared Event Models for PDFTranslator (Generated from Avro schemas).
+Shared Event Models for PDFTranslator.
 
-This package provides:
-1. Python dataclasses for all event payloads (generated from Avro)
-2. CloudEvents 1.0 envelope handling
-3. Avro serialization with Schema Registry support
-4. Kafka producer/consumer helpers
+This is a namespace package that re-exports the main python module.
 """
 
-from .cloudevents import (
+from .python import (
     CloudEvent,
     EventTypes,
     EventSources,
     create_event,
-)
-from .serialization import (
     AvroSerializer,
     SchemaRegistryClient,
     serialize_event,
     deserialize_event,
-)
-from .client import (
     EventPublisher,
     KafkaConfig,
     TopicConfig,
@@ -33,17 +25,14 @@ from .client import (
 )
 
 __all__ = [
-    # CloudEvents
     "CloudEvent",
     "EventTypes",
     "EventSources",
     "create_event",
-    # Serialization
     "AvroSerializer",
     "SchemaRegistryClient",
     "serialize_event",
     "deserialize_event",
-    # Client
     "EventPublisher",
     "KafkaConfig",
     "TopicConfig",

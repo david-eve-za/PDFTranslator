@@ -1,0 +1,500 @@
+# Kong Declarative Configuration for PDFTranslator
+# This file defines all routes, services, and plugins for the API Gateway.
+# Apply with: kong config apply kong.yml OR docker run --rm -v $(pwd):/kong kong:3.4 kong config apply /kong/kong.yml
+
+_format_version: "3.0"
+_transform: true
+
+# =================== SERVICES ===================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Catalog Service - Library management (Works, Volumes, Chapters)
+  # ---------------------------------------------------------------------------
+  - name: catalog-service
+    url: http://catalog-service:8001
+    routes:
+      - name: catalog-works
+        paths:
+          - /api/v1/catalog/works
+        methods:
+          - GET
+          - POST
+        strip_path: false
+      - name: catalog-works-detail
+        paths:
+          - /api/v1/catalog/works/
+        methods:
+          - GET
+          - PUT
+          - DELETE
+        strip_path: false
+      - name: catalog-volumes
+        paths:
+          - /api/v1/catalog/volumes
+        methods:
+          - GET
+          - POST
+        strip_path: false
+      - name: catalog-volumes-detail
+        paths:
+          - /api/v1/catalog/volumes/
+        methods:
+          - GET
+          - PUT
+          - DELETE
+        strip_path: false
+      - name: catalog-chapters
+        paths:
+          - /api/v1/catalog/chapters
+        methods:
+          - GET
+          - POST
+        strip_path: false
+      - name: catalog-chapters-detail
+        paths:
+          - /api/v1/catalog/chapters/
+        methods:
+          - GET
+          - PUT
+          - DELETE
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 100
+          hour: 1000
+          policy: local
+          fault_tolerant: true
+          hide_client_headers: false
+      - name: request-transformer
+        config:
+          add:
+            headers:
+              - "X-Service-Name:catalog-service"
+      - name: correlation-id
+        config:
+          header_name: X-Request-ID
+          generator: uuid
+          echo_downstream: true
+
+  # ---------------------------------------------------------------------------
+  # Glossary Service - Terminology management
+  # ---------------------------------------------------------------------------
+  - name: glossary-service
+    url: http://glossary-service:8002
+    routes:
+      - name: glossaries
+        paths:
+          - /api/v1/glossaries
+        methods:
+          - GET
+          - POST
+        strip_path: false
+      - name: glossaries-detail
+        paths:
+          - /api/v1/glossaries/
+        methods:
+          - GET
+          - PATCH
+          - DELETE
+        strip_path: false
+      - name: glossary-by-work
+        paths:
+          - /api/v1/glossaries/work/
+        methods:
+          - GET
+        strip_path: false
+      - name: glossary-entries
+        paths:
+          - /api/v1/glossaries//entries
+        methods:
+          - GET
+          - POST
+        strip_path: false
+      - name: glossary-entries-detail
+        paths:
+          - /api/v1/glossaries//entries/
+        methods:
+          - GET
+          - PATCH
+          - DELETE
+        strip_path: false
+      - name: glossary-search
+        paths:
+          - /api/v1/glossaries//search
+        methods:
+          - GET
+        strip_path: false
+      - name: glossary-build
+        paths:
+          - /api/v1/glossaries/build
+        methods:
+          - POST
+        strip_path: false
+      - name: glossary-pipelines
+        paths:
+          - /api/v1/glossaries/pipelines
+        methods:
+          - GET
+        strip_path: false
+      - name: glossary-pipeline-detail
+        paths:
+          - /api/v1/glossaries/pipelines/
+        methods:
+          - GET
+          - POST
+        strip_path: false
+      - name: glossary-stage-extract
+        paths:
+          - /api/v1/glossaries/pipelines/stages/extract
+        methods:
+          - POST
+        strip_path: false
+      - name: glossary-stage-filter
+        paths:
+          - /api/v1/glossaries/pipelines/stages/filter
+        methods:
+          - POST
+        strip_path: false
+      - name: glossary-stage-validate
+        paths:
+          - /api/v1/glossaries/pipelines/stages/validate
+        methods:
+          - POST
+        strip_path: false
+      - name: glossary-stage-embed
+        paths:
+          - /api/v1/glossaries/pipelines/stages/embed
+        methods:
+          - POST
+        strip_path: false
+      - name: glossary-stage-translate
+        paths:
+          - /api/v1/glossaries/pipelines/stages/translate
+        methods:
+          - POST
+        strip_path: false
+      - name: glossary-stage-store
+        paths:
+          - /api/v1/glossaries/pipelines/stages/store
+        methods:
+          - POST
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 60
+          hour: 500
+          policy: local
+          fault_tolerant: true
+      - name: request-transformer
+        config:
+          add:
+            headers:
+              - "X-Service-Name:glossary-service"
+      - name: correlation-id
+        config:
+          header_name: X-Request-ID
+          generator: uuid
+          echo_downstream: true
+
+  # ---------------------------------------------------------------------------
+  # Translation Service - Job orchestration & Pipeline execution
+  # ---------------------------------------------------------------------------
+  - name: translation-service
+    url: http://translation-service:8003
+    routes:
+      - name: translation-jobs
+        paths:
+          - /api/v1/translation/jobs
+        methods:
+          - GET
+          - POST
+        strip_path: false
+      - name: translation-jobs-detail
+        paths:
+          - /api/v1/translation/jobs/
+        methods:
+          - GET
+          - PUT
+          - DELETE
+        strip_path: false
+      - name: translation-job-segments
+        paths:
+          - /api/v1/translation/jobs//segments
+        methods:
+          - GET
+        strip_path: false
+      - name: translation-job-status
+        paths:
+          - /api/v1/translation/jobs//status
+        methods:
+          - PUT
+        strip_path: false
+      - name: translation-pipelines-run
+        paths:
+          - /api/v1/translation/pipelines/run
+        methods:
+          - POST
+        strip_path: false
+      - name: translation-pipeline-status
+        paths:
+          - /api/v1/translation/pipelines/
+        methods:
+          - GET
+          - POST
+        strip_path: false
+      - name: translation-pipeline-resume
+        paths:
+          - /api/v1/translation/pipelines//resume
+        methods:
+          - POST
+        strip_path: false
+      - name: translation-stage-detect
+        paths:
+          - /api/v1/translation/pipelines/stages/detect
+        methods:
+          - POST
+        strip_path: false
+      - name: translation-stage-segment
+        paths:
+          - /api/v1/translation/pipelines/stages/segment
+        methods:
+          - POST
+        strip_path: false
+      - name: translation-stage-translate
+        paths:
+          - /api/v1/translation/pipelines/stages/translate
+        methods:
+          - POST
+        strip_path: false
+      - name: translation-stage-quality-check
+        paths:
+          - /api/v1/translation/pipelines/stages/quality-check
+        methods:
+          - POST
+        strip_path: false
+      - name: translation-stage-store
+        paths:
+          - /api/v1/translation/pipelines/stages/store
+        methods:
+          - POST
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 30
+          hour: 200
+          policy: local
+          fault_tolerant: true
+      - name: request-transformer
+        config:
+          add:
+            headers:
+              - "X-Service-Name:translation-service"
+      - name: correlation-id
+        config:
+          header_name: X-Request-ID
+          generator: uuid
+          echo_downstream: true
+      - name: request-size-limiting
+        config:
+          allowed_payload_size: 128
+          require_content_length: true
+
+  # ---------------------------------------------------------------------------
+  # Document Extraction Service - PDF/DOCX processing
+  # ---------------------------------------------------------------------------
+  - name: document-service
+    url: http://document-service:8004
+    routes:
+      - name: document-extract
+        paths:
+          - /api/v1/documents/extract
+        methods:
+          - POST
+        strip_path: false
+      - name: document-extract-batch
+        paths:
+          - /api/v1/documents/extract/batch
+        methods:
+          - POST
+        strip_path: false
+      - name: document-formats
+        paths:
+          - /api/v1/documents/formats
+        methods:
+          - GET
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 10
+          hour: 50
+          policy: local
+          fault_tolerant: true
+      - name: request-transformer
+        config:
+          add:
+            headers:
+              - "X-Service-Name:document-service"
+      - name: correlation-id
+        config:
+          header_name: X-Request-ID
+          generator: uuid
+          echo_downstream: true
+      - name: request-size-limiting
+        config:
+          allowed_payload_size: 512
+          require_content_length: true
+
+  # ---------------------------------------------------------------------------
+  # Audio Service - TTS audiobook generation (Rust)
+  # ---------------------------------------------------------------------------
+  - name: audio-service
+    url: http://audio-service:8005
+    routes:
+      - name: audio-generate
+        paths:
+          - /api/v1/audio/generate
+        methods:
+          - POST
+        strip_path: false
+      - name: audio-voices
+        paths:
+          - /api/v1/audio/voices
+        methods:
+          - GET
+        strip_path: false
+      - name: audio-info
+        paths:
+          - /api/v1/audio/info
+        methods:
+          - GET
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 5
+          hour: 20
+          policy: local
+          fault_tolerant: true
+      - name: request-transformer
+        config:
+          add:
+            headers:
+              - "X-Service-Name:audio-service"
+      - name: correlation-id
+        config:
+          header_name: X-Request-ID
+          generator: uuid
+          echo_downstream: true
+      - name: request-size-limiting
+        config:
+          allowed_payload_size: 256
+          require_content_length: true
+
+# =================== CONSUMERS (for API Key auth) ===================
+
+consumers:
+  - username: pdftranslator-frontend
+    custom_id: frontend-app
+    plugins:
+      - name: key-auth
+        config:
+          key: pdftranslator-frontend-key-{{ env "FRONTEND_API_KEY" }}
+
+  - username: pdftranslator-admin
+    custom_id: admin-app
+    plugins:
+      - name: key-auth
+        config:
+          key: pdftranslator-admin-key-{{ env "ADMIN_API_KEY" }}
+
+  - username: pdftranslator-webhook
+    custom_id: webhook-receiver
+    plugins:
+      - name: key-auth
+        config:
+          key: pdftranslator-webhook-key-{{ env "WEBHOOK_API_KEY" }}
+
+# =================== GLOBAL PLUGINS ===================
+
+plugins:
+  # Global rate limiting (catch-all)
+  - name: rate-limiting
+    config:
+      minute: 1000
+      hour: 50000
+      policy: local
+      fault_tolerant: true
+      hide_client_headers: false
+
+  # CORS for frontend
+  - name: cors
+    config:
+      origins:
+        - "http://localhost:4200"
+        - "http://localhost:8080"
+        - "https://*.pdftranslator.app"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      headers:
+        - Accept
+        - Authorization
+        - Content-Type
+        - X-Request-ID
+        - X-Service-Name
+      exposed_headers:
+        - X-Request-ID
+        - X-Response-Time
+      credentials: true
+      max_age: 3600
+
+  # IP Restriction (optional - for admin endpoints)
+  - name: ip-restriction
+    config:
+      deny:
+        - "0.0.0.0/0"
+      whitelist:
+        - "127.0.0.1"
+        - "::1"
+      message: "Admin access only from localhost"
+
+  # Prometheus metrics
+  - name: prometheus
+    config:
+      per_consumer: true
+      latency_metrics: true
+      bandwidth_metrics: true
+      upstream_health_metrics: true
+
+  # Response transformer - add security headers
+  - name: response-transformer
+    config:
+      add:
+        headers:
+          - "X-Content-Type-Options:nosniff"
+          - "X-Frame-Options:DENY"
+          - "X-XSS-Protection:1; mode=block"
+          - "Referrer-Policy:strict-origin-when-cross-origin"
+          - "Content-Security-Policy:default-src 'self'"
+      remove:
+        headers:
+          - "Server"
+          - "X-Powered-By"
+
+  # Access logging
+  - name: http-log
+    config:
+      http_endpoint: http://logstash:5000
+      method: POST
+      content_type: application/json
+      timeout: 10000
+      keepalive: 1000

@@ -1,0 +1,181 @@
+# Kong API Gateway Docker Compose
+# Run with: docker-compose -f docker-compose.kong.yml up -d
+
+version: '3.8'
+
+services:
+  kong:
+    image: kong:3.4
+    container_name: pdftranslator-kong
+    env_file:
+      - .env
+    environment:
+      # Database (using PostgreSQL)
+      KONG_DATABASE: ${KONG_DATABASE:-postgres}
+      KONG_PG_HOST: ${KONG_PG_HOST:-kong-db}
+      KONG_PG_PORT: ${KONG_PG_PORT:-5432}
+      KONG_PG_USER: ${KONG_PG_USER:-kong}
+      KONG_PG_PASSWORD: ${KONG_PG_PASSWORD:-kong}
+      KONG_PG_DATABASE: ${KONG_PG_DATABASE:-kong}
+
+      # Declarative config (fallback if DB not used)
+      KONG_DECLARATIVE_CONFIG: /kong/kong.yml
+
+      # Proxy settings
+      KONG_PROXY_LISTEN: ${KONG_PROXY_LISTEN:-0.0.0.0:8000}
+      KONG_PROXY_LISTEN_SSL: ${KONG_PROXY_LISTEN_SSL:-0.0.0.0:8443}
+      KONG_ADMIN_LISTEN: ${KONG_ADMIN_LISTEN:-0.0.0.0:8001}
+      KONG_ADMIN_LISTEN_SSL: ${KONG_ADMIN_LISTEN_SSL:-0.0.0.0:8444}
+
+      # Logging
+      KONG_LOG_LEVEL: ${KONG_LOG_LEVEL:-info}
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+
+      # Plugins
+      KONG_PLUGINS: ${KONG_PLUGINS:-bundled,request-transformer,response-transformer,correlation-id,prometheus}
+
+      # Clustering (for production)
+      KONG_CLUSTER_LISTEN: 0.0.0.0:8005
+
+      # Security
+      KONG_TRUSTED_IPS: 0.0.0.0/0,::/0
+      KONG_REAL_IP_HEADER: X-Forwarded-For
+      KONG_REAL_IP_RECURSIVE: "on"
+
+      # Upstream service URLs
+      CATALOG_SERVICE_URL: ${CATALOG_SERVICE_URL:-http://catalog-service:8001}
+      GLOSSARY_SERVICE_URL: ${GLOSSARY_SERVICE_URL:-http://glossary-service:8002}
+      TRANSLATION_SERVICE_URL: ${TRANSLATION_SERVICE_URL:-http://translation-service:8003}
+      DOCUMENT_SERVICE_URL: ${DOCUMENT_SERVICE_URL:-http://document-service:8004}
+      AUDIO_SERVICE_URL: ${AUDIO_SERVICE_URL:-http://audio-service:8005}
+
+    ports:
+      - "8000:8000"    # Proxy HTTP
+      - "8443:8443"    # Proxy HTTPS
+      - "8001:8001"    # Admin API
+      - "8444:8444"    # Admin API HTTPS
+      - "8005:8005"    # Clustering
+
+    volumes:
+      - ./kong.yml:/kong/kong.yml:ro
+      - kong-data:/usr/local/kong
+
+    depends_on:
+      kong-db:
+        condition: service_healthy
+      kong-redis:
+        condition: service_started
+
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    networks:
+      - pdftranslator-network
+
+  kong-db:
+    image: postgres:15-alpine
+    container_name: pdftranslator-kong-db
+    environment:
+      POSTGRES_USER: kong
+      POSTGRES_PASSWORD: kong
+      POSTGRES_DB: kong
+    volumes:
+      - kong-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kong"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - pdftranslator-network
+
+  kong-redis:
+    image: redis:7-alpine
+    container_name: pdftranslator-kong-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - kong-redis-data:/data
+    networks:
+      - pdftranslator-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Konga UI for managing Kong (optional)
+  konga:
+    image: pantsel/konga:latest
+    container_name: pdftranslator-konga
+    env_file:
+      - .env
+    environment:
+      DB_ADAPTER: postgres
+      DB_URI: postgresql://kong:kong@kong-db:5432/konga
+      NODE_ENV: production
+    ports:
+      - "1337:1337"
+    depends_on:
+      kong-db:
+        condition: service_healthy
+    networks:
+      - pdftranslator-network
+
+  # Prometheus for metrics
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: pdftranslator-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    networks:
+      - pdftranslator-network
+
+  # Grafana for dashboards (optional)
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: pdftranslator-grafana
+    env_file:
+      - .env
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - pdftranslator-network
+
+networks:
+  pdftranslator-network:
+    driver: bridge
+    name: pdftranslator-network
+
+volumes:
+  kong-data:
+  kong-db-data:
+  kong-redis-data:
+  prometheus-data:
+  grafana-data:

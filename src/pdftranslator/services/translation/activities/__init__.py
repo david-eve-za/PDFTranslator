@@ -10,6 +10,23 @@ from pdftranslator.services.translation.activities.detect_language import (
     DetectLanguageOutput,
     detect_language_activity,
 )
+from pdftranslator.services.translation.activities.generate_audio import (
+    GenerateAudioInput,
+    GenerateAudioOutput,
+    generate_audio_activity,
+    generate_audio_activity_wrapper,
+)
+from pdftranslator.services.translation.activities.publish_events import (
+    PublishEventInput,
+    PublishEventOutput,
+    publish_event_activity,
+    publish_job_started_activity,
+    publish_job_completed_activity,
+    publish_job_failed_activity,
+    publish_step_completed_activity,
+    publish_audiobook_generated_activity,
+    shutdown_publisher,
+)
 from pdftranslator.services.translation.activities.quality_check import (
     QualityCheckInput,
     QualityCheckOutput,
@@ -29,12 +46,6 @@ from pdftranslator.services.translation.activities.translate_segments import (
     TranslateSegmentsInput,
     TranslateSegmentsOutput,
     translate_segments_activity,
-)
-from pdftranslator.services.translation.activities.generate_audio import (
-    GenerateAudioInput,
-    GenerateAudioOutput,
-    generate_audio_activity,
-    generate_audio_activity_wrapper,
 )
 
 __all__ = [
@@ -63,4 +74,14 @@ __all__ = [
     "generate_audio_activity_wrapper",
     "GenerateAudioInput",
     "GenerateAudioOutput",
+    # Event Publishing
+    "publish_event_activity",
+    "PublishEventInput",
+    "PublishEventOutput",
+    "publish_job_started_activity",
+    "publish_job_completed_activity",
+    "publish_job_failed_activity",
+    "publish_step_completed_activity",
+    "publish_audiobook_generated_activity",
+    "shutdown_publisher",
 ]

@@ -22,6 +22,8 @@ with workflow.unsafe.imports_passed_through():
         DetectLanguageOutput,
         GenerateAudioInput,
         GenerateAudioOutput,
+        PublishEventInput,
+        PublishEventOutput,
         QualityCheckInput,
         QualityCheckOutput,
         SegmentTextInput,
@@ -32,6 +34,11 @@ with workflow.unsafe.imports_passed_through():
         TranslateSegmentsOutput,
         detect_language_activity,
         generate_audio_activity,
+        publish_job_started_activity,
+        publish_job_completed_activity,
+        publish_job_failed_activity,
+        publish_step_completed_activity,
+        publish_audiobook_generated_activity,
         quality_check_activity,
         segment_text_activity,
         store_translations_activity,
@@ -110,9 +117,6 @@ class TranslationWorkflow:
         start_time = time.time()
         self._status = "running"
 
-        # Use defaults for quality checks
-        quality_checks = input_data.quality_check_types or DEFAULT_QUALITY_CHECKS
-
         # Activity options - all activities have 10 min timeout with retry
         activity_options = {
             "start_to_close_timeout": timedelta(minutes=10),
@@ -122,6 +126,22 @@ class TranslationWorkflow:
                 maximum_attempts=3,
             ),
         }
+
+        # Publish JOB_STARTED event
+        await workflow.execute_activity(
+            publish_job_started_activity,
+            PublishEventInput(
+                pipeline_id=self._pipeline_id,
+                job_id=input_data.job_id,
+                work_id=input_data.work_id,
+                source_lang=input_data.source_lang,
+                target_lang=input_data.target_lang,
+            ),
+            **activity_options,
+        )
+
+        # Use defaults for quality checks
+        quality_checks = input_data.quality_check_types or DEFAULT_QUALITY_CHECKS
 
         try:
             # Stage 1: Detect Language
@@ -137,6 +157,19 @@ class TranslationWorkflow:
             )
             self._stages_completed.append("detect")
             workflow.logger.info(f"Language detected: {detect_result.detected_lang}")
+
+            # Publish step completed
+            await workflow.execute_activity(
+                publish_step_completed_activity,
+                PublishEventInput(
+                    pipeline_id=self._pipeline_id,
+                    job_id=input_data.job_id,
+                    work_id=input_data.work_id,
+                    stage="detect",
+                    output={"detected_lang": detect_result.detected_lang},
+                ),
+                **activity_options,
+            )
 
             # Use detected language if source_lang is auto
             detected_lang = detect_result.detected_lang
@@ -159,6 +192,19 @@ class TranslationWorkflow:
             self._stages_completed.append("segment")
             workflow.logger.info(f"Created {segment_result.total_segments} segments")
 
+            # Publish step completed
+            await workflow.execute_activity(
+                publish_step_completed_activity,
+                PublishEventInput(
+                    pipeline_id=self._pipeline_id,
+                    job_id=input_data.job_id,
+                    work_id=input_data.work_id,
+                    stage="segment",
+                    output={"total_segments": segment_result.total_segments},
+                ),
+                **activity_options,
+            )
+
             # Stage 3: Translate Segments
             self._status = "translating_segments"
             translate_result: TranslateSegmentsOutput = await workflow.execute_activity(
@@ -180,6 +226,19 @@ class TranslationWorkflow:
                 self._errors.extend(translate_result.errors)
             workflow.logger.info(f"Translated {translate_result.translated_count} segments")
 
+            # Publish step completed
+            await workflow.execute_activity(
+                publish_step_completed_activity,
+                PublishEventInput(
+                    pipeline_id=self._pipeline_id,
+                    job_id=input_data.job_id,
+                    work_id=input_data.work_id,
+                    stage="translate",
+                    output={"translated_count": translate_result.translated_count, "errors": translate_result.errors},
+                ),
+                **activity_options,
+            )
+
             # Stage 4: Quality Check
             self._status = "quality_checking"
             quality_result: QualityCheckOutput = await workflow.execute_activity(
@@ -196,6 +255,23 @@ class TranslationWorkflow:
             self._stages_completed.append("quality_check")
             workflow.logger.info(f"Quality check: {quality_result.passed_count}/{quality_result.checked_count} passed, score={quality_result.overall_score:.2f}")
 
+            # Publish step completed
+            await workflow.execute_activity(
+                publish_step_completed_activity,
+                PublishEventInput(
+                    pipeline_id=self._pipeline_id,
+                    job_id=input_data.job_id,
+                    work_id=input_data.work_id,
+                    stage="quality_check",
+                    output={
+                        "passed_count": quality_result.passed_count,
+                        "checked_count": quality_result.checked_count,
+                        "overall_score": quality_result.overall_score,
+                    },
+                ),
+                **activity_options,
+            )
+
             # Stage 5: Store Translations
             self._status = "storing_translations"
             store_result: StoreTranslationsOutput = await workflow.execute_activity(
@@ -211,6 +287,19 @@ class TranslationWorkflow:
             if store_result.errors:
                 self._errors.extend(store_result.errors)
             workflow.logger.info(f"Stored {store_result.stored_count} translations")
+
+            # Publish step completed
+            await workflow.execute_activity(
+                publish_step_completed_activity,
+                PublishEventInput(
+                    pipeline_id=self._pipeline_id,
+                    job_id=input_data.job_id,
+                    work_id=input_data.work_id,
+                    stage="store",
+                    output={"stored_count": store_result.stored_count, "errors": store_result.errors},
+                ),
+                **activity_options,
+            )
 
             # Stage 6: Generate Audio (optional)
             audio_file_path = None
@@ -240,8 +329,35 @@ class TranslationWorkflow:
                 audio_duration_ms = audio_result.duration_ms
                 workflow.logger.info(f"Generated audio: {audio_file_path} ({audio_duration_ms}ms)")
 
+                # Publish audiobook generated event
+                await workflow.execute_activity(
+                    publish_audiobook_generated_activity,
+                    PublishEventInput(
+                        pipeline_id=self._pipeline_id,
+                        job_id=input_data.job_id,
+                        work_id=input_data.work_id,
+                        audio_file_path=audio_file_path,
+                        duration_ms=audio_duration_ms,
+                        format=input_data.audio_format,
+                    ),
+                    **activity_options,
+                )
+
             self._status = "completed"
             duration_ms = int((time.time() - start_time) * 1000)
+
+            # Publish JOB_COMPLETED event
+            await workflow.execute_activity(
+                publish_job_completed_activity,
+                PublishEventInput(
+                    pipeline_id=self._pipeline_id,
+                    job_id=input_data.job_id,
+                    work_id=input_data.work_id,
+                    stages_completed=self._stages_completed,
+                    duration_ms=duration_ms,
+                ),
+                **activity_options,
+            )
 
             return TranslationWorkflowOutput(
                 pipeline_id=self._pipeline_id,
@@ -259,6 +375,19 @@ class TranslationWorkflow:
             self._errors.append(str(e))
             workflow.logger.error(f"Workflow failed: {e}")
             duration_ms = int((time.time() - start_time) * 1000)
+
+            # Publish JOB_FAILED event
+            await workflow.execute_activity(
+                publish_job_failed_activity,
+                PublishEventInput(
+                    pipeline_id=self._pipeline_id,
+                    job_id=input_data.job_id,
+                    work_id=input_data.work_id,
+                    error=str(e),
+                    failed_stage=self._status,
+                ),
+                **activity_options,
+            )
 
             return TranslationWorkflowOutput(
                 pipeline_id=self._pipeline_id,
@@ -304,6 +433,28 @@ class ResumeTranslationWorkflow:
         start_time = time.time()
         self._status = "running"
 
+        # Publish JOB_STARTED event (resume)
+        activity_options = {
+            "start_to_close_timeout": timedelta(minutes=10),
+            "retry_policy": RetryPolicy(
+                initial_interval=timedelta(seconds=1),
+                maximum_interval=timedelta(minutes=5),
+                maximum_attempts=3,
+            ),
+        }
+
+        await workflow.execute_activity(
+            publish_job_started_activity,
+            PublishEventInput(
+                pipeline_id=self._pipeline_id,
+                job_id=input_data.job_id,
+                work_id=input_data.work_id,
+                source_lang=input_data.source_lang,
+                target_lang=input_data.target_lang,
+            ),
+            **activity_options,
+        )
+
         quality_checks = input_data.quality_check_types or DEFAULT_QUALITY_CHECKS
 
         # Define stage order
@@ -314,16 +465,6 @@ class ResumeTranslationWorkflow:
             raise ValueError(f"Invalid from_stage: {from_stage}") from None
 
         stages_to_run = stage_order[start_idx:]
-
-        # Activity options
-        activity_options = {
-            "start_to_close_timeout": timedelta(minutes=10),
-            "retry_policy": RetryPolicy(
-                initial_interval=timedelta(seconds=1),
-                maximum_interval=timedelta(minutes=5),
-                maximum_attempts=3,
-            ),
-        }
 
         try:
             # We need to pass along intermediate results between stages
@@ -347,6 +488,19 @@ class ResumeTranslationWorkflow:
                 )
                 self._stages_completed.append("detect")
 
+                # Publish step completed
+                await workflow.execute_activity(
+                    publish_step_completed_activity,
+                    PublishEventInput(
+                        pipeline_id=self._pipeline_id,
+                        job_id=input_data.job_id,
+                        work_id=input_data.work_id,
+                        stage="detect",
+                        output={"detected_lang": detect_result.detected_lang},
+                    ),
+                    **activity_options,
+                )
+
             source_lang = input_data.source_lang
             if source_lang == "auto" and detect_result:
                 source_lang = detect_result.detected_lang
@@ -366,6 +520,19 @@ class ResumeTranslationWorkflow:
                     **activity_options,
                 )
                 self._stages_completed.append("segment")
+
+                # Publish step completed
+                await workflow.execute_activity(
+                    publish_step_completed_activity,
+                    PublishEventInput(
+                        pipeline_id=self._pipeline_id,
+                        job_id=input_data.job_id,
+                        work_id=input_data.work_id,
+                        stage="segment",
+                        output={"total_segments": segment_result.total_segments},
+                    ),
+                    **activity_options,
+                )
 
             if "translate" in stages_to_run:
                 self._status = "translating_segments"
@@ -389,6 +556,19 @@ class ResumeTranslationWorkflow:
                 if translate_result.errors:
                     self._errors.extend(translate_result.errors)
 
+                # Publish step completed
+                await workflow.execute_activity(
+                    publish_step_completed_activity,
+                    PublishEventInput(
+                        pipeline_id=self._pipeline_id,
+                        job_id=input_data.job_id,
+                        work_id=input_data.work_id,
+                        stage="translate",
+                        output={"translated_count": translate_result.translated_count, "errors": translate_result.errors},
+                    ),
+                    **activity_options,
+                )
+
             if "quality_check" in stages_to_run:
                 self._status = "quality_checking"
                 segments = translate_result.segments if translate_result else []
@@ -404,6 +584,19 @@ class ResumeTranslationWorkflow:
                     **activity_options,
                 )
                 self._stages_completed.append("quality_check")
+
+                # Publish step completed
+                await workflow.execute_activity(
+                    publish_step_completed_activity,
+                    PublishEventInput(
+                        pipeline_id=self._pipeline_id,
+                        job_id=input_data.job_id,
+                        work_id=input_data.work_id,
+                        stage="quality_check",
+                        output={},
+                    ),
+                    **activity_options,
+                )
 
             if "store" in stages_to_run:
                 self._status = "storing_translations"
@@ -421,8 +614,34 @@ class ResumeTranslationWorkflow:
                 if store_result.errors:
                     self._errors.extend(store_result.errors)
 
+                # Publish step completed
+                await workflow.execute_activity(
+                    publish_step_completed_activity,
+                    PublishEventInput(
+                        pipeline_id=self._pipeline_id,
+                        job_id=input_data.job_id,
+                        work_id=input_data.work_id,
+                        stage="store",
+                        output={"stored_count": store_result.stored_count, "errors": store_result.errors},
+                    ),
+                    **activity_options,
+                )
+
             self._status = "completed"
             duration_ms = int((time.time() - start_time) * 1000)
+
+            # Publish JOB_COMPLETED event
+            await workflow.execute_activity(
+                publish_job_completed_activity,
+                PublishEventInput(
+                    pipeline_id=self._pipeline_id,
+                    job_id=input_data.job_id,
+                    work_id=input_data.work_id,
+                    stages_completed=self._stages_completed,
+                    duration_ms=duration_ms,
+                ),
+                **activity_options,
+            )
 
             return TranslationWorkflowOutput(
                 pipeline_id=self._pipeline_id,
@@ -436,7 +655,21 @@ class ResumeTranslationWorkflow:
         except Exception as e:
             self._status = "failed"
             self._errors.append(str(e))
+            workflow.logger.error(f"Workflow failed: {e}")
             duration_ms = int((time.time() - start_time) * 1000)
+
+            # Publish JOB_FAILED event
+            await workflow.execute_activity(
+                publish_job_failed_activity,
+                PublishEventInput(
+                    pipeline_id=self._pipeline_id,
+                    job_id=input_data.job_id,
+                    work_id=input_data.work_id,
+                    error=str(e),
+                    failed_stage=self._status,
+                ),
+                **activity_options,
+            )
 
             return TranslationWorkflowOutput(
                 pipeline_id=self._pipeline_id,

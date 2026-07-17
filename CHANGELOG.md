@@ -5,6 +5,95 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.14.0] - 2026-07-17
+
+### Added
+- Sprint 4.1: API Gateway Kong Setup
+  - **Kong Declarative Configuration** (`gateway/kong/kong.yml`):
+    - 5 upstream services: Catalog (8001), Glossary (8002), Translation (8003), Document (8004), Audio (8005)
+    - Route definitions for all REST endpoints with proper path stripping
+    - Service plugins: rate-limiting, request-transformer, correlation-id
+  - **Per-Service Rate Limiting**:
+    - Catalog: 100/min, 1000/hr (read-heavy)
+    - Glossary: 60/min, 500/hr (moderate)
+    - Translation: 30/min, 200/hr (compute-intensive)
+    - Document: 10/min, 50/hr (large payloads)
+    - Audio: 5/min, 20/hr (very compute-intensive)
+  - **Global Plugins**:
+    - CORS for frontend (localhost:4200, 8080)
+    - Prometheus metrics exposition
+    - Response security headers (CSP, X-Frame-Options, etc.)
+    - IP restriction for admin endpoints
+    - Access logging to Logstash
+  - **Authentication** (Key-Auth):
+    - Frontend consumer with API key
+    - Admin consumer with API key
+    - Webhook receiver consumer
+  - **Docker Compose Stack** (`gateway/kong/docker-compose.kong.yml`):
+    - Kong 3.4 with PostgreSQL 15
+    - Konga UI for gateway management
+    - Prometheus + Grafana for monitoring
+    - Health checks and dependency ordering
+  - **Monitoring**:
+    - Prometheus scrape config for Kong + upstream services
+    - Grafana dashboard with 9 panels (RPS, latency, error rates, connections, rate limiting)
+    - Pre-configured datasources and dashboard provisioning
+  - **Operations**:
+    - Startup script with health checks (`start-kong.sh`)
+    - Environment template (`.env.example`)
+    - Comprehensive README with troubleshooting guide
+  - **Security**:
+    - Request size limits per service
+    - Timeout budgets per service
+    - Response header hardening
+    - JWT/Key-Auth ready for production
+
+### CUPID
+- **Composable**: Independent service routes, reusable plugins
+- **Unix Philosophy**: Each route → one service, stdin/stdout proxy model
+- **Predictable**: Explicit rate limits, timeout budgets, retry policies
+- **Idiomatic**: Kong declarative config, Prometheus metrics, Docker Compose
+- **Domain-Focused**: Routes mirror translation domain (catalog/glossary/translation/document/audio)
+
+## [v0.13.0] - 2026-07-17
+
+### Added
+- Sprint 3.5: Event Bus Kafka + CloudEvents Integration
+  - **Event publishing activities** for translation workflow milestones:
+    - `publish_job_started_activity`: Emits `JOB_STARTED` event at workflow start
+    - `publish_job_completed_activity`: Emits `JOB_COMPLETED` event on success
+    - `publish_job_failed_activity`: Emits `JOB_FAILED` event on failure
+    - `publish_step_completed_activity`: Emits `WORKFLOW_STEP_COMPLETED` after each stage
+    - `publish_audiobook_generated_activity`: Emits `AUDIOBOOK_GENERATED` after Stage 6
+  - **CloudEvents 1.0 specification** compliance via `cloudevents` library
+    - Structured content mode with `application/cloudevents+json`
+    - Required fields: id, source, type, specversion, datacontenttype, time
+    - Optional: subject, traceparent, tracestate, correlationid
+  - **Kafka producer integration** via `aiokafka`:
+    - Async producer with singleton pattern per worker process
+    - Topics: `pdftranslator.job.started`, `pdftranslator.job.completed`, `pdftranslator.job.failed`, `pdftranslator.workflow.step.completed`, `pdftranslator.audiobook.generated`
+    - Configurable via `KAFKA_BOOTSTRAP_SERVERS` env var (default: localhost:9092)
+    - Graceful shutdown via `shutdown_publisher()` activity
+  - **Workflow integration** in `TranslationWorkflow` and `ResumeTranslationWorkflow`:
+    - JOB_STARTED emitted at pipeline start
+    - WORKFLOW_STEP_COMPLETED after each of 6 stages (detect, segment, translate, quality_check, store, generate_audio)
+    - JOB_COMPLETED with stages_completed and duration_ms on success
+    - JOB_FAILED with error and failed_stage on failure
+    - AUDIOBOOK_GENERATED with audio_file_path and duration_ms when audio enabled
+  - **Event data models**: `PublishEventInput`/`PublishEventOutput` dataclasses for activity I/O
+  - **Shared events module** (`pdftranslator.shared.events`):
+    - `EventPublisher` / `EventPublisherFactory` for Kafka producer management
+    - `KafkaConfig` configuration dataclass
+    - `EventTypes` / `EventSources` constants for CloudEvents type/source taxonomy
+    - `create_event()` helper for CloudEvents construction with tracing headers
+
+### CUPID
+- **Composable**: Independent publish activities, reusable across workflows
+- **Unix Philosophy**: Each activity does one thing (emit one event type)
+- **Predictable**: Deterministic CloudEvents with structured schema, correlation IDs for tracing
+- **Idiomatic**: Temporal activity patterns, async Kafka producer, dataclasses
+- **Domain-Focused**: Events model translation job lifecycle milestones
+
 ## [v0.12.0] - 2026-07-17
 
 ### Added

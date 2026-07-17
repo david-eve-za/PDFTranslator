@@ -1,0 +1,265 @@
+version: '3.8'
+
+services:
+  # =================== KONG API GATEWAY ===================
+  kong:
+    image: kong:3.4
+    container_name: pdftranslator-kong
+    environment:
+      # Database
+      KONG_DATABASE: "postgres"
+      KONG_PG_HOST: "kong-db"
+      KONG_PG_PORT: 5432
+      KONG_PG_USER: "kong"
+      KONG_PG_PASSWORD: "kong"
+      KONG_PG_DATABASE: "kong"
+
+      # Declarative Configuration (DB-less mode option)
+      # KONG_DATABASE: "off"
+      # KONG_DECLARATIVE_CONFIG: /kong/kong.yml
+
+      # Gateway Settings
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001, 0.0.0.0:8444 ssl
+      KONG_PROXY_LISTEN: 0.0.0.0:8000, 0.0.0.0:8443 ssl
+
+      # Performance
+      KONG_NGINX_WORKER_PROCESSES: "auto"
+      KONG_NGINX_WORKER_CONNECTIONS: "16384"
+      KONG_MEMCACHE_HOST: "kong-redis"
+      KONG_MEMCACHE_PORT: 6379
+
+      # Security
+      KONG_TRUSTED_IPS: "0.0.0.0/0,::/0"
+      KONG_REAL_IP_HEADER: "X-Forwarded-For"
+      KONG_REAL_IP_RECURSIVE: "on: "on"
+
+      # Plugins
+      KONG_PLUGINS: "bundled,rate-limiting,correlation-id,request-transformer,response-transformer,ip-restriction,acl,key-auth,jwt,oauth2,serverless-pre-function,serverless-post-function"
+
+      # Tracing (OpenTelemetry)
+      KONG_TRACING_INSTRUMENTATIONS: "http,balancer,router,rate-limiting,auth"
+      KONG_TRACING_SAMPLING_RATE: "0.1"
+
+    ports:
+      - "8000:8000"    # Proxy HTTP
+      - "8443:8443"    # Proxy HTTPS
+      - "8001:8001"    # Admin API HTTP
+      - "8444:8444"    # Admin API HTTPS
+    volumes:
+      - ./kong.yml:/kong/kong.yml:ro
+      - ./custom-plugins:/custom-plugins:ro
+    depends_on:
+      kong-db:
+        condition: service_healthy
+      kong-redis:
+        condition: service_started
+    networks:
+      - kong-net
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # =================== KONG DATABASE ===================
+  kong-db:
+    image: postgres:15-alpine
+    container_name: pdftranslator-kong-db
+    environment:
+      POSTGRES_USER: kong
+      POSTGRES_PASSWORD: kong
+      POSTGRES_DB: kong
+    volumes:
+      - kong-db-data:/var/lib/postgresql/data
+    networks:
+      - kong-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kong -d kong"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =================== REDIS FOR CACHING ===================
+  kong-redis:
+    image: redis:7-alpine
+    container_name: pdftranslator-kong-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - kong-redis-data:/data
+    networks:
+      - kong-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =================== KONG MANAGER (Admin UI) ===================
+  kong-manager:
+    image: kong:3.4
+    container_name: pdftranslator-kong-manager
+    command: kong migrations bootstrap && kong start
+    environment:
+      KONG_DATABASE: "postgres"
+      KONG_PG_HOST: "kong-db"
+      KONG_PG_PORT: 5432
+      KONG_PG_USER: "kong"
+      KONG_PG_PASSWORD: "kong"
+      KONG_PG_DATABASE: "kong"
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      KONG_ADMIN_GUI_URL: http://localhost:8002
+      KONG_ADMIN_GUI_LISTEN: 0.0.0.0:8002
+    ports:
+      - "8002:8002"
+    depends_on:
+      - kong-db
+    networks:
+      - kong-net
+
+  # =================== KONGA (Alternative Admin UI) ===================
+  konga:
+    image: pantsel/konga:latest
+    container_name: pdftranslator-konga
+    environment:
+      DB_ADAPTER: postgres
+      DB_HOST: kong-db
+      DB_PORT: 5432
+      DB_USER: kong
+      DB_PASSWORD: kong
+      DB_DATABASE: kong
+      NODE_ENV: production
+    ports:
+      - "1337:1337"
+    depends_on:
+      - kong-db
+    networks:
+      - kong-net
+
+  # =================== BACKEND SERVICES (Mock for Development) ===================
+  catalog-service:
+    build:
+      context: ../../
+      dockerfile: src/pdftranslator/services/catalog/Dockerfile
+    container_name: pdftranslator-catalog
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./data/catalog.db
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    ports:
+      - "8001:8001"
+    networks:
+      - kong-net
+    depends_on:
+      - kong-db
+
+  glossary-service:
+    build:
+      context: ../../
+      dockerfile: src/pdftranslator/services/glossary/Dockerfile
+    container_name: pdftranslator-glossary
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./data/glossary.db
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    ports:
+      - "8002:8002"
+    networks:
+      - kong-net
+    depends_on:
+      - kong-db
+
+  translation-service:
+    build:
+      context: ../../
+      dockerfile: src/pdftranslator/services/translation/Dockerfile
+    container_name: pdftranslator-translation
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./data/translation.db
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - TEMPORAL_ADDRESS=temporal:7233
+    ports:
+      - "8003:8003"
+    networks:
+      - kong-net
+    depends_on:
+      - kong-db
+
+  # =================== KAFKA FOR EVENTING ===================
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: pdftranslator-kafka
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks:
+      - kong-net
+    depends_on:
+      - zookeeper
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: pdftranslator-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+    networks:
+      - kong-net
+
+  # =================== TEMPORAL FOR WORKFLOWS ===================
+  temporal:
+    image: temporalio/auto-setup:1.22
+    container_name: pdftranslator-temporal
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_HOST=temporal-db
+      - DEFAULT_NAMESPACE=default
+    ports:
+      - "7233:7233"
+      - "8233:8233"
+    volumes:
+      - temporal-data:/etc/temporal
+    networks:
+      - kong-net
+    depends_on:
+      - temporal-db
+
+  temporal-db:
+    image: postgres:15-alpine
+    container_name: pdftranslator-temporal-db
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_DB: temporal
+    volumes:
+      - temporal-db-data:/var/lib/postgresql/data
+    networks:
+      - kong-net
+
+volumes:
+  kong-db-data:
+  kong-redis-data:
+  kafka-data:
+  zookeeper-data:
+  temporal-data:
+  temporal-db-data:
+
+networks:
+  kong-net:
+    driver: bridge
+    name: pdftranslator-kong-net
