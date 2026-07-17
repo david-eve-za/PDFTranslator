@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.12.0] - 2026-07-17
+
+### Added
+- Sprint 3.4: Chaos Testing + Deterministic Replay
+  - **Deterministic Replay Tests (3 tests)**: Verify workflow produces identical output for same input across replay runs
+    - `test_translation_workflow_deterministic_output`: Full pipeline replay consistency
+    - `test_workflow_replay_after_failure`: Resume from failure point
+    - `test_resume_workflow_deterministic`: ResumeWorkflow deterministic behavior
+  - **Activity Retry Behavior Tests (2 tests)**: Exception propagation and max retry handling
+  - **Failure Mode Documentation (7 modes)**: Documented with description, recovery, retry policy
+    - Activity timeout, transient error, permanent error
+    - Workflow task timeout, Temporal server unavailable
+    - Activity worker crash, non-deterministic code
+  - **Chaos Engineering Experiments (3 tests)**:
+    - `test_network_partition_simulation`: ConnectionError during activity
+    - `test_worker_crash_simulation`: RuntimeError with replay recovery
+    - `test_latency_injection_simulation`: High latency handling (100ms+)
+  - **Mock temporalio in conftest.py**: Avoids Apple Silicon bus error
+
+### CUPID
+- Predictable: Deterministic replay verified across all pipeline stages
+- Composable: Each test independent, reusable mock patterns
+- Unix Philosophy: Single-responsibility tests, pure functions
+- Idiomatic: pytest-asyncio, AsyncMock, parametrize patterns
+- Domain-Focused: Tests mirror translation/embedding workflow chaos scenarios
+
 ## [v0.11.0] - 2026-07-16
 
 ### Added
