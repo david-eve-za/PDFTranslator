@@ -97,29 +97,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Sprint 1.4: Event Schemas (CloudEvents + Avro) (v0.4.0)
-  - Avro schemas for core domain events: WorkCreated, DocumentExtracted, GlossaryBuilt, TranslationCompleted, AudioGenerated, JobStatusChanged
-  - CloudEvents 1.0 envelope specification with trace context propagation
-  - Schema Registry configuration (Apicurio/Confluent) with BACKWARD compatibility
-  - Python event client library with Avro serialization (fastavro + cloudevents-sdk)
-  - Go/TypeScript code generation scaffolding
-  - GitOps-ready schema registration scripts
-  - Event versioning strategy and migration patterns
-  - Contract tests for schema validation
-
-### Added
-- Sprint 1.3: Translation Service Read-Only API (v0.3.0)
-  - TranslationJob aggregate root with state machine (pending→queued→in_progress→completed/failed/paused/cancelled)
-  - Segment entity for translation unit management
-  - GlossaryReference value object for glossary linking
-  - Repository protocols (TranslationJobRepository, SegmentRepository) with UnitOfWork
-  - SQLite implementations with JSON glossary_refs storage
-  - FastAPI routes: GET/POST /jobs, GET /jobs/{id}/segments, PUT /jobs/{id}/status
-  - Health endpoints: /health, /ready
-  - Pact contract tests for Angular frontend compatibility
-  - Database migrations (translation_jobs, translation_segments tables)
-
----
+- Sprint 3.2: Job Orchestrator API Integration
+  - REST endpoints for Temporal workflow execution and monitoring
+  - POST /jobs/{job_id}/run - start translation pipeline
+  - GET /jobs/{job_id}/status - query workflow status
+  - POST /jobs/{job_id}/resume - resume from failed stage
 
 ---
 
@@ -138,36 +120,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker Compose for local development stack
 
 ---
-
-## [v0.0.0] - 2026-07-01
-
-### Added
-- Repository initialization
-- Basic project structure## [v0.1.0] - 2026-07-12
-
-### Added
-- CHANGELOG.md with Keep a Changelog format
-- .gitmessage template for Conventional Commits
-- commitlint.config.js for commit message validation
-- docs/WORK_PLAN_CUPID.md: Full 22-sprint CUPID microservices migration plan
-- docs/WORK_PLAN_CUPID_MICROSERVICES.md: Detailed sprint breakdown with checkboxes
-- scripts/changelog-update.sh: Automated changelog generator
-
-### Changed
-- Consolidated all feature/refactor branches into main
-- Cleaned up 12 local branches for fresh start
-
-### Fixed
-- Database transaction commits in connection context managers
-- DATABASE_PATH env var support for database location
-- Glossary Rich Progress context manager for Live display
-- Datetime field parsing across repositories
-- Table initialization on first connection
-- TokenChunkCalculator review issues
-- Adaptive token chunk sizing
-- Token chunking fields in NvidiaConfig
-
-### Documentation
-- Token chunking optimization implementation plan
-- Token chunking strategy design spec
 
