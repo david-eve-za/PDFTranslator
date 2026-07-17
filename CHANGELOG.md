@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.11.0] - 2026-07-16
+
+### Added
+- Sprint 3.3: Audio Generation Integration with Temporal Workflows
+  - **Stage 6 added to TranslationWorkflow**: Audio generation from translated text
+    - Optional audiobook generation controlled by `generate_audio` flag
+    - Configurable: voice, format (m4a/mp3/wav/ogg/flac), sample_rate, bitrate
+    - EBU R128 normalization via Rust audio service (auto-enabled)
+    - Pluggable TTS engines (macOS Say, Piper, Coqui) via workflow parameter
+  - **generate_audio_activity** calls Rust `pdftranslator-audio` via subprocess
+    - Concatenates translated segments → stdin → audio binary → stdout → file
+    - Returns audio file path, duration, format, size_bytes
+  - **Workflow Input/Output updated**:
+    - Input: `generate_audio`, `audio_voice`, `audio_format`, `audio_sample_rate`, `audio_bitrate`, `audio_normalize`, `audio_target_loudness`, `audio_engine`
+    - Output: `audio_file_path`, `audio_duration_ms`
+  - **Unit tests (14 total)** with mocked temporalio for Apple Silicon compatibility
+
+### CUPID
+- Composable: Activity independent, reusable, calls Rust via Unix pipeline
+- Unix Philosophy: Stdin/stdout audio generation, single responsibility
+- Predictable: Deterministic via explicit config, deterministic EBU R128
+- Idiomatic: Python async subprocess, dataclasses, Temporal patterns
+- Domain-Focused: Audiobook generation as natural Stage 6 of translation
+
 ## [v0.10.0] - 2026-07-16
 
 ### Added
