@@ -20,6 +20,8 @@ with workflow.unsafe.imports_passed_through():
     from pdftranslator.services.translation.activities import (
         DetectLanguageInput,
         DetectLanguageOutput,
+        GenerateAudioInput,
+        GenerateAudioOutput,
         QualityCheckInput,
         QualityCheckOutput,
         SegmentTextInput,
@@ -29,6 +31,7 @@ with workflow.unsafe.imports_passed_through():
         TranslateSegmentsInput,
         TranslateSegmentsOutput,
         detect_language_activity,
+        generate_audio_activity,
         quality_check_activity,
         segment_text_activity,
         store_translations_activity,
@@ -51,6 +54,15 @@ class TranslationWorkflowInput:
     max_tokens: int = 4096
     max_segment_length: int = 5000
     quality_check_types: list[str] = None
+    # Audio generation options (Stage 6)
+    generate_audio: bool = False
+    audio_voice: str = "Samantha"
+    audio_format: str = "m4a"
+    audio_sample_rate: int = 24000
+    audio_bitrate: str = "48k"
+    audio_normalize: bool = True
+    audio_target_loudness: float = -16.0
+    audio_engine: str = "macos-say"
 
 
 @dataclass
@@ -62,6 +74,8 @@ class TranslationWorkflowOutput:
     stages_completed: list[str]
     errors: list[str]
     duration_ms: int
+    audio_file_path: str | None = None
+    audio_duration_ms: int = 0
 
 
 # Default quality checks
@@ -198,6 +212,34 @@ class TranslationWorkflow:
                 self._errors.extend(store_result.errors)
             workflow.logger.info(f"Stored {store_result.stored_count} translations")
 
+            # Stage 6: Generate Audio (optional)
+            audio_file_path = None
+            audio_duration_ms = 0
+            if input_data.generate_audio:
+                self._status = "generating_audio"
+                audio_result: GenerateAudioOutput = await workflow.execute_activity(
+                    generate_audio_activity,
+                    GenerateAudioInput(
+                        job_id=input_data.job_id,
+                        segments=translate_result.segments,
+                        target_lang=input_data.target_lang,
+                        voice=input_data.audio_voice,
+                        format=input_data.audio_format,
+                        sample_rate=input_data.audio_sample_rate,
+                        bitrate=input_data.audio_bitrate,
+                        normalize=input_data.audio_normalize,
+                        target_loudness=input_data.audio_target_loudness,
+                        engine=input_data.audio_engine,
+                    ),
+                    **activity_options,
+                )
+                self._stages_completed.append("generate_audio")
+                if audio_result.errors:
+                    self._errors.extend(audio_result.errors)
+                audio_file_path = audio_result.audio_file_path
+                audio_duration_ms = audio_result.duration_ms
+                workflow.logger.info(f"Generated audio: {audio_file_path} ({audio_duration_ms}ms)")
+
             self._status = "completed"
             duration_ms = int((time.time() - start_time) * 1000)
 
@@ -208,6 +250,8 @@ class TranslationWorkflow:
                 stages_completed=self._stages_completed,
                 errors=self._errors,
                 duration_ms=duration_ms,
+                audio_file_path=audio_file_path,
+                audio_duration_ms=audio_duration_ms,
             )
 
         except Exception as e:

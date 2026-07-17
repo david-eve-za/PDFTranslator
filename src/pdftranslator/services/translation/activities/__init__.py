@@ -30,6 +30,12 @@ from pdftranslator.services.translation.activities.translate_segments import (
     TranslateSegmentsOutput,
     translate_segments_activity,
 )
+from pdftranslator.services.translation.activities.generate_audio import (
+    GenerateAudioInput,
+    GenerateAudioOutput,
+    generate_audio_activity,
+    generate_audio_activity_wrapper,
+)
 
 __all__ = [
     # Detect Language
@@ -52,4 +58,9 @@ __all__ = [
     "store_translations_activity",
     "StoreTranslationsInput",
     "StoreTranslationsOutput",
+    # Generate Audio
+    "generate_audio_activity",
+    "generate_audio_activity_wrapper",
+    "GenerateAudioInput",
+    "GenerateAudioOutput",
 ]

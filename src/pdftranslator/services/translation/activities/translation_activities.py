@@ -421,3 +421,34 @@ async def store_translations_activity(input_data: StoreTranslationsInput) -> Sto
         stored_count=stored_count,
         errors=errors,
     )
+
+
+# Import and re-export generate_audio_activity
+from pdftranslator.services.translation.activities.generate_audio import (
+    GenerateAudioInput,
+    GenerateAudioOutput,
+    generate_audio_activity,
+    generate_audio_activity_wrapper,
+)
+
+__all__ = [
+    "detect_language_activity",
+    "segment_text_activity",
+    "translate_segments_activity",
+    "quality_check_activity",
+    "store_translations_activity",
+    "generate_audio_activity",
+    "generate_audio_activity_wrapper",
+    "DetectLanguageInput",
+    "DetectLanguageOutput",
+    "SegmentTextInput",
+    "SegmentTextOutput",
+    "TranslateSegmentsInput",
+    "TranslateSegmentsOutput",
+    "QualityCheckInput",
+    "QualityCheckOutput",
+    "StoreTranslationsInput",
+    "StoreTranslationsOutput",
+    "GenerateAudioInput",
+    "GenerateAudioOutput",
+]

@@ -264,3 +264,62 @@ class TestStoreTranslationsActivity:
 
         assert result.stored_count == 1
         assert len(result.errors) == 1
+
+
+class TestGenerateAudioActivity:
+    """Tests for generate_audio activity."""
+
+    @pytest.mark.asyncio
+    async def test_generate_audio_no_text(self):
+        """Test generating audio with no translated text."""
+        from pdftranslator.services.translation.activities import generate_audio_activity, GenerateAudioInput
+
+        segments = [
+            {"segment_number": 1, "source_text": "Hello", "target_text": "", "translated": False},
+        ]
+        input_data = GenerateAudioInput(
+            job_id=1,
+            segments=segments,
+            target_lang="es",
+        )
+        result = await generate_audio_activity(input_data)
+
+        # Should return error when no translated text
+        assert result.audio_file_path is None
+        assert result.duration_ms == 0
+        assert len(result.errors) == 1
+        assert "No translated text" in result.errors[0]
+
+    @pytest.mark.asyncio
+    async def test_generate_audio_with_text(self):
+        """Test generating audio with translated text (mocked subprocess)."""
+        from pdftranslator.services.translation.activities import generate_audio_activity, GenerateAudioInput
+        from unittest.mock import patch, AsyncMock
+
+        segments = [
+            {"segment_number": 1, "source_text": "Hello", "target_text": "Hola", "translated": True},
+            {"segment_number": 2, "source_text": "World", "target_text": "Mundo", "translated": True},
+        ]
+        input_data = GenerateAudioInput(
+            job_id=1,
+            segments=segments,
+            target_lang="es",
+            voice="Samantha",
+            format="m4a",
+        )
+
+        # Mock the subprocess call
+        mock_audio_data = b"fake audio data"
+        with patch("pdftranslator.services.translation.activities.generate_audio.asyncio.create_subprocess_exec") as mock_subprocess:
+            mock_proc = AsyncMock()
+            mock_proc.returncode = 0
+            mock_proc.communicate = AsyncMock(return_value=(mock_audio_data, b""))
+            mock_subprocess.return_value = mock_proc
+
+            with patch("pdftranslator.services.translation.activities.generate_audio.Path.write_bytes"):
+                result = await generate_audio_activity(input_data)
+
+        assert result.audio_file_path is not None
+        assert result.duration_ms >= 0
+        assert result.total_chars > 0
+        assert len(result.errors) == 0
