@@ -1,0 +1,58 @@
+[package]
+name = "pdftranslator-audio"
+version = "0.1.0"
+edition = "2021"
+description = "Audio generation service with pluggable TTS engines"
+license = "MIT"
+repository = "https://github.com/david-eve-za/PDFTranslator"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+categories = ["audio", "multimedia", "cli"]
+
+[dependencies]
+# CLI parsing
+clap = { version = "4.5", features = ["derive"] }
+anyhow = "1.0"
+
+# Audio processing
+symphonia = { version = "0.5", features = ["aac", "mp3", "vorbis", "flac", "wav", "isomp4"] }
+
+# Audio normalized loudness (EBU R128)
+ebur128 = "0.1"
+
+# Async runtime
+tokio = { version = "1.37", features = ["full"] }
+
+# Logging
+tracing = { version = "0.1", features = ["std"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+thiserror = "1.0"
+
+# Temp file handling
+tempfile = "3.6"
+
+# Progress indication
+indicatif = "0.17"
+
+# File I/O
+async-compression = "0.3"
+
+# UUID for temp file names
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Async trait support
+async-trait = "0.1"
+
+[dev-dependencies]
+tempfile = "3.6"
+tokio-test = "0.4"
+
+[[bin]]
+name = "pdftranslator-audio"
+path = "src/main.rs"
