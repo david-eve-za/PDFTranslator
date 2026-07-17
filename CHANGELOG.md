@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.10.0] - 2026-07-16
+
+### Added
+- Sprint 3.2: Audio Service Rust Pipeline
+  - **Pluggable TTS Engine Architecture**:
+    - `TTSEngine` trait for composable backends (macOS Say, Piper, Coqui)
+    - `MacOSSayEngine`: Native macOS `say` command integration with `afconvert` for format conversion
+    - Voice listing, language detection, and configuration via `EngineConfig`
+  - **Composable 5-Stage Pipeline** (Unix Philosophy):
+    - `ChunkStage`: Sentence-aware text chunking with configurable size/overlap
+    - `SynthesizeStage`: Parallel TTS synthesis with semaphore-controlled concurrency (default 4 workers)
+    - `MergeStage`: ffmpeg-based audio concatenation with format preservation
+    - `NormalizeStage`: **EBU R128 loudness normalization** via ffmpeg `loudnorm` (two-pass: measure → apply)
+    - `EncodeStage`: Final format encoding (m4a/mp3/wav/ogg/flac) with configurable bitrate/sample rate
+  - **EBU R128 Implementation**:
+    - Two-pass loudnorm: measurement pass (JSON) + application pass with measured values
+    - Target: -16 LUFS integrated, -1.5 dBTP true peak, 11 LU loudness range
+    - True peak limiting and loudness range control
+    - Tolerance-based skip (0.5 LUFS) to avoid unnecessary processing
+  - **CLI: pdftranslator-audio** with commands:
+    - `generate`: Text → audio (stdin/stdout pipeline support)
+    - `voices`: List available voices per engine
+    - `info`: Engine capability inspection
+    - `validate`: Configuration validation
+  - **Dependencies**: tokio, symphonia, ebur128, tempfile, clap, tracing, indicatif, async-trait
+
+### CUPID
+- Composable: `TTSEngine` trait enables pluggable backends; each pipeline stage is independently testable
+- Unix Philosophy: Stdin/stdout pipeline, each stage does one thing (chunk/synthesize/merge/normalize/encode)
+- Predictable: Deterministic EBU R128 normalization with explicit parameters, two-pass for accuracy
+- Idiomatic: Rust traits, async/await, proper error handling with `anyhow`, typed configurations
+- Domain-Focused: Models audiobook generation workflow end-to-end
+
 ## [v0.7.0] - 2026-07-14
 
 ### Added
