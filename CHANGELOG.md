@@ -36,6 +36,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Idiomatic: Uses pytest fixtures, parametrize, standard assertions
 - Domain-Focused: Tests mirror translation/embedding use cases
 
+## [v0.8.0] - 2026-07-14
+
+### Added
+- Sprint 3.1: Job Orchestrator Temporal Workflows
+  - **Temporal Workflows** for durable translation job orchestration
+    - `TranslationWorkflow`: 5-stage pipeline (Detect → Segment → Translate → QC → Store)
+    - `ResumeTranslationWorkflow`: Resume from failed stage with deterministic replay
+  - **5 Temporal Activities** (Unix Philosophy - single responsibility):
+    - `detect_language_activity`: Language detection with text statistics
+    - `segment_text_activity`: Sentence-based segmentation with configurable max length
+    - `translate_segments_activity`: LLM-powered segment translation
+    - `quality_check_activity`: Completeness, fluency, consistency, formatting checks
+    - `store_translations_activity`: Persistence of translated segments
+  - **Test Coverage (15 tests)**:
+    - 12 unit tests for activities (all 5 stages)
+    - 3 integration tests for workflow execution and resume
+
+### Changed
+- Added `temporalio>=1.0.0` as production dependency for workflow orchestration
+
+### CUPID
+- Predictable: Deterministic workflow replay via Temporal event sourcing
+- Domain-Focused: Workflows model translation job lifecycle (detect→store)
+- Composable: Activities are independently testable and reusable
+- Unix Philosophy: Each activity does one thing well with explicit inputs/outputs
+- Idiomatic: Uses Temporal workflow/activity patterns with retry policies
+
 ## [v0.6.0] - 2026-07-14
 
 ### Added
